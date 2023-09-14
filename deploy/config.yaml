@@ -1,0 +1,55 @@
+configDb:
+  dbHost: 192.168.22.4
+  dbPort: 5432
+  dbUser: user
+  dbPass: pass
+  dbDatabase: db
+
+configServerConnection:
+  serverConnectionPort: 12000
+
+configSwagger:
+  swaggerHost: api.buzgibi.app
+  swaggerPort:
+
+configHasql:
+  hasqlSettingsPoolN: 50
+  hasqlSettingsTm: 0.5
+  hasqlSettingsResPerStripe: 100
+
+configKatip:
+  katipPath: katip
+  katipSeverity: DebugS
+  katipVerbosity: V3
+  katipEnv: dev
+  katipStdoutFormat: json
+
+configService:
+  serviceApiKeys:
+   - [recaptcha, 6Lfq078UAAAAAHfSdWpLm9jLqwrZ_goGiyCtj5VG]
+
+configMinio:
+  minioAccessKey: access
+  minioSecretKey: secret
+  minioBucketPrefix: buzgibi
+  minioHost: http://192.168.22.5
+  minioPort: "9000"
+  minioLogBucket: "log"
+
+configTelegram:
+  telegramBot: bot2096396660:AAFgPJkIGmBOgbWuzvyejPJJo7-HpFgr2CY
+  telegramChat: "-934720023"
+  telegramHost: https://api.telegram.org/
+  telegramEnv: dev
+
+configCors:
+  corsOrigins: 
+    [ http://127.0.0.1:8080
+    , http://127.0.0.1:3001
+    , https://buzgibi.app
+    ]
+
+configServerError: true
+
+configJobFrequency: 20
+configWebhook: https://0f51-5-47-32-223.ngrok-free.app
