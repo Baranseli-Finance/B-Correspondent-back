@@ -41,7 +41,6 @@ RUN . /home/nix/.nix-profile/etc/profile.d/nix.sh && \
      --log-format bar-with-logs \ 
      --verbose --command \ 
      "./scripts/api-generator.sh ./openapi/sendgrid-openapiv3.yaml SendGrid sendgrid . && \
-      g++ -o ./bin/buzgibi-audio-file-duration caudio/AudioFile.h caudio/duration.cpp && \
       stack install --system-ghc --fast -j12 --test"
 
 FROM base as main

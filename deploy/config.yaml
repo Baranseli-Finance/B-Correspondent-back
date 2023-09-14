@@ -31,7 +31,7 @@ configService:
 configMinio:
   minioAccessKey: access
   minioSecretKey: secret
-  minioBucketPrefix: buzgibi
+  minioBucketPrefix: b-correspondent
   minioHost: http://192.168.22.5
   minioPort: "9000"
   minioLogBucket: "log"

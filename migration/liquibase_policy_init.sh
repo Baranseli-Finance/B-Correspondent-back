@@ -17,7 +17,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # ============LICENSE_END======================================================
 
-buzgibi_env_file=$(realpath -s buzgibi_env)
+b-correspondent_env_file=$(realpath -s b-correspondent_env)
 
 # db_user, db_pass, db, minio_access_key, minio_secret_key
 declare -a keysmap
@@ -26,11 +26,11 @@ idx=0
 while IFS= read -r line || [[ -n "$line" ]]; do
     keysmap[idx]=$line
     (( idx++ ))
-done < "${buzgibi_env_file}"
+done < "${b-correspondent_env_file}"
 
 /liquibase/liquibase \
     --driver=org.postgresql.Driver \
-    --url=jdbc:postgresql://db:5432/buzgibi \
+    --url=jdbc:postgresql://db:5432/b-correspondent \
     --changeLogFile=changelog/changelog.xml \
     --username=${keysmap[0]} \
     --password=${keysmap[1]} \

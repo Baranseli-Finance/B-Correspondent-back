@@ -13,7 +13,7 @@
 module Katip.Scribes.Telegram (mkScribe) where
 
 import Katip
-import Buzgibi.Config (Telegram (..))
+import BCorrespondent.Config (Telegram (..))
 import Data.Maybe (fromMaybe)
 import qualified Network.HTTP.Client as HTTP
 import Control.Lens.Iso.Extended

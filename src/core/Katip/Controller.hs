@@ -16,11 +16,11 @@ module Katip.Controller
     KatipControllerM (..),
     KatipEnv (..),
     KatipLogger (..),
-    KatipState (..),
     KatipLoggerIO,
     KatipLoggerLocIO,
     State (..),
     Minio (..),
+    KatipState (..),
 
     -- * lens
     nm,
@@ -34,17 +34,8 @@ module Katip.Controller
     bucketPrefix,
     hasqlDbPool,
     conn,
-    captchaKey,
     jwk,
-    github,
-    bark,
-    telnyx,
     webhook,
-
-   -- * State
-   initState,
-   stateToMap,
-   getKatipState,
 
     -- * run
     runKatipController,
@@ -59,8 +50,7 @@ module Katip.Controller
   )
 where
 
-import Buzgibi.EnvKeys
-import Buzgibi.Transport.Model.Translation (Translation, Lang(..))
+import BCorrespondent.EnvKeys
 import Control.DeepSeq
 import Control.Lens
 import Control.Monad.Base (MonadBase)
@@ -87,7 +77,7 @@ import qualified Network.Minio as Minio
 import "sendgrid" OpenAPI.Common as SendGrid
 import Servant.Server (Handler)
 import Servant.Server.Internal.ServerError
-import qualified Data.Map.Strict as Map
+
 
 type KatipLoggerIO = Severity -> LogStr -> IO ()
 
@@ -100,11 +90,7 @@ data KatipEnv = KatipEnv
     katipEnvApiKeys :: ![(String, String)],
     katipEnvMinio :: !Minio,
     katipEnvSendGrid :: !(Maybe (Sendgrid, SendGrid.Configuration)),
-    katipEnvCaptchaKey :: !(Maybe T.Text),
     katipEnvJwk :: !Jose.JWK,
-    katipEnvGithub :: !(Maybe Github),
-    katipEnvBark :: !(Maybe Bark),
-    katipEnvTelnyx :: !(Maybe Telnyx),
     katipEnvWebhook :: !T.Text
   }
 
@@ -114,21 +100,6 @@ newtype KatipLogger = KatipWriter [String]
   deriving newtype (Monoid)
   deriving newtype (Semigroup)
   deriving newtype (NFData)
-
-newtype KatipState = KatipState { translations :: Map.Map Lang Translation }
-  deriving newtype (NFData)
-
-instance Default KatipState where
-  def = KatipState Map.empty
-
-initState :: KatipState
-initState = KatipState $ Map.empty
-
-getKatipState :: KatipState -> Map.Map Lang Translation
-getKatipState (KatipState x) = x
-
-stateToMap :: [(Lang, Translation)] -> Map.Map Lang Translation
-stateToMap old = let new = Map.fromList $ force old in new
 
 data Config = Config
   { configNm :: !Namespace,
@@ -140,11 +111,17 @@ data Config = Config
 instance MonadTime Handler where
   currentTime = liftIO getCurrentTime
 
-newtype State = State { getState :: Map.Map Lang Translation }
+newtype State = State { getState :: [Int] }
 
 newtype KatipControllerWriter = KatipControllerWriter [String]
   deriving newtype (Monoid)
   deriving newtype (Semigroup)
+
+
+newtype KatipState = KatipState Int
+
+instance Default KatipState where
+  def = KatipState 0
 
 -- ServerM
 newtype KatipControllerM a = KatipControllerM

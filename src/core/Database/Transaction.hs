@@ -23,8 +23,8 @@ module Database.Transaction
   )
 where
 
-import Buzgibi.Transport.Payload (Payload (..))
-import Buzgibi.Transport.Error
+import BCorrespondent.Transport.Payload (Payload (..))
+import BCorrespondent.Transport.Error
 import Control.Exception (throwIO)
 import Control.Lens
 import Control.Lens.Iso.Extended

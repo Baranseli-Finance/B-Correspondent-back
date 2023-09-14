@@ -16,9 +16,9 @@
 
 module Main (main) where
 
-import qualified Buzgibi.App as App
-import Buzgibi.Config
-import Buzgibi.EnvKeys
+import qualified BCorrespondent.App as App
+import BCorrespondent.Config
+import BCorrespondent.EnvKeys
 
 import BuildInfo (gitCommit)
 import qualified Cfg.SendGrid as SendGrid
@@ -102,9 +102,9 @@ data Cmd w = Cmd
     printCfg :: w ::: Maybe PrintCfg <?> "whether config be printed",
     envPath :: w ::: Maybe FilePath <?> "file for storing sensitive data. it's used only in deployment",
     mute500 :: w ::: Maybe Bool <?> "how to render 500 error",
-    buzgibiDbUser :: w ::: String <?> "db user",
-    buzgibiDbPass :: w ::: String <?> "db pass",
-    buzgibiDatabase :: w ::: String <?> "database"
+    bCorrespondentDbUser :: w ::: String <?> "db user",
+    bCorrespondentDbPass :: w ::: String <?> "db pass",
+    bCorrespondentDatabase :: w ::: String <?> "database"
   }
   deriving stock (Generic)
 
@@ -141,7 +141,7 @@ toSnake = map toLower . concat . underscores . splitR isUpper
 
 main :: IO ()
 main = do
-  cmd@Cmd {..} <- unwrapRecord "buzgibi"
+  cmd@Cmd {..} <- unwrapRecord "BCorrespondent"
   print "------ Cmd: start ------"
   pPrint cmd
   print "------ Cmd: end ------"
@@ -150,26 +150,26 @@ main = do
   envKeys <- fmap join $ for envPath $ \path -> do
     cond <- doesFileExist path
     if cond
-      then fmap Just $ Buzgibi.Config.load @EnvKeys path
+      then fmap Just $ BCorrespondent.Config.load @EnvKeys path
       else return Nothing
 
   print "------ EnvKeys: start ------"
   pPrint envKeys
   print "------ EnvKeys: end ------"
 
-  rawCfg <- Buzgibi.Config.load @Buzgibi.Config.Config cfgPath
+  rawCfg <- BCorrespondent.Config.load @BCorrespondent.Config.Config cfgPath
   let cfg =
         rawCfg
           & db . host %~ (`fromMaybe` localhost)
           & db . port %~ (`fromMaybe` localport)
-          & db . user .~ buzgibiDbUser
-          & db . pass .~ buzgibiDbPass
-          & db . database .~ buzgibiDatabase
+          & db . user .~ bCorrespondentDbUser
+          & db . pass .~ bCorrespondentDbPass
+          & db . database .~ bCorrespondentDatabase
           & katip . path %~ (\path -> maybe path (</> path) pathToKatip)
-          & Buzgibi.Config.minio . host %~ (`fromMaybe` minioHost)
-          & Buzgibi.Config.minio . port %~ (`fromMaybe` minioPort)
-          & Buzgibi.Config.minio . accessKey .~ toS minioAccessKey
-          & Buzgibi.Config.minio . secretKey .~ toS minioSecretKey
+          & BCorrespondent.Config.minio . host %~ (`fromMaybe` minioHost)
+          & BCorrespondent.Config.minio . port %~ (`fromMaybe` minioPort)
+          & BCorrespondent.Config.minio . accessKey .~ toS minioAccessKey
+          & BCorrespondent.Config.minio . secretKey .~ toS minioSecretKey
           & swagger . host %~ (`fromMaybe` swaggerHost)
           & swagger . port %~ (flip (<|>) swaggerPort)
           & serverConnection . port %~ (`fromMaybe` serverPort)
@@ -192,7 +192,7 @@ main = do
         HasqlConn.settings
           (x ^. host . stext . textbs)
           (x ^. port . to fromIntegral)
-          (x ^. Buzgibi.Config.user . stext . textbs)
+          (x ^. BCorrespondent.Config.user . stext . textbs)
           (x ^. pass . stext . textbs)
           (x ^. database . stext . textbs)
 
@@ -223,7 +223,7 @@ main = do
   mapM_ (`hSetEncoding` utf8) [stdout, stderr, fileHdl]
 
   let mkNm = Namespace [("<" ++ $(gitCommit) ++ ">") ^. stext]
-  init_env <- initLogEnv mkNm (cfg ^. katip . Buzgibi.Config.env . isoEnv . stext . coerced)
+  init_env <- initLogEnv mkNm (cfg ^. katip . BCorrespondent.Config.env . isoEnv . stext . coerced)
 
   file <-
     mkHandleScribe
@@ -244,23 +244,23 @@ main = do
     flip Minio.mkMinioConn manager $
       Minio.setCreds
         ( Minio.CredentialValue
-            (fromString (cfg^.Buzgibi.Config.minio.accessKey.from stext))
-            (fromString (cfg^.Buzgibi.Config.minio.secretKey.from stext))
+            (fromString (cfg^.BCorrespondent.Config.minio.accessKey.from stext))
+            (fromString (cfg^.BCorrespondent.Config.minio.secretKey.from stext))
             Nothing
         )
-        (fromString (cfg ^. Buzgibi.Config.minio . host <> ":" <> cfg ^. Buzgibi.Config.minio . port))
+        (fromString (cfg ^. BCorrespondent.Config.minio . host <> ":" <> cfg ^. BCorrespondent.Config.minio . port))
 
   telegramScribe <- 
     Scribes.Telegram.mkScribe
       manager
-      (cfg ^. Buzgibi.Config.telegram & bot %~ (flip (<|>) (join $ fmap envKeysTelegramBot envKeys)))
+      (cfg ^. BCorrespondent.Config.telegram & bot %~ (flip (<|>) (join $ fmap envKeysTelegramBot envKeys)))
       (permitItem WarningS)
       (cfg ^. katip . verbosity . from stringify)
 
   minioScribe <-
     Scribes.Minio.mkScribe
       minioEnv
-      (cfg ^. Buzgibi.Config.minio . logBucket . stext)
+      (cfg ^. BCorrespondent.Config.minio . logBucket . stext)
       (permitItem (cfg ^. katip . severity . from stringify))
       (cfg ^. katip . verbosity . from stringify)
 
@@ -288,15 +288,11 @@ main = do
           mute500 = mute500,
           ns = mkNm ,
           logEnv = unEnv,
-          telnyxCfg = envKeys >>= envKeysTelnyx,
-          openaiCfg = envKeys >>= envKeysOpenAI,
           manager = manager,
-          minio = (minioEnv, cfg ^. Buzgibi.Config.minio . Buzgibi.Config.bucketPrefix),
+          minio = (minioEnv, cfg ^. BCorrespondent.Config.minio . BCorrespondent.Config.bucketPrefix),
           webhook = cfg^.webhook,
           jobFrequency = cfg^.jobFrequency,
-          sendgridCfg = envKeys >>= envKeysSendgrid,
-          gcCfg = envKeys >>= envKeysGoogle,
-          deepgramCfg = envKeys >>= envKeysDeepgram
+          sendgridCfg = envKeys >>= envKeysSendgrid
         }
 
   jwke <- liftIO $ fmap (eitherDecode' @JWK) $ B.readFile pathToJwk
@@ -306,7 +302,7 @@ main = do
     print "--------- jwk ------------"
     putStrLn $ (take 200 (show jwk)) <> ".... }"
 
-    let katipMinio = Minio minioEnv (cfg ^. Buzgibi.Config.minio . Buzgibi.Config.bucketPrefix)
+    let katipMinio = Minio minioEnv (cfg ^. BCorrespondent.Config.minio . BCorrespondent.Config.bucketPrefix)
     let katipEnv = 
           KatipEnv 
           { katipEnvTerminal = term,
@@ -317,11 +313,7 @@ main = do
               katipEnvSendGrid = 
                 envKeys >>= envKeysSendgrid <&> \sendgrid -> 
                   (sendgrid, SendGrid.configure (sendgrid^.url) (sendgrid^.key) ),
-              katipEnvCaptchaKey = envKeys >>= envKeysCaptchaKey,
               katipEnvJwk = jwk,
-              katipEnvGithub = envKeys >>= envKeysGithub,
-              katipEnvBark = envKeys >>= envKeysBark,
-              katipEnvTelnyx = envKeys >>= envKeysTelnyx,
               katipEnvWebhook = cfg^.webhook
           }
 

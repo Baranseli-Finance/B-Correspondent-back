@@ -1,7 +1,7 @@
-name:                buzgibi
+name:                b-correspondent
 version:             0.0.1
 license:             BSD-3-Clause
-author:              "Buzgibi"
+author:              "Baranseli Finance"
 maintainer:
  - "Sergey Yakovlev, home<fclaw007@gmail.com>"
 copyright:           "2023"
@@ -42,7 +42,7 @@ extra-source-files:
 # To avoid duplicated efforts in documentation and dealing with the
 # complications of embedding Haddock markup inside cabal files, it is
 # common to point users to the README.md file.
-description: Please see the README on GitHub at <https://github.com/buzgibi-ai/back/blob/master/README.md>
+description: Please see the README on GitHub at 
 
 dependencies:
     - base >= 4.7 && < 5
@@ -208,12 +208,12 @@ library:
     - src/extended
 
 executables:
-  buzgibi:
+  b-correspondent:
     main:                Main.hs
     source-dirs:         
       - src/main
     dependencies:
-      - buzgibi
+      - b-correspondent
       - directory
       - text
       - lens
@@ -243,7 +243,7 @@ tests:
        - prog
        - test
     dependencies:
-    - buzgibi
+    - b-correspondent
     - servant
     - hspec
     - servant-swagger
