@@ -63,6 +63,7 @@ init_user_and_db() {
      create extension ltree;
      create extension pg_trgm;
      create extension pgcrypto;
+     create extension "uuid-ossp";
 EOSQL
 }
 
