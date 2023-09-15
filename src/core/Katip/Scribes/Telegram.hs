@@ -13,8 +13,7 @@
 module Katip.Scribes.Telegram (mkScribe) where
 
 import Katip
-import BCorrespondent.Config (Telegram (..))
-import Data.Maybe (fromMaybe)
+import BCorrespondent.EnvKeys (Telegram (..))
 import qualified Network.HTTP.Client as HTTP
 import Control.Lens.Iso.Extended
 import Data.Aeson.Encode.Pretty (encodePretty)
@@ -47,7 +46,7 @@ data Body =
 
 mkScribe :: HTTP.Manager -> Telegram -> PermitFunc -> Verbosity -> IO Scribe
 mkScribe manager Telegram {..} permitF verbosity = do
-  let bot = fromMaybe undefined telegramBot
+  let bot = telegramBot
   let url = telegramHost <> bot <> "/sendMessage"
   let split xs source | BL.length source < 4096 = source : xs
       split xs old = let (x, new) = BL.splitAt 4096 old in split (x : xs) new

@@ -17,7 +17,6 @@ module BCorrespondent.Config
     Service (..),
     ApiKeys (..),
     Swagger (..),
-    Telegram (..),
     Env (..),
     Cors (..),
     ServerError (..),
@@ -49,9 +48,6 @@ module BCorrespondent.Config
     minio,
     bucketPrefix,
     swagger,
-    bot,
-    chat,
-    telegram,
     serverConnection,
     cors,
     origins,
@@ -131,14 +127,6 @@ data Minio = Minio
   }
   deriving (Show)
 
-data Telegram = Telegram
-  { telegramBot :: !(Maybe T.Text),
-    telegramChat :: !T.Text,
-    telegramHost :: !T.Text,
-    telegramEnv :: !Env
-  }
-  deriving (Show)
-
 newtype ServerConnection = ServerConnection {serverConnectionPort :: Int}
   deriving (Show)
 
@@ -162,7 +150,6 @@ data Config = Config
     configKatip :: !Katip,
     configService :: !Service,
     configMinio :: !Minio,
-    configTelegram :: !Telegram,
     configServerConnection :: !ServerConnection,
     configCors :: !Cors,
     configServerError :: !ServerError,
@@ -177,7 +164,6 @@ makeFields ''HasqlSettings
 makeFields ''Katip
 makeFields ''Minio
 makeFields ''Swagger
-makeFields ''Telegram
 makeFields ''ServerConnection
 makeFields ''Cors
 
@@ -187,7 +173,6 @@ deriveFromJSON defaultOptions ''Katip
 deriveFromJSON defaultOptions ''ApiKeys
 deriveFromJSON defaultOptions ''Service
 deriveFromJSON defaultOptions ''Minio
-deriveFromJSON defaultOptions ''Telegram
 deriveFromJSON defaultOptions ''ServerConnection
 deriveFromJSON defaultOptions ''Cors
 deriveFromJSON defaultOptions ''Swagger

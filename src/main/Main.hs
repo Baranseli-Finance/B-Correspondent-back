@@ -251,11 +251,8 @@ main = do
         (fromString (cfg ^. BCorrespondent.Config.minio . host <> ":" <> cfg ^. BCorrespondent.Config.minio . port))
 
   telegramScribe <- 
-    Scribes.Telegram.mkScribe
-      manager
-      (cfg ^. BCorrespondent.Config.telegram & bot %~ (flip (<|>) (join $ fmap envKeysTelegramBot envKeys)))
-      (permitItem WarningS)
-      (cfg ^. katip . verbosity . from stringify)
+    for (envKeys >>= envKeysTelegram) $ \tel -> 
+      Scribes.Telegram.mkScribe manager tel (permitItem WarningS) (cfg ^. katip . verbosity . from stringify)
 
   minioScribe <-
     Scribes.Minio.mkScribe
@@ -268,7 +265,10 @@ main = do
         registerScribe "stdout" std defaultScribeSettings init_env >>=
           registerScribe "file" file defaultScribeSettings >>=
             registerScribe "minio" minioScribe defaultScribeSettings >>=
-              registerScribe "telegram" telegramScribe defaultScribeSettings
+              \env -> 
+                case telegramScribe of 
+                  Just scribe -> registerScribe "telegram" scribe defaultScribeSettings env
+                  Nothing -> pure env
 
   unEnv <- env
   

@@ -24,7 +24,7 @@ make ::
   -> [HTTP.Header]
   -> HTTP.Method
   -> Either (Maybe a) [Part]
-  -> IO (Either (HTTP.Response BL.ByteString) (B.ByteString, HTTP.ResponseHeaders))
+  -> IO (Either (HTTP.Response BL.ByteString) B.ByteString)
 make url manager headers method bodye = do
  req_tmp <- HTTP.parseRequest $ T.unpack url
  let req =
@@ -50,7 +50,7 @@ make url manager headers method bodye = do
       HTTP.statusCode HTTP.status202 ||
     response_status == 
       HTTP.statusCode HTTP.status201
-   then Right (response_body, HTTP.responseHeaders response)
+   then Right response_body
    else Left response
 
 withError :: 

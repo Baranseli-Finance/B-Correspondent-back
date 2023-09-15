@@ -18,6 +18,23 @@ import Data.Aeson.Generic.DerivingVia
 import qualified Data.Text as T
 import GHC.Generics
 
+
+data Telegram = 
+     Telegram {
+      telegramBot :: T.Text,
+      telegramChat :: T.Text,
+      telegramHost :: T.Text,
+      telegramEnv :: T.Text
+     }
+  deriving stock (Generic)
+  deriving stock (Show)
+  deriving
+    (FromJSON)
+    via WithOptions
+          '[FieldLabelModifier '[UserDefined ToLower, UserDefined (StripConstructor Telegram)]]
+          Telegram
+
+
 data Person = Person { personEmail :: !T.Text, personPersonalization :: !T.Text }
   deriving stock (Generic)
   deriving stock (Show)
@@ -45,7 +62,7 @@ data Sendgrid =
 
 data EnvKeys = EnvKeys
   { envKeysSendgrid :: !(Maybe Sendgrid),
-    envKeysTelegramBot :: !(Maybe T.Text)
+    envKeysTelegram :: !(Maybe Telegram)
   }
   deriving stock (Generic)
   deriving stock (Show)
