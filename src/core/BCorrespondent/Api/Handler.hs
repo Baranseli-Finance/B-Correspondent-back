@@ -16,6 +16,9 @@ module BCorrespondent.Api.Handler (handler) where
 import BCorrespondent.Api
 import qualified BCorrespondent.Api.Handler.SendGrid.SendMail as SendGrid.Send
 import qualified BCorrespondent.Api.Handler.Auth.GenerateToken as Auth.GenerateToken
+import qualified BCorrespondent.Api.Handler.Transaction.New as Transaction.New
+import qualified BCorrespondent.Api.Handler.Transaction.GetConfirmed as Transaction.GetConfirmed
+import qualified BCorrespondent.Auth as Auth
 import Katip
 import Katip.Handler hiding (webhook)
 import Servant.API.Generic
@@ -31,7 +34,8 @@ httpApi :: HttpApi (AsServerT KatipHandlerM)
 httpApi =
   HttpApi
     { _httpApiAuth = toServant auth,
-      _httpApiForeign = toServant _foreign
+      _httpApiForeign = toServant _foreign,
+      _httpApiTransaction = toServant transaction
     }
 
 auth :: AuthApi (AsServerT KatipHandlerM)
@@ -55,4 +59,21 @@ sendgrid =
           . katipAddNamespace
             (Namespace ["sendgrid", "send"])
           . SendGrid.Send.handle
+    }
+
+transaction :: TransactionApi (AsServerT KatipHandlerM)
+transaction =
+  TransactionApi
+    { _transactionApiNew = \auth req ->
+       auth `Auth.withAuth` \user ->
+         flip logExceptionM ErrorS $
+           katipAddNamespace
+             (Namespace ["transaction", "new"])
+             (Transaction.New.handle user req),
+      _transactionApiGetConfirmed = \auth ->
+       auth `Auth.withAuth` \user ->
+         flip logExceptionM ErrorS $
+           katipAddNamespace
+             (Namespace ["transaction", "list", "confirmed"])
+             (Transaction.GetConfirmed.handle user)
     }
