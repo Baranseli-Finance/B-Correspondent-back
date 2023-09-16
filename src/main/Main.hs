@@ -16,7 +16,7 @@
 
 module Main (main) where
 
-import qualified BCorrespondent.App as App
+import qualified BCorrespondent.Server as Server
 import BCorrespondent.Config
 import BCorrespondent.EnvKeys
 
@@ -296,8 +296,8 @@ main = do
 
   print "------ server is about to run --------"
 
-  let appCfg =
-        App.Cfg
+  let serverCfg =
+        Server.Cfg
         { cfgHost = cfg ^. swagger . host . coerced,
           cfgSwaggerPort = cfg ^. swagger . port,
           cfgServerPort = cfg ^. serverConnection . port,
@@ -337,7 +337,7 @@ main = do
           }
 
     let shutdownMsg = print "------ server is shut down --------"
-    let runApp le = runKatipContextT le (mempty @LogContexts) mempty $ App.run appCfg
-    bracket env (flip (>>) shutdownMsg . closeScribes) $ void . (\x -> evalRWST (App.runAppMonad x) katipEnv def) . runApp
+    let runServer le = runKatipContextT le (mempty @LogContexts) mempty $ Server.run serverCfg
+    bracket env (flip (>>) shutdownMsg . closeScribes) $ void . (\x -> evalRWST (Server.runServerM x) katipEnv def) . runServer
 
   whenLeft jwkRes $ print . ((<>) "jwk decode error")

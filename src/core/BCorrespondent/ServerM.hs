@@ -17,7 +17,7 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module BCorrespondent.AppM (AppM (..)) where
+module BCorrespondent.ServerM (ServerM (..)) where
 
 import Control.Monad.Base (MonadBase)
 import Control.Monad.Catch
@@ -27,7 +27,7 @@ import Control.Monad.Trans.Control
 import Katip.Handler
 import Control.Monad.IO.Unlift (MonadUnliftIO (withRunInIO))
 
-newtype AppM a = AppM {runAppMonad :: RWS.RWST KatipEnv KatipLogger KatipState IO a}
+newtype ServerM a = ServerM {runServerM :: RWS.RWST KatipEnv KatipLogger KatipState IO a}
   deriving newtype (Functor)
   deriving newtype (Applicative)
   deriving newtype (Monad)

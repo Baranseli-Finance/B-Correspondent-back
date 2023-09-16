@@ -20,14 +20,14 @@
 {-# OPTIONS_GHC -fno-warn-unused-local-binds #-}
 {-# OPTIONS_GHC -fno-warn-unused-top-binds #-}
 
-module BCorrespondent.App (Cfg (..), AppM (..), run) where
+module BCorrespondent.Server (Cfg (..), ServerM (..), run) where
 
 import BuildInfo
 import BCorrespondent.Api
 import BCorrespondent.EnvKeys (Sendgrid)
 import qualified BCorrespondent.Api.Handler as Handler
 import qualified BCorrespondent.Statement.Auth as Auth (checkToken)
-import BCorrespondent.AppM
+import BCorrespondent.ServerM
 import qualified BCorrespondent.Config as Cfg
 import BCorrespondent.Transport.Error
 import qualified BCorrespondent.Transport.Response as Response
@@ -92,7 +92,7 @@ data Cfg = Cfg
     psqlpool :: !(Pool.Pool Connection)
   }
 
-run :: Cfg -> KatipContextT AppM ()
+run :: Cfg -> KatipContextT ServerM ()
 run Cfg {..} = katipAddNamespace (Namespace ["application"]) $ do
 
   logger <- katipAddNamespace (Namespace ["application"]) askLoggerIO
@@ -230,7 +230,7 @@ mkCors cfg_cors =
               <> [methodPut, methodPatch, methodDelete, methodOptions]
           & field @"corsIgnoreFailures" .~ True
 
-askLoggerWithLocIO :: KatipContextT AppM (Maybe Loc -> Severity -> LogStr -> IO ())
+askLoggerWithLocIO :: KatipContextT ServerM (Maybe Loc -> Severity -> LogStr -> IO ())
 askLoggerWithLocIO = do
   ctx <- getKatipContext
   ns <- getKatipNamespace
