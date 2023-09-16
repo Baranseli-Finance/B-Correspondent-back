@@ -19,11 +19,14 @@ import qualified Servant.Auth.Server as SA
 import Servant.Multipart
 import Servant.Multipart.File
 import Servant.RawM
+-- import RateLimit (KeyPolicy, RateLimit, FixedWindow)
+-- import Data.Time.TypeLevel (TimePeriod (Second))
 
 data FileApi route = FileApi
   { _fileApiUpload ::
       route
         :- Description "upload to server"
+          -- :> RateLimit (FixedWindow (Second 2) 50) KeyPolicy
           :> SA.Auth '[JWT] AuthenticatedUser
           :> Capture "bucket" T.Text
           :> MultipartForm Tmp Files
@@ -31,6 +34,7 @@ data FileApi route = FileApi
     _fileApiPatch ::
       route
         :- Description "patch file by replacing new one"
+          -- :> RateLimit (FixedWindow (Second 2) 50) KeyPolicy
           :> SA.Auth '[JWT] AuthenticatedUser
           :> Capture "file_id" (Id "file")
           :> MultipartForm Tmp File
@@ -38,6 +42,7 @@ data FileApi route = FileApi
     _fileApiDelete ::
       route
         :- Description "delete file"
+          -- :> RateLimit (FixedWindow (Second 2) 50) KeyPolicy
           :> SA.Auth '[JWT] AuthenticatedUser
           :> Capture "file_id" (Id "file")
           :> Delete '[JSON] (Response ()),

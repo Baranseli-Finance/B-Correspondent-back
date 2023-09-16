@@ -71,6 +71,11 @@ import Database.Transaction (transaction, statement)
 import Data.UUID (UUID)
 import Data.Hashable (hash)
 import Data.Int (Int64)
+import Network.Wai.RateLimit.Backend
+import Data.ByteString (ByteString)
+import Network.Wai.RateLimit.Postgres (postgresBackend)
+import Database.PostgreSQL.Simple.Internal
+import qualified Data.Pool as Pool
 
 data Cfg = Cfg
   { cfgHost :: !String,
@@ -85,7 +90,8 @@ data Cfg = Cfg
     minio :: !(Minio.MinioConn, T.Text),
     webhook :: !T.Text,
     jobFrequency :: !Int,
-    sendgridCfg :: !(Maybe Sendgrid)
+    sendgridCfg :: !(Maybe Sendgrid),
+    psqlpool :: !(Pool.Pool Connection)
   }
 
 run :: Cfg -> KatipContextT AppM ()
@@ -112,7 +118,7 @@ run Cfg {..} = katipAddNamespace (Namespace ["application"]) $ do
   let hoistedServer =
         hoistServerWithContext
           (withSwagger api)
-          (Proxy @'[CookieSettings, JWTSettings, UUID -> IO Bool])
+          (Proxy @'[CookieSettings, JWTSettings, UUID -> IO Bool, Backend ByteString])
           (fmap fst . runKatipController cfg (State mempty))
           ( toServant Controller.controller
               :<|> swaggerSchemaUIServerT
@@ -140,11 +146,14 @@ run Cfg {..} = katipAddNamespace (Namespace ["application"]) $ do
   
   let checkToken = transaction (katipEnvHasqlDbPool configKatipEnv) auth_logger . statement Auth.checkToken . fromIntegral @_ @Int64 . hash
 
+  rateBackend <- liftIO $ postgresBackend psqlpool "rate_limit"
+
   let mkCtx = 
         multipartOpts :. 
         formatters :. 
         defaultJWTSettings (configKatipEnv ^. jwk) :. 
         (checkToken :: UUID -> IO Bool) :. 
+        rateBackend :.
         defaultCookieSettings :.
         EmptyContext
 
@@ -234,4 +243,4 @@ askLoggerWithLocIO = do
 
 mkApplication :: Application -> Katip.Wai.ApplicationT (KatipContextT IO)
 mkApplication hoistedApp = Katip.Wai.middleware DebugS $ \request send ->
-  withRunInIO $ \toIO -> hoistedApp request (toIO . send)
+  withRunInIO $ \toIO -> hoistedApp request (toIO . send) 

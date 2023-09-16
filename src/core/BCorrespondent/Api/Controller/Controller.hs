@@ -31,6 +31,7 @@ import Servant.API.Generic
 import Servant.RawM.Server ()
 import Servant.Server.Generic
 -- import qualified Network.WebSockets.Connection as WS
+import Servant.RateLimit.Server ()
 
 controller :: Api (AsServerT KatipControllerM)
 controller = Api {_apiHttp = toServant httpApi}

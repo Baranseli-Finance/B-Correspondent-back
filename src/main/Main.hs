@@ -66,6 +66,7 @@ import qualified Data.ByteString.Lazy as B
 import Data.Either.Combinators (whenLeft)
 import Data.Aeson (eitherDecode')
 import Data.String.Conv (toS)
+import Database.PostgreSQL.Simple.Internal (ConnectInfo (..), connect, close)
 
 data PrintCfg = Y | N deriving stock (Generic)
 
@@ -206,6 +207,23 @@ main = do
       (cfg^.hasql.tm)
       (cfg^.hasql.resPerStripe)
 
+
+  let psqlConnInfo = 
+        ConnectInfo { 
+          connectHost = cfg^.db.host,
+          connectPort = cfg^.db^.port.to fromIntegral,
+          connectUser =  cfg^.db.BCorrespondent.Config.user,
+          connectPassword = cfg^.db.pass,
+          connectDatabase  = cfg^.db.database }
+
+  psqlpool <-
+    Pool.newPool $
+      Pool.defaultPoolConfig
+      (connect psqlConnInfo)
+      close
+      (cfg^.hasql.tm)
+      (cfg^.hasql.resPerStripe)
+
   std <-
     mkHandleScribeWithFormatter
       (if cfg^.katip.stdoutFormat == Json 
@@ -292,7 +310,8 @@ main = do
           minio = (minioEnv, cfg ^. BCorrespondent.Config.minio . BCorrespondent.Config.bucketPrefix),
           webhook = cfg^.webhook,
           jobFrequency = cfg^.jobFrequency,
-          sendgridCfg = envKeys >>= envKeysSendgrid
+          sendgridCfg = envKeys >>= envKeysSendgrid,
+          psqlpool = psqlpool
         }
 
   jwke <- liftIO $ fmap (eitherDecode' @JWK) $ B.readFile pathToJwk

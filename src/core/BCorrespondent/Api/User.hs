@@ -17,6 +17,8 @@ import Servant.API.Extended
 import Servant.API.Generic (Generic)
 import qualified Servant.Auth.Server as SA
 import Data.Int (Int64)
+import RateLimit (KeyPolicy, RateLimit, FixedWindow, IPAddressPolicy)
+import Data.Time.TypeLevel (TimePeriod (Second))
 
 data AuthApi route = AuthApi
   { _authApiLogin ::
@@ -41,12 +43,14 @@ data AuthApi route = AuthApi
         :- "password"
           :> "reset"
           :> "link"
+          :> RateLimit (FixedWindow (Second 1) 50) (KeyPolicy "Token")
           :> ReqBody '[JSON] ResetPasswordLink
           :> Put '[JSON] (Response (Maybe Int64)),
     _authApiResetPassNewPass ::
       route
         :- "password"
           :> "reset"
+          :> RateLimit (FixedWindow (Second 1) 1) (IPAddressPolicy "fixed")
           :> ReqBody '[JSON] NewPassword
           :> Post '[JSON] (Response Bool) 
   }

@@ -187,7 +187,6 @@ library:
     - lifted-async
     - http-conduit
     - sendgrid
-    - github
     - quickcheck-instances
     - unliftio-core
     - unliftio
@@ -201,7 +200,11 @@ library:
     - hasql-notifications
     - stm-lifted
     - uuid
-    - google-oauth2-jwt
+    - servant-rate-limit
+    - time-units-types
+    - wai-rate-limit
+    - wai-rate-limit-postgres
+    - postgresql-simple
 
   source-dirs:
     - src/core
@@ -235,6 +238,7 @@ executables:
       - either
       - aeson
       - string-conv
+      - postgresql-simple
 
 tests:
   tasty:
