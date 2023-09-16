@@ -18,7 +18,8 @@ import Data.Time.TypeLevel (TimePeriod (Second))
 newtype AuthApi route = AuthApi
   { _authApiGenerateToken ::
       route
-        :- "login"
+        :- "token"
+          :> "generate"
           :> RateLimit (FixedWindow (Second 1) 1) (IPAddressPolicy "fixed")
           :> Capture "key" InstitutionKey
           :> Post '[JSON] (Response AuthToken)

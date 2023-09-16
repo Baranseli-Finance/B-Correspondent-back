@@ -13,7 +13,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeApplications #-}
 
-module BCorrespondent.Api.Handler.SendGrid.SendMail (controller, SendGridSendMailRequest) where
+module BCorrespondent.Api.Handler.SendGrid.SendMail (handle, SendGridSendMailRequest) where
 
 import BCorrespondent.Config (Email (..))
 import BCorrespondent.EnvKeys (Sendgrid (..), personEmail)
@@ -74,8 +74,8 @@ deriveToSchemaFieldLabelModifier
        in maybe s (map toLower) (stripPrefix (toLower head : tail) s)
     |]
 
-controller :: SendGridSendMailRequest -> KatipHandlerM (Response ())
-controller req@SendGridSendMailRequest {..} = do
+handle :: SendGridSendMailRequest -> KatipHandlerM (Response ())
+handle req@SendGridSendMailRequest {..} = do
   $(logTM) InfoS $ logStr (show req)
   cfg <- fmap (^. katipEnv . sendGrid) ask
   resp <- for cfg $ \(Sendgrid {..}, sendgrid) -> do

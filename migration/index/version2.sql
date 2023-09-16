@@ -3,21 +3,21 @@ create table auth.user (
     id bigserial primary key,
     email text not null,
     pass text not null,
-    created timestamptz not null default now(),
-    modified timestamptz,
+    created_at timestamptz not null default now(),
+    modified_at timestamptz,
     constraint auth_user__email__uk unique (email));
 
 create table auth.institution (
     id bigserial primary key,
     title text not null,
-    created timestamptz not null default now(),
+    created_at timestamptz not null default now(),
     key text not null,
     constraint auth_institution__title__uk unique (title));
 
 create table auth.jwt (
     id uuid primary key,
-    jwt text not null,
-    created timestamptz not null default now(),
+    value text not null,
+    created_at timestamptz not null default now(),
     is_valid boolean not null default true);
 
 create table auth.user_jwt (

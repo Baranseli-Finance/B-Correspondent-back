@@ -41,7 +41,7 @@ auth =
         flip logExceptionM ErrorS $
           katipAddNamespace
             (Namespace ["auth", "institution", "token", "generate"])
-            (Auth.GenerateToken.controller key)
+            (Auth.GenerateToken.handle key)
     }
 
 _foreign :: ForeignApi (AsServerT KatipHandlerM)
@@ -54,5 +54,5 @@ sendgrid =
         flip logExceptionM ErrorS
           . katipAddNamespace
             (Namespace ["sendgrid", "send"])
-          . SendGrid.Send.controller
+          . SendGrid.Send.handle
     }
