@@ -13,7 +13,7 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
-module BCorrespondent.Transport.Model.Auth (AuthToken (..), Credentials (..), AuthType, InstitutionKey) where
+module BCorrespondent.Transport.Model.Auth (AuthToken (..), Credentials (..), AuthType, InstitutionKey (..)) where
 
 import Control.Lens
 import Control.Lens.Iso.Extended (jsonb, stext)

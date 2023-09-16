@@ -82,13 +82,13 @@ instance AsError T.Text where
 
 instance ToSchema Error where
   declareNamedSchema _ = do
-    tSchema <- declareSchemaRef (Proxy @T.Text)
-    oSchema <- declareSchemaRef (Proxy @Object)
+    text <- declareSchemaRef (Proxy @T.Text)
+    obj <- declareSchemaRef (Proxy @Object)
     pure $
       NamedSchema (Just $ "Error") $
         mempty
           & type_ ?~ SwaggerObject
-          & properties .~ [("message", tSchema), ("meta", oSchema)]
+          & properties .~ [("message", text), ("meta", obj)]
           & required .~ ["message"]
 
 -- | Error with corresponding locations.

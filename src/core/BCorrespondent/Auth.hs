@@ -17,7 +17,7 @@ module BCorrespondent.Auth (AuthenticatedUser (..), JWT, UserIdentClaims, genera
 
 import BCorrespondent.Transport.Model.Auth (AuthToken (..))
 import BCorrespondent.Transport.Response
-import qualified BCorrespondent.Statement.User.Auth as Auth
+import qualified BCorrespondent.Statement.Auth as Auth
 import Control.Lens
 import Control.Monad (unless, join)
 import Control.Monad.IO.Class (liftIO)
@@ -116,15 +116,16 @@ withAuth e _ = return $ Error $ asError @T.Text $ "only for authorized personnel
     mkError NoSuchUser = "no user found"
     mkError Indefinite = "an authentication procedure cannot be carried out"
 
-generateJWT :: Jose.JWK -> Int64 -> T.Text -> IO (Either Jose.JWTError (BSL.ByteString, UUID))
-generateJWT jwk ident email = do
+generateJWT :: Jose.JWK -> Int64 -> Int64 -> IO (Either Jose.JWTError (BSL.ByteString, UUID))
+generateJWT jwk ident expiryIn = do
   t <- currentTime
   uuid <- randomIO @UUID
   let claims =
         Jose.emptyClaimsSet
-          & Jose.claimExp ?~ Jose.NumericDate (addUTCTime 864000 t)
+          & Jose.claimExp ?~ 
+            Jose.NumericDate (addUTCTime (fromIntegral expiryIn) t)
           & Jose.claimIat ?~ Jose.NumericDate t
-  let user = UserIdentClaims claims ident email uuid
+  let user = UserIdentClaims claims ident uuid
   Jose.runJOSE $ do
     alg <- Jose.bestJWSAlg jwk
     fmap ((,uuid) . encodeCompact) $ Jose.signJWT jwk (Jose.newJWSHeader ((), alg)) user
@@ -132,7 +133,6 @@ generateJWT jwk ident email = do
 data UserIdentClaims = UserIdentClaims
   { userIdentClaimsJwtClaims :: !Jose.ClaimsSet,
     userIdentClaimsIdent :: !Int64,
-    userIdentClaimsEmail :: !T.Text,
     userIdentClaimsJwtUUID :: !UUID
   }
   deriving stock (Generic)

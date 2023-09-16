@@ -26,7 +26,7 @@ import BuildInfo
 import BCorrespondent.Api
 import BCorrespondent.EnvKeys (Sendgrid)
 import qualified BCorrespondent.Api.Handler as Handler
-import qualified BCorrespondent.Statement.User.Auth as Auth (checkToken)
+import qualified BCorrespondent.Statement.Auth as Auth (checkToken)
 import BCorrespondent.AppM
 import qualified BCorrespondent.Config as Cfg
 import BCorrespondent.Transport.Error

@@ -24,9 +24,9 @@ import Control.Lens.Iso.Extended
 import Control.Monad
 import Control.Monad.IO.Class
 import Data.Aeson.Extended
-import Data.Coerce
+import Data.Coerce 
 import Data.List
-import Data.Maybe
+import Data.Maybe 
 import Data.Swagger
 import Data.Swagger.Schema.Extended
 import qualified Data.Text as T

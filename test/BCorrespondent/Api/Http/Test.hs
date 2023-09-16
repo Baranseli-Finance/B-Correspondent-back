@@ -6,13 +6,10 @@
 module BCorrespondent.Api.Http.Test (spec_api) where
 
 import Data.Proxy
-import BCorrespondent.Api.File
-import BCorrespondent.Api.User (AuthApi)
-import BCorrespondent.Transport.Model.User (Credentials, AuthToken)
-import BCorrespondent.Api.Controller.SendGrid.SendMail (SendGridSendMailRequest)
+import BCorrespondent.Api.Auth (AuthApi)
+import BCorrespondent.Transport.Model.Auth (Credentials, AuthToken)
+import BCorrespondent.Api.Handler.SendGrid.SendMail (SendGridSendMailRequest)
 import BCorrespondent.Config (Email)
-import BCorrespondent.Api.Controller.Auth.Password.MakeLink (ResetPasswordLink)
-import BCorrespondent.Api.Controller.Auth.Password.Create (NewPassword)
 import BCorrespondent.Api.Foreign.SendGrid (SendGridApi)
 
 import Servant.API.Generic
@@ -24,14 +21,10 @@ mkArbitrary ''AuthToken
 mkArbitrary ''Credentials
 mkArbitrary ''Email
 mkArbitrary ''SendGridSendMailRequest
-mkArbitrary ''ResetPasswordLink
-mkArbitrary ''NewPassword
 
 spec_api :: Spec
 spec_api =
   describe "Swagger spec for API" $ do
-    context "ToJSON matches ToSchema (FileApi)" $
-      validateEveryToJSON (genericApi (Proxy :: Proxy FileApi))
     context "ToJSON matches ToSchema (AuthApi)" $
       validateEveryToJSON (genericApi (Proxy :: Proxy AuthApi))
     context "ToJSON matches ToSchema (SendGridApi)" $

@@ -11,8 +11,7 @@
 
 module BCorrespondent.Explain (spec_explain) where
 
-import qualified BCorrespondent.Statement.File
-import qualified BCorrespondent.Statement.User.Auth
+import qualified BCorrespondent.Statement.Auth
 
 import Control.Lens
 import Control.Monad.IO.Class
@@ -26,7 +25,8 @@ import Hasql.Statement
 import Test.Hspec hiding (shouldBe)
 import Test.Hspec.DB.Hasql
 import Test.Hspec.Expectations.Lifted
-import Test.QuickCheck (Arbitrary (arbitrary), generate)
+-- import Test.QuickCheck (Arbitrary (arbitrary), generate)
+import Test.QuickCheck.Extended (Arbitrary (arbitrary), generate)
 
 spec_explain :: Spec
 spec_explain =
@@ -59,24 +59,10 @@ data ST = forall a b. Arbitrary a => ST (Statement a b)
 -- | List of all database queries.
 explainTests :: [(String, [(String, ST)])]
 explainTests =
-  [ "BCorrespondent.Statement.File" ==>
-      [ "save" =>> BCorrespondent.Statement.File.save,
-        "getMetaForReport" =>> BCorrespondent.Statement.File.getMetaForReport,
-        "getMeta" =>> BCorrespondent.Statement.File.getMeta,
-        "delete" =>> BCorrespondent.Statement.File.delete,
-        "getHashWithBucket" =>> BCorrespondent.Statement.File.getHashWithBucket,
-        "patch" =>> BCorrespondent.Statement.File.patch
-      ]
-  , "BCorrespondent.Statement.User.Auth" ==>
-     [  "insertUser" =>> BCorrespondent.Statement.User.Auth.insertUser,
-        "insertJwt" =>> BCorrespondent.Statement.User.Auth.insertJwt,
-        "getUserIdByEmail" =>> BCorrespondent.Statement.User.Auth.getUserIdByEmail,
-        "logout" =>> BCorrespondent.Statement.User.Auth.logout,
-        "insertToken" =>> BCorrespondent.Statement.User.Auth.insertToken,
-        "insertConfirmationLink" =>> BCorrespondent.Statement.User.Auth.insertConfirmationLink,
-        "confirmEmail" =>> BCorrespondent.Statement.User.Auth.confirmEmail,
-        "resendLink" =>> BCorrespondent.Statement.User.Auth.resendLink,
-        "insertNewPassword" =>> BCorrespondent.Statement.User.Auth.insertNewPassword,
-        "checkToken" =>> BCorrespondent.Statement.User.Auth.checkToken
+  [
+    "BCorrespondent.Statement.Auth" ==>
+     [  "insertInstToken" =>> BCorrespondent.Statement.Auth.insertInstToken,
+        "getInstitutionId" =>> BCorrespondent.Statement.Auth.getInstitutionId,
+        "checkToken" =>> BCorrespondent.Statement.Auth.checkToken
      ]
   ]
