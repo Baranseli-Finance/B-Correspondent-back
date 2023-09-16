@@ -25,6 +25,7 @@ import qualified Hasql.Statement as HS
 import Hasql.TH
 import Data.Aeson (Value)
 import Data.Maybe (fromMaybe)
+import Data.UUID (UUID)
 
 insertUser :: HS.Statement (T.Text, T.Text) (Maybe Int64)
 insertUser =
@@ -179,5 +180,5 @@ insertNewPassword =
         modified = now()
     where id = (select user_id from link)|]
 
-checkToken :: HS.Statement Int64 Bool
-checkToken = rmap (fromMaybe False) $ [maybeStatement| select is_valid :: bool from auth.jwt where uuid_hash = $1 :: int8|]
+checkToken :: HS.Statement UUID Bool
+checkToken = rmap (fromMaybe False) $ [maybeStatement| select is_valid :: bool from auth.jwt where id = $1 :: uuid|]

@@ -25,7 +25,7 @@ module BCorrespondent.App (Cfg (..), AppM (..), run) where
 import BuildInfo
 import BCorrespondent.Api
 import BCorrespondent.EnvKeys (Sendgrid)
-import qualified BCorrespondent.Api.Controller.Controller as Controller
+import qualified BCorrespondent.Api.Handler as Handler
 import qualified BCorrespondent.Statement.User.Auth as Auth (checkToken)
 import BCorrespondent.AppM
 import qualified BCorrespondent.Config as Cfg
@@ -46,7 +46,7 @@ import Data.Generics.Product.Fields
 import Data.String.Conv
 import qualified Data.Text as T
 import Katip
-import Katip.Controller
+import Katip.Handler
 import Language.Haskell.TH.Syntax (Loc)
 import qualified Network.HTTP.Types as H
 import qualified Network.HTTP.Client as HTTP
@@ -69,8 +69,6 @@ import Control.Monad.IO.Unlift (MonadUnliftIO (withRunInIO))
 import qualified Network.Minio as Minio
 import Database.Transaction (transaction, statement)
 import Data.UUID (UUID)
-import Data.Hashable (hash)
-import Data.Int (Int64)
 import Network.Wai.RateLimit.Backend
 import Data.ByteString (ByteString)
 import Network.Wai.RateLimit.Postgres (postgresBackend)
@@ -120,7 +118,7 @@ run Cfg {..} = katipAddNamespace (Namespace ["application"]) $ do
           (withSwagger api)
           (Proxy @'[CookieSettings, JWTSettings, UUID -> IO Bool, Backend ByteString])
           (fmap fst . runKatipController cfg (State mempty))
-          ( toServant Controller.controller
+          ( toServant Handler.handler
               :<|> swaggerSchemaUIServerT
                 (swaggerHttpApi cfgHost cfgSwaggerPort ver)
           )
@@ -144,7 +142,7 @@ run Cfg {..} = katipAddNamespace (Namespace ["application"]) $ do
                   defaultParseRequestBodyOptions
           }
   
-  let checkToken = transaction (katipEnvHasqlDbPool configKatipEnv) auth_logger . statement Auth.checkToken . fromIntegral @_ @Int64 . hash
+  let checkToken = transaction (katipEnvHasqlDbPool configKatipEnv) auth_logger . statement Auth.checkToken
 
   rateBackend <- liftIO $ postgresBackend psqlpool "rate_limit"
 

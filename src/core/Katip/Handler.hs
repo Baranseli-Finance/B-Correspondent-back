@@ -11,9 +11,9 @@
 {-# OPTIONS_GHC -fno-warn-missing-methods #-}
 {-# OPTIONS_GHC -fno-warn-unused-top-binds #-}
 
-module Katip.Controller
+module Katip.Handler
   ( Config (..),
-    KatipControllerM (..),
+    KatipHandlerM (..),
     KatipEnv (..),
     KatipLogger (..),
     KatipLoggerIO,
@@ -124,7 +124,7 @@ instance Default KatipState where
   def = KatipState 0
 
 -- ServerM
-newtype KatipControllerM a = KatipControllerM
+newtype KatipHandlerM a = KatipHandlerM
   { unwrap ::
       RWS.RWST
         Config
@@ -154,17 +154,17 @@ makeFields ''KatipEnv
 makeFields ''Minio
 
 -- These instances get even easier with lenses!
-instance Katip KatipControllerM where
-  getLogEnv = KatipControllerM $ asks configEnv
-  localLogEnv f (KatipControllerM m) = KatipControllerM (local (over env f) m)
+instance Katip KatipHandlerM where
+  getLogEnv = KatipHandlerM $ asks configEnv
+  localLogEnv f (KatipHandlerM m) = KatipHandlerM (local (over env f) m)
 
-instance KatipContext KatipControllerM where
-  getKatipContext = KatipControllerM $ asks configCtx
-  localKatipContext f (KatipControllerM m) = KatipControllerM (local (over ctx f) m)
-  getKatipNamespace = KatipControllerM $ asks configNm
-  localKatipNamespace f (KatipControllerM m) = KatipControllerM (local (over nm f) m)
+instance KatipContext KatipHandlerM where
+  getKatipContext = KatipHandlerM $ asks configCtx
+  localKatipContext f (KatipHandlerM m) = KatipHandlerM (local (over ctx f) m)
+  getKatipNamespace = KatipHandlerM $ asks configNm
+  localKatipNamespace f (KatipHandlerM m) = KatipHandlerM (local (over nm f) m)
 
-runKatipController :: Config -> State -> KatipControllerM a -> Handler (a, State)
+runKatipController :: Config -> State -> KatipHandlerM a -> Handler (a, State)
 runKatipController cfg st app = do 
   (resp, st, _) <- RWS.runRWST (unwrap app) cfg st
   pure (resp, st)

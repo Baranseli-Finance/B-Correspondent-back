@@ -12,7 +12,6 @@
 module BCorrespondent.Api
   ( Api (..),
     HttpApi (..),
-    FileApi (..),
     AuthApi (..),
     SendGridApi (..),
     ForeignApi (..),

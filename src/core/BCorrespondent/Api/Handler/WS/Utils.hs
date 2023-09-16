@@ -10,11 +10,12 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -fno-warn-redundant-constraints #-}
 
-module BCorrespondent.Api.Controller.WS.Utils (withWS, listen, Listen) where
+module BCorrespondent.Api.Handler.WS.Utils (withWS, listen, Listen) where
 
 
+import BCorrespondent.Api.Handler.Utils (withError)
 import Katip
-import Katip.Controller
+import Katip.Handler
 import qualified Network.WebSockets as WS
 import qualified Data.ByteString.Lazy as BSL
 import Data.Aeson (FromJSON, ToJSON, eitherDecode, encode)
@@ -36,7 +37,6 @@ import GHC.TypeLits (Symbol, symbolVal, KnownSymbol)
 import qualified Hasql.Notifications as Hasql
 import Data.Proxy (Proxy (..))
 import Control.Lens.Iso.Extended (bytesLazy)
-import BCorrespondent.Api.Controller.Utils (withError)
 import Data.String.Conv (toS)
 import Control.Concurrent (threadDelay)
 import qualified Data.Text.Lazy as TL
@@ -46,8 +46,8 @@ withWS
   :: forall a . 
   FromJSON a =>
   WS.Connection -> 
-  (Hasql.Connection -> a -> KatipControllerM ()) -> 
-  KatipControllerM ()
+  (Hasql.Connection -> a -> KatipHandlerM ()) -> 
+  KatipHandlerM ()
 withWS conn go = do
   $(logTM) DebugS $ logStr @String $ " ws connection established"
   hasql <- fmap (^. katipEnv . hasqlDbPool) ask

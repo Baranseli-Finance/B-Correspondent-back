@@ -42,7 +42,7 @@ import qualified Hasql.Connection as HasqlConn
 import Katip
 import Katip.Scribes.Minio as Scribes.Minio
 import qualified Katip.Scribes.Telegram as Scribes.Telegram
-import Katip.Controller hiding (webhook)
+import Katip.Handler hiding (webhook)
 import Network.HTTP.Client
   ( ManagerSettings
       ( managerConnCount,

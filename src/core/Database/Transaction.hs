@@ -49,9 +49,10 @@ import qualified Hasql.Session as Hasql
 import qualified Hasql.Statement as Hasql
 import Hasql.TH
 import Katip
-import Katip.Controller
+import Katip.Handler
 import PostgreSQL.ErrorCodes
 import Data.Tuple (Solo (..))
+import Data.UUID (UUID)
 
 newtype QueryErrorWrapper = QueryErrorWrapper Hasql.QueryError
   deriving (Show)
@@ -201,14 +202,17 @@ instance ParamsShow UTCTime where render = show
 instance ParamsShow Payload where
   render (Payload o) = show o
 
+instance ParamsShow UUID where 
+  render = show
+
 statement :: ParamsShow a => Hasql.Statement a b -> a -> ReaderT KatipLoggerIO Session b
 statement s@(Hasql.Statement sql _ _ _) a = do
   logger <- ask
   liftIO $ logger DebugS (ls (sql <> " { params: [" <> (render a ^. stext . textbs)) <> "] }")
   lift $ Hasql.statement a s
 
-transactionM :: Pool Hasql.Connection -> ReaderT KatipLoggerIO Session a -> KatipControllerM a
+transactionM :: Pool Hasql.Connection -> ReaderT KatipLoggerIO Session a -> KatipHandlerM a
 transactionM pool session = katipAddNamespace (Namespace ["db", "hasql"]) askLoggerIO >>= (liftIO . flip (transaction pool) session)
 
-transactionMViolationError :: Pool Hasql.Connection -> ReaderT KatipLoggerIO Session a -> KatipControllerM (Either ViolationError a)
+transactionMViolationError :: Pool Hasql.Connection -> ReaderT KatipLoggerIO Session a -> KatipHandlerM (Either ViolationError a)
 transactionMViolationError pool session = katipAddNamespace (Namespace ["db", "hasql"]) askLoggerIO >>= (liftIO . flip (transactionViolationError pool) session)

@@ -3,7 +3,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TupleSections #-}
 
-module BCorrespondent.Api.Controller.Utils (withError, withErrorExt, extractMIMEandExts) where
+module BCorrespondent.Api.Handler.Utils (withError, withErrorExt, extractMIMEandExts) where
 
 import BCorrespondent.Transport.Response
 import qualified BCorrespondent.Transport.Error as E

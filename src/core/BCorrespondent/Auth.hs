@@ -15,7 +15,7 @@
 
 module BCorrespondent.Auth (AuthenticatedUser (..), JWT, UserIdentClaims, generateJWT, validateJwt, withAuth, withWSAuth) where
 
-import BCorrespondent.Transport.Model.User (AuthToken (..))
+import BCorrespondent.Transport.Model.Auth (AuthToken (..))
 import BCorrespondent.Transport.Response
 import qualified BCorrespondent.Statement.User.Auth as Auth
 import Control.Lens
@@ -40,7 +40,7 @@ import qualified Data.Text as T
 import Data.Time.Clock (addUTCTime)
 import Data.Traversable (for)
 import GHC.Generics (Generic)
-import Katip.Controller (KatipControllerM, katipEnv, jwk, hasqlDbPool, askLoggerIO)
+import Katip.Handler (KatipHandlerM, katipEnv, jwk, hasqlDbPool, askLoggerIO)
 import Network.Wai (Request, requestHeaders)
 import Servant.Auth.Server (AuthResult (..), FromJWT (decodeJWT), JWTSettings (..), ToJWT (..), defaultJWTSettings)
 import Servant.Auth.Server.Internal.Class (IsAuth (..))
@@ -56,7 +56,7 @@ import BuildInfo (location)
 import Data.UUID (UUID)
 import System.Random (randomIO)
 import Database.Transaction (transaction, statement)
-import qualified Data.Hashable as H (hash) 
+
 
 data AuthError = NoAuthHeader | NoBearer | TokenInvalid
 
@@ -108,7 +108,7 @@ validateJwt cfg@JWTSettings {..} checkToken input = do
       isOk <- checkToken userIdentClaimsJwtUUID
       return $ if isOk then Right (AuthenticatedUser userIdentClaimsIdent) else Left TokenInvalid
 
-withAuth :: AuthResult AuthenticatedUser -> (AuthenticatedUser -> KatipControllerM (Response a)) -> KatipControllerM (Response a)
+withAuth :: AuthResult AuthenticatedUser -> (AuthenticatedUser -> KatipHandlerM (Response a)) -> KatipHandlerM (Response a)
 withAuth (Authenticated user) runApi = runApi user
 withAuth e _ = return $ Error $ asError @T.Text $ "only for authorized personnel, error: " <> mkError e
   where
@@ -146,17 +146,17 @@ instance Jose.HasClaimsSet UserIdentClaims where
   claimsSet f s = fmap (\a' -> s {userIdentClaimsJwtClaims = a'}) (f (userIdentClaimsJwtClaims s))
 
 
-withWSAuth :: WS.PendingConnection -> ((AuthenticatedUser, WS.Connection) -> KatipControllerM ()) -> KatipControllerM ()
+withWSAuth :: WS.PendingConnection -> ((AuthenticatedUser, WS.Connection) -> KatipHandlerM ()) -> KatipHandlerM ()
 withWSAuth pend controller = do 
   conn <- liftIO $ WS.acceptRequest pend
   bs <- liftIO $ WS.receiveData @BSL.ByteString conn
   $(logTM) InfoS $ logStr @String $ "ws auth raw data " <> show bs
   let tokenResp = eitherDecode @AuthToken bs
   res <- fmap join $ for tokenResp $ \(AuthToken token) -> do 
-    key <- fmap (^. katipEnv . Katip.Controller.jwk) ask
+    key <- fmap (^. katipEnv . Katip.Handler.jwk) ask
     hasql <- fmap (^. katipEnv . hasqlDbPool) ask
     auth_logger <- katipAddNamespace (Namespace ["auth"]) askLoggerIO
-    let checkToken = transaction hasql auth_logger . statement Auth.checkToken . fromIntegral @_ @Int64 . H.hash
+    let checkToken = transaction hasql auth_logger . statement Auth.checkToken
     authRes <- liftIO $ validateJwt (defaultJWTSettings key) checkToken $ token^.textbs
     fmap (first (const "auth error")) $ for authRes $ \auth -> do
       liftIO $ WS.sendDataMessage conn (WS.Text (encode (Ok ())) Nothing)

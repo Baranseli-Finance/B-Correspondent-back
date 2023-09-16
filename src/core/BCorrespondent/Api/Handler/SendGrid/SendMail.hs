@@ -13,7 +13,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeApplications #-}
 
-module BCorrespondent.Api.Controller.SendGrid.SendMail (controller, SendGridSendMailRequest) where
+module BCorrespondent.Api.Handler.SendGrid.SendMail (controller, SendGridSendMailRequest) where
 
 import BCorrespondent.Config (Email (..))
 import BCorrespondent.EnvKeys (Sendgrid (..), personEmail)
@@ -37,7 +37,7 @@ import Data.Typeable (typeRep)
 import GHC.Exts
 import GHC.Generics
 import Katip
-import Katip.Controller
+import Katip.Handler
 import Network.HTTP.Client (responseBody, responseStatus)
 import Network.HTTP.Types.Status (accepted202, ok200)
 import "sendgrid" OpenAPI.Common
@@ -74,7 +74,7 @@ deriveToSchemaFieldLabelModifier
        in maybe s (map toLower) (stripPrefix (toLower head : tail) s)
     |]
 
-controller :: SendGridSendMailRequest -> KatipControllerM (Response ())
+controller :: SendGridSendMailRequest -> KatipHandlerM (Response ())
 controller req@SendGridSendMailRequest {..} = do
   $(logTM) InfoS $ logStr (show req)
   cfg <- fmap (^. katipEnv . sendGrid) ask

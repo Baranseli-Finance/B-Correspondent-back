@@ -24,7 +24,7 @@ import Control.Monad.Catch
 import Control.Monad.IO.Class
 import Control.Monad.RWS.Strict as RWS
 import Control.Monad.Trans.Control
-import Katip.Controller
+import Katip.Handler
 import Control.Monad.IO.Unlift (MonadUnliftIO (withRunInIO))
 
 newtype AppM a = AppM {runAppMonad :: RWS.RWST KatipEnv KatipLogger KatipState IO a}

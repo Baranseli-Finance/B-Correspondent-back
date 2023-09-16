@@ -8,7 +8,7 @@
 
 module BCorrespondent.Api.Foreign.SendGrid (SendGridApi (..)) where
 
-import BCorrespondent.Api.Controller.SendGrid.SendMail (SendGridSendMailRequest)
+import BCorrespondent.Api.Handler.SendGrid.SendMail (SendGridSendMailRequest)
 import BCorrespondent.Transport.Response (Response)
 import Servant.API.Extended (JSON, Post, ReqBody, type (:>))
 import Servant.API.Generic (Generic, GenericMode (type (:-)))

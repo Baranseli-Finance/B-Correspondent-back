@@ -13,7 +13,7 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
-module BCorrespondent.Transport.Model.User (AuthToken (..), Credentials (..), AuthType) where
+module BCorrespondent.Transport.Model.Auth (AuthToken (..), Credentials (..), AuthType, InstitutionKey) where
 
 import Control.Lens
 import Control.Lens.Iso.Extended (jsonb, stext)
@@ -66,3 +66,8 @@ instance ToSchema Credentials where
         mempty
           & type_ ?~ SwaggerObject
           & properties .~ fromList [("email", textSchema), ("password", textSchema)]
+
+newtype InstitutionKey = InstitutionKey Text
+  deriving stock (Generic)
+  deriving anyclass (ToParamSchema)
+  deriving newtype (FromHttpApiData)
