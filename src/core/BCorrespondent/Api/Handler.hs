@@ -70,10 +70,10 @@ transaction =
            katipAddNamespace
              (Namespace ["transaction", "new"])
              (Transaction.New.handle user req),
-      _transactionApiGetConfirmed = \auth ->
+      _transactionApiGetConfirmed = \auth xs ->
        auth `Auth.withAuth` \user ->
          flip logExceptionM ErrorS $
            katipAddNamespace
              (Namespace ["transaction", "list", "confirmed"])
-             (Transaction.GetConfirmed.handle user)
+             (Transaction.GetConfirmed.handle user xs)
     }

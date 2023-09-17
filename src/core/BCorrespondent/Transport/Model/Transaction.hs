@@ -44,7 +44,7 @@ deriveToSchemaFieldLabelModifier ''TransactionConfirmed [|modify (Proxy @Transac
 
 newtype TransactionId = TransactionId UUID
   deriving stock (Generic)
-  deriving newtype (ToJSON)
+  deriving newtype (ToJSON, FromJSON)
  
 instance ToSchema TransactionId
 

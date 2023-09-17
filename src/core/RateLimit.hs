@@ -3,6 +3,7 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module RateLimit (KeyPolicy, module R) where
 
@@ -15,14 +16,16 @@ import Data.Proxy (Proxy (..))
 import GHC.TypeLits (Symbol, KnownSymbol, symbolVal)
 import Data.String.Conv (toS)
 import Data.Maybe (fromMaybe)
-import Data.String (fromString)
+import Network.HTTP.Types.Header (hAuthorization)
 
 data KeyPolicy (s :: Symbol)
 
 instance KnownSymbol s => HasRateLimitPolicy (KeyPolicy s) where
   type RateLimitPolicyKey (KeyPolicy s) = B.ByteString
   policyGetIdentifier (req :: Request) = do 
-    let token = fromString $ toS $ symbolVal (Proxy @s)
-    pure $ fromMaybe mempty $ lookup token $ requestHeaders req
+    let token = toS $ symbolVal (Proxy @s)
+    pure $ fromMaybe mempty $ 
+             lookup hAuthorization (requestHeaders req) >>= 
+               B.stripPrefix (token <> " ")
 
 instance HasSwagger api => HasSwagger ((RateLimit strategy policy) :> api) where toSwagger _ = toSwagger (Proxy @api)
