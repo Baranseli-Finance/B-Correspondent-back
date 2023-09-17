@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE NumericUnderscores #-}
 
 module BCorrespondent.Api.Handler.Auth.Login (handle) where
 
@@ -29,7 +30,7 @@ handle :: Credentials -> KatipHandlerM (Response AuthToken)
 handle cred = do
   hasql <- fmap (^. katipEnv . hasqlDbPool) ask
   key <- fmap (^. katipEnv . jwk) ask
-  let mkToken ident = liftIO $ Auth.generateJWT key ident 1000
+  let mkToken ident = liftIO $ Auth.generateJWT key ident 2_592_000
   res <- fmap join $ transactionM hasql $ do
     identm <- statement Auth.getUserIdByEmail (email cred)
     fmap (maybeToRight User404) $

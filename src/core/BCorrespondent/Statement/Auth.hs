@@ -156,7 +156,7 @@ insertToken =
            set is_valid = false 
            where 
              is_valid and
-             id = (select jwt_id from auth.user_jwt where user_id = (select id from user_ident))
+             id in (select jwt_id from auth.user_jwt where user_id = (select id from user_ident))
              and (select is_pass_valid from user_ident) is true),
          jwt as (
           insert into auth.jwt 
