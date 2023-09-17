@@ -8,7 +8,7 @@
 
 module BCorrespondent.Api.Auth (AuthApi (..)) where
 
-import BCorrespondent.Transport.Model.Auth (AuthToken, InstitutionKey, NewPassword)
+import BCorrespondent.Transport.Model.Auth (AuthToken, InstitutionKey, NewPassword, AuthType, Credentials)
 import BCorrespondent.Transport.Response (Response)
 import BCorrespondent.Auth (AuthenticatedUser, JWT)
 import Servant.API.Extended
@@ -39,6 +39,12 @@ data AuthApi route = AuthApi
           :> "reset"
           :> SA.Auth '[JWT] AuthenticatedUser
           :> ReqBody '[JSON] NewPassword
-          :> Post '[JSON] (Response Bool)           
+          :> Post '[JSON] (Response Bool),
+    _authApiLogin ::
+      route
+        :- "login"
+          :> Capture "auth_type" AuthType
+          :> ReqBody '[JSON] Credentials
+          :> Post '[JSON] (Response AuthToken)
   }
   deriving stock (Generic)

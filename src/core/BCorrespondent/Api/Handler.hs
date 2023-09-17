@@ -59,7 +59,8 @@ auth =
         flip logExceptionM ErrorS
           . katipAddNamespace
               (Namespace ["auth", "password", "new"])
-          . Auth.Password.New.handle
+          . Auth.Password.New.handle,
+     _authApiLogin = undefined      
     }
 
 _foreign :: ForeignApi (AsServerT KatipHandlerM)

@@ -12,6 +12,8 @@ module BCorrespondent.Statement.Auth
         insertInstToken, 
         insertNewPassword,
         insertPasswordResetLink,
+        getUserIdByEmail, 
+        insertToken,
         InstitutionCreds (..),
         InsertionResult (..)
        ) where
@@ -134,3 +136,34 @@ insertPasswordResetLink =
 	       (select to_jsonb(tm :: int8) :: jsonb from tm_left),
          (select to_jsonb(email :: text) :: jsonb from link),
 		     to_jsonb('user404' :: text) :: jsonb) :: jsonb|]
+
+getUserIdByEmail :: HS.Statement T.Text (Maybe Int64)
+getUserIdByEmail = [maybeStatement|select id :: int8 from auth.user where email = $1 :: text|]
+
+insertToken :: HS.Statement (T.Text, T.Text, T.Text, UUID) Bool
+insertToken =
+  rmap (> 0)
+    [rowsAffectedStatement|
+       with
+         user_ident as (
+           select 
+           id,
+           (pass = crypt($2 :: text, pass)) :: bool as is_pass_valid 
+           from auth.user 
+           where email = $1 :: text),
+         invalidated_jwt as (
+           update auth.jwt 
+           set is_valid = false 
+           where 
+             is_valid and
+             id = (select jwt_id from auth.user_jwt where user_id = (select id from user_ident))
+             and (select is_pass_valid from user_ident) is true),
+         jwt as (
+          insert into auth.jwt 
+          (value, id)
+          select $3 :: text, $4 :: uuid
+          where (select is_pass_valid from user_ident))
+       insert into auth.user_jwt
+       (user_id, jwt_id)
+       select id, $4 :: uuid from user_ident
+       where (select is_pass_valid from user_ident) is true|]

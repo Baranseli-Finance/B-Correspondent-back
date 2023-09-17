@@ -65,6 +65,8 @@ explainTests =
         "getInstitutionCreds" =>> BCorrespondent.Statement.Auth.getInstitutionCreds,
         "checkToken" =>> BCorrespondent.Statement.Auth.checkToken,
         "insertNewPassword" =>> BCorrespondent.Statement.Auth.insertNewPassword,
-        "insertPasswordResetLink" =>> BCorrespondent.Statement.Auth.insertPasswordResetLink
+        "insertPasswordResetLink" =>> BCorrespondent.Statement.Auth.insertPasswordResetLink,
+        "getUserIdByEmail" =>> BCorrespondent.Statement.Auth.getUserIdByEmail,
+        "insertToken" =>> BCorrespondent.Statement.Auth.insertToken
      ]
   ]
