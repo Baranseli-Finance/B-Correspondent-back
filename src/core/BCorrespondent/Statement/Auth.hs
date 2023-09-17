@@ -10,7 +10,10 @@ module BCorrespondent.Statement.Auth
        (checkToken, 
         getInstitutionCreds, 
         insertInstToken, 
-        InstitutionCreds (..)
+        insertNewPassword,
+        insertPasswordResetLink,
+        InstitutionCreds (..),
+        InsertionResult (..)
        ) where
 
 import Control.Lens
@@ -22,7 +25,7 @@ import Data.Maybe (fromMaybe)
 import Data.UUID (UUID)
 import Data.Aeson.Generic.DerivingVia
 import GHC.Generics (Generic)
-import Data.Aeson (FromJSON, decode, encode)
+import Data.Aeson (FromJSON, decode, encode, eitherDecode')
 import Control.Monad (join)
 
 checkToken :: HS.Statement UUID Bool
@@ -70,3 +73,64 @@ insertInstToken =
     insert into auth.institution_jwt
     (inst_id, jwt_id)
     select $1 :: int8, id from jwt|]
+
+insertNewPassword :: HS.Statement (T.Text, T.Text) Bool
+insertNewPassword =
+  rmap (> 0)
+  [rowsAffectedStatement|
+    with link as (
+      update auth.password_reset_link
+      set is_expended = true
+      where link = $2 :: text 
+      and now() < valid_until 
+      and is_expended is null
+      returning user_id),
+    jwt as (
+      update auth.jwt 
+      set is_valid = false 
+      where user_id = (select user_id from link))  
+    update auth.user
+    set pass = crypt($1 :: text, gen_salt('md5')),
+        modified = now()
+    where id = (select user_id from link)|]
+
+data InsertionResult = Success T.Text | TMLeft Int64 | User404
+    deriving stock (Generic)
+    deriving (FromJSON)
+    via WithOptions
+        '[SumEnc UntaggedVal, ConstructorTagModifier '[CamelTo2 "_"]]
+        InsertionResult
+
+insertPasswordResetLink :: HS.Statement (Int64, T.Text) (Either String InsertionResult)
+insertPasswordResetLink =
+  rmap (eitherDecode' @InsertionResult . encode)
+  [singletonStatement|
+     with 
+       tmp as (
+         select
+           u.id as user_ident, 
+           l.created_at, 
+           now(),
+           u.email
+         from auth.user as u 
+         left join auth.password_reset_link as l
+         on u.id = l.user_id
+         where u.id = $1 :: int8 
+         and not coalesce(is_expended, false)
+         order by l.id desc limit 1),
+      link as (
+        insert into auth.password_reset_link
+        (user_id, link, valid_until)
+        select user_ident, $2 :: text, now() + interval '5 min'
+        from tmp
+        where (select now() > coalesce(created_at, '1970-01-01'::timestamptz) + interval '30 min' from tmp)
+        returning (select email from tmp)),
+      tm_left as (
+        select cast(extract(epoch from created_at + interval '30 min') - extract(epoch from now()) as int) as tm
+        from tmp 
+        where (select * from link) is null)
+     select 
+       coalesce(
+	       (select to_jsonb(tm :: int8) :: jsonb from tm_left),
+         (select to_jsonb(email :: text) :: jsonb from link),
+		     to_jsonb('user404' :: text) :: jsonb) :: jsonb|]

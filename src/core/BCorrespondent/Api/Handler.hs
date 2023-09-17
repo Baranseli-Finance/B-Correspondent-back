@@ -16,6 +16,8 @@ module BCorrespondent.Api.Handler (handler) where
 import BCorrespondent.Api
 import qualified BCorrespondent.Api.Handler.SendGrid.SendMail as SendGrid.Send
 import qualified BCorrespondent.Api.Handler.Auth.GenerateToken as Auth.GenerateToken
+import qualified BCorrespondent.Api.Handler.Auth.Password.MakeResetLink as Auth.Password.MakeResetLink
+import qualified BCorrespondent.Api.Handler.Auth.Password.New as Auth.Password.New
 import qualified BCorrespondent.Api.Handler.Transaction.New as Transaction.New
 import qualified BCorrespondent.Api.Handler.Transaction.GetConfirmed as Transaction.GetConfirmed
 import qualified BCorrespondent.Auth as Auth
@@ -45,7 +47,19 @@ auth =
         flip logExceptionM ErrorS $
           katipAddNamespace
             (Namespace ["auth", "institution", "token", "generate"])
-            (Auth.GenerateToken.handle key)
+            (Auth.GenerateToken.handle key),
+     _authApiResetPasswordLink = \auth ->
+      auth `Auth.withAuth` \user ->
+         flip logExceptionM ErrorS $
+           katipAddNamespace
+             (Namespace ["auth", "password", "link"])
+             (Auth.Password.MakeResetLink.handle user),
+     _authApiResetPasswordNew = 
+      const $
+        flip logExceptionM ErrorS
+          . katipAddNamespace
+              (Namespace ["auth", "password", "new"])
+          . Auth.Password.New.handle
     }
 
 _foreign :: ForeignApi (AsServerT KatipHandlerM)

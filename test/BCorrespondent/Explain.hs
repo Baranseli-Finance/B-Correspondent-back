@@ -63,6 +63,8 @@ explainTests =
     "BCorrespondent.Statement.Auth" ==>
      [  "insertInstToken" =>> BCorrespondent.Statement.Auth.insertInstToken,
         "getInstitutionCreds" =>> BCorrespondent.Statement.Auth.getInstitutionCreds,
-        "checkToken" =>> BCorrespondent.Statement.Auth.checkToken
+        "checkToken" =>> BCorrespondent.Statement.Auth.checkToken,
+        "insertNewPassword" =>> BCorrespondent.Statement.Auth.insertNewPassword,
+        "insertPasswordResetLink" =>> BCorrespondent.Statement.Auth.insertPasswordResetLink
      ]
   ]

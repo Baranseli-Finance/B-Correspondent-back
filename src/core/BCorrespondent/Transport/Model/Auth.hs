@@ -13,7 +13,14 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
-module BCorrespondent.Transport.Model.Auth (AuthToken (..), Credentials (..), AuthType, InstitutionKey (..)) where
+module BCorrespondent.Transport.Model.Auth 
+       (AuthToken (..), 
+        Credentials (..), 
+        AuthType, 
+        InstitutionKey (..),
+        NewPassword (..),
+        ResetPasswordLink (..)
+       ) where
 
 import Control.Lens
 import Control.Lens.Iso.Extended (jsonb, stext)
@@ -26,6 +33,7 @@ import GHC.Exts
 import GHC.Generics (Generic)
 import Servant.API (FromHttpApiData (parseQueryParam))
 import TH.Mk
+import Data.Swagger.Schema.Extended (deriveToSchemaFieldLabelModifier, modify)
 
 data AuthType = JWT
   deriving stock (Generic)
@@ -71,3 +79,18 @@ newtype InstitutionKey = InstitutionKey Text
   deriving stock (Generic)
   deriving anyclass (ToParamSchema)
   deriving newtype (FromHttpApiData)
+
+data NewPassword = NewPassword { newPasswordPassword :: Text, newPasswordKey :: Text }
+  deriving stock (Generic, Show)
+  deriving (FromJSON, ToJSON)
+    via WithOptions
+          '[FieldLabelModifier '[UserDefined FirstLetterToLower, UserDefined (StripConstructor NewPassword)]]
+          NewPassword
+
+deriveToSchemaFieldLabelModifier ''NewPassword [|modify (Proxy @NewPassword)|]
+
+newtype ResetPasswordLink = ResetPasswordLink Text
+  deriving stock (Generic, Show)
+  deriving newtype (FromJSON, ToJSON)
+
+instance ToSchema ResetPasswordLink

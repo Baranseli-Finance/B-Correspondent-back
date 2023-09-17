@@ -7,7 +7,7 @@ module BCorrespondent.Api.Http.Test (spec_api) where
 
 import Data.Proxy
 import BCorrespondent.Api.Auth (AuthApi)
-import BCorrespondent.Transport.Model.Auth (Credentials, AuthToken)
+import BCorrespondent.Transport.Model.Auth (Credentials, AuthToken, NewPassword)
 import BCorrespondent.Api.Handler.SendGrid.SendMail (SendGridSendMailRequest)
 import BCorrespondent.Config (Email)
 import BCorrespondent.Api.Foreign.SendGrid (SendGridApi)
@@ -21,6 +21,7 @@ mkArbitrary ''AuthToken
 mkArbitrary ''Credentials
 mkArbitrary ''Email
 mkArbitrary ''SendGridSendMailRequest
+mkArbitrary ''NewPassword
 
 spec_api :: Spec
 spec_api =
