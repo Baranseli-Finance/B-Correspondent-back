@@ -21,6 +21,7 @@ import qualified BCorrespondent.Api.Handler.Auth.Password.New as Auth.Password.N
 import qualified BCorrespondent.Api.Handler.Auth.Login as Auth.Login 
 import qualified BCorrespondent.Api.Handler.Transaction.New as Transaction.New
 import qualified BCorrespondent.Api.Handler.Transaction.GetConfirmed as Transaction.GetConfirmed
+import qualified BCorrespondent.Api.Handler.Transaction.GetHistory as Transaction.GetHistory
 import qualified BCorrespondent.Auth as Auth
 import Katip
 import Katip.Handler hiding (webhook)
@@ -96,5 +97,11 @@ transaction =
          flip logExceptionM ErrorS $
            katipAddNamespace
              (Namespace ["transaction", "list", "confirmed"])
-             (Transaction.GetConfirmed.handle user xs)
+             (Transaction.GetConfirmed.handle user xs),
+     _transactionApiHistory = \auth ->
+       auth `Auth.withAuth` \_ ->
+         flip logExceptionM ErrorS $
+           katipAddNamespace
+             (Namespace ["transaction", "history"])
+             Transaction.GetHistory.handle
     }

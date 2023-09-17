@@ -29,6 +29,11 @@ data TransactionApi route = TransactionApi
           :> RateLimit (FixedWindow (Second 1) 1) (KeyPolicy "Token")
           :> SA.Auth '[JWT] AuthenticatedUser
           :> ReqBody '[JSON] [TransactionId]
-          :> Post '[JSON] (Response [TransactionConfirmed])
+          :> Post '[JSON] (Response [TransactionConfirmed]),
+    _transactionApiHistory ::
+      route
+        :- "history"
+          :> SA.Auth '[JWT] AuthenticatedUser
+          :> Get '[JSON] (Response [Transaction])
   }
   deriving stock (Generic)

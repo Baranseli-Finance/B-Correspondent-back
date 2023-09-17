@@ -19,7 +19,8 @@
 module BCorrespondent.Transport.Model.Transaction 
        (TransactionConfirmed, 
         TransactionId,
-        TransactionNewRequest    
+        TransactionNewRequest,
+        Transaction
        ) where
 
 import Data.UUID (UUID)
@@ -58,3 +59,12 @@ data TransactionNewRequest =
           TransactionNewRequest
 
 deriveToSchemaFieldLabelModifier ''TransactionNewRequest [|modify (Proxy @TransactionNewRequest)|]
+
+data Transaction = Transaction { transactionIdent :: UUID }
+     deriving stock (Generic, Show)
+     deriving (ToJSON)
+       via WithOptions
+          '[OmitNothingFields 'True, FieldLabelModifier '[UserDefined ToLower, UserDefined (StripConstructor Transaction)]]
+          Transaction
+
+deriveToSchemaFieldLabelModifier ''Transaction [|modify (Proxy @Transaction)|]
