@@ -1,5 +1,6 @@
 module BCorrespondent.Api.Handler.Transaction.New (handle) where
 
+import BCorrespondent.Statement.Transaction ()
 import BCorrespondent.Transport.Response (Response)
 import BCorrespondent.Transport.Model.Transaction (TransactionNewRequest, TransactionId)
 import qualified BCorrespondent.Auth as Auth

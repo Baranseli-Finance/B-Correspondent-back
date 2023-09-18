@@ -24,12 +24,13 @@ import Control.Exception
 import Control.Lens hiding ((.=))
 import Data.Aeson.Extended hiding (Error)
 import Data.Bifunctor
--- import Data.Aeson.KeyMap
+import Data.Aeson.KeyMap
 import Data.Proxy
 import Data.Swagger
 import qualified Data.Text as T
--- import qualified Data.Vector as V
+import Data.String (fromString)
 import GHC.Generics
+import Data.String.Conv (toS)
 
 -- | Generic error. Keeps information about the problem and
 -- additional metadata.
@@ -52,14 +53,14 @@ instance AsError Error where asError = id
 
 -- | Add metadata to the existing error.
 addMeta :: ToJSON a => T.Text -> a -> Error -> Error
-addMeta name t Error {..} = undefined
+addMeta name t err = err { errorMeta = Just $ Payload $ singleton (fromString (toS name)) (toJSON t) }
 
 -- | Append metadata to the list of arrays.
 appendMeta :: ToJSON a => T.Text -> a -> Error -> Error
-appendMeta name t Error {..} = undefined
+appendMeta name t Error {..} = error "append meta isn't implemented"
 
 appendMetas :: ToJSON a => T.Text -> [a] -> Error -> Error
-appendMetas name ts Error {..} = undefined
+appendMetas name ts Error {..} = error "append metas isn't implemented"
 
 instance ToJSON Error where
   toJSON Error {..} =

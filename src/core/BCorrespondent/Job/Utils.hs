@@ -4,9 +4,8 @@ import Data.Time.Clock (getCurrentTime)
 import Katip
 
 withElapsedTime :: (Severity -> LogStr -> IO ()) -> String -> IO () -> IO ()
-withElapsedTime logger loc job = do 
-  start <- getCurrentTime
-  logger InfoS $ logStr $ loc <> ": ---> start at " <> show start
-  job
-  end <- getCurrentTime
-  logger InfoS $ logStr $ loc <> ": end at " <> show end
+withElapsedTime logger loc job = recordTime ": ---> starts at " >> job >> recordTime ": ---> ends at "
+  where 
+    recordTime msg = do
+      tm <- getCurrentTime
+      logger InfoS $ logStr $ loc <> msg <> show tm

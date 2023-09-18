@@ -62,8 +62,8 @@ instance (KnownSymbol s, FromJSON a, FromJSON b) => FromJSON (WithField s a b) w
     flip (withObject "WithField") obj $ \o -> do 
       x <- o .: fromString (symbolVal (Proxy @s))
       let o' = K.delete (fromString (symbolVal (Proxy @s))) o
-      y <- parseJSON $ Object o'
-      return $ WithField x y
+      let valm = o' K.!? "value"
+      fmap (WithField x) $ maybe (parseJSON (Object o')) parseJSON valm
 
 instance (KnownSymbol s, ToSchema a, ToSchema b) => ToSchema (WithField s a b) where
   declareNamedSchema _ = do
