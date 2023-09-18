@@ -19,7 +19,7 @@ import qualified BCorrespondent.Api.Handler.Auth.GenerateToken as Auth.GenerateT
 import qualified BCorrespondent.Api.Handler.Auth.Password.MakeResetLink as Auth.Password.MakeResetLink
 import qualified BCorrespondent.Api.Handler.Auth.Password.New as Auth.Password.New
 import qualified BCorrespondent.Api.Handler.Auth.Login as Auth.Login 
-import qualified BCorrespondent.Api.Handler.Transaction.New as Transaction.New
+import qualified BCorrespondent.Api.Handler.Transaction.Register as Transaction.Register
 import qualified BCorrespondent.Api.Handler.Transaction.GetConfirmed as Transaction.GetConfirmed
 import qualified BCorrespondent.Api.Handler.Transaction.GetHistory as Transaction.GetHistory
 import qualified BCorrespondent.Auth as Auth
@@ -86,12 +86,12 @@ sendgrid =
 transaction :: TransactionApi (AsServerT KatipHandlerM)
 transaction =
   TransactionApi
-    { _transactionApiNew = \auth req ->
+    { _transactionApiRegister = \auth req ->
        auth `Auth.withAuth` \user ->
          flip logExceptionM ErrorS $
            katipAddNamespace
              (Namespace ["transaction", "new"])
-             (Transaction.New.handle user req),
+             (Transaction.Register.handle user req),
       _transactionApiGetConfirmed = \auth xs ->
        auth `Auth.withAuth` \user ->
          flip logExceptionM ErrorS $

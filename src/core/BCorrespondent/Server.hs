@@ -23,6 +23,7 @@
 module BCorrespondent.Server (Cfg (..), ServerM (..), run) where
 
 import BuildInfo
+import qualified BCorrespondent.Job.Transaction as Job.Transaction
 import BCorrespondent.Api
 import BCorrespondent.EnvKeys (Sendgrid)
 import qualified BCorrespondent.Api.Handler as Handler
@@ -31,7 +32,7 @@ import BCorrespondent.ServerM
 import qualified BCorrespondent.Config as Cfg
 import BCorrespondent.Transport.Error
 import qualified BCorrespondent.Transport.Response as Response
-import Control.Concurrent.Async
+import qualified Control.Concurrent.Async.Lifted as Async.Lifted 
 import Control.Exception
 import Control.Lens
 import Control.Lens.Iso.Extended
@@ -156,13 +157,16 @@ run Cfg {..} = katipAddNamespace (Namespace ["application"]) $ do
         EmptyContext
 
   mware_logger <- katipAddNamespace (Namespace ["middleware"]) askLoggerWithLocIO
-  serverAsync <- liftIO $ async $ Warp.runSettings settings $ do 
+  serverAsync <- Async.Lifted.async $ liftIO $ Warp.runSettings settings $ do 
     let toIO = runKatipContextT logEnv () ns
     middleware cfgCors mware_logger $ 
       Katip.Wai.runApplication toIO $ 
         mkApplication $ serveWithContext (withSwagger api) mkCtx hoistedServer
   
-  end <- fmap snd $ flip logExceptionM ErrorS $ liftIO $ waitAnyCatchCancel [serverAsync]
+  sendAsync <- Async.Lifted.async $ Job.Transaction.sendCompletedToTochkaBank
+  forwardAsync <- Async.Lifted.async $ Job.Transaction.forwardToElekse
+
+  end <- fmap snd $ flip logExceptionM ErrorS $ Async.Lifted.waitAnyCatchCancel [serverAsync, sendAsync, forwardAsync]
   
   whenLeft end $ \e -> $(logTM) EmergencyS $ logStr $ "server has been terminated. error " <> show e
 

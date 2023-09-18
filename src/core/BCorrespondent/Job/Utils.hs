@@ -1,11 +1,15 @@
+{-#LANGUAGE TemplateHaskell #-}
+{-#LANGUAGE OverloadedStrings #-}
+
 module BCorrespondent.Job.Utils (withElapsedTime) where
 
-import Data.Time.Clock (getCurrentTime)
+import Control.Monad.Time (currentTime)
 import Katip
+import BCorrespondent.ServerM 
 
-withElapsedTime :: (Severity -> LogStr -> IO ()) -> String -> IO () -> IO ()
-withElapsedTime logger loc job = recordTime ": ---> starts at " >> job >> recordTime ": ---> ends at "
+withElapsedTime :: String -> KatipContextT ServerM () -> KatipContextT ServerM ()
+withElapsedTime loc job = recordTime ": ---> starts at " >> job >> recordTime ": ---> ends at "
   where 
     recordTime msg = do
-      tm <- getCurrentTime
-      logger InfoS $ logStr $ loc <> msg <> show tm
+      tm <- currentTime
+      $(logTM) InfoS $ logStr $ loc <> msg <> show tm

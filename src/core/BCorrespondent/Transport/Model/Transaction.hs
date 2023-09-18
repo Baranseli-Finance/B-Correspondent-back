@@ -15,21 +15,30 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE TupleSections #-}
+{-# OPTIONS_GHC -fno-warn-unused-top-binds #-}
 
 module BCorrespondent.Transport.Model.Transaction 
        (TransactionConfirmed, 
         TransactionId,
-        TransactionNewRequest,
-        Transaction
+        TransactionRegisterRequest,
+        Transaction,
+        Currency (..)
        ) where
 
 import Data.UUID (UUID)
 import Data.Aeson (ToJSON, FromJSON)
 import Data.Aeson.Generic.DerivingVia
 import GHC.Generics
-import Data.Swagger.Schema.Extended (deriveToSchemaFieldLabelModifier, modify)
+import Data.Swagger.Schema.Extended 
+       (deriveToSchemaFieldLabelModifier, 
+        deriveToSchemaConstructorTag, 
+        modify
+       )
 import Data.Proxy (Proxy (..))
 import Data.Swagger (ToSchema)
+import TH.Mk (mkArbitrary, mkEncoder)
+import Test.QuickCheck.Extended ()
+import Data.Char (toLower)
 
 data TransactionConfirmed =
      TransactionConfirmed 
@@ -49,18 +58,38 @@ newtype TransactionId = TransactionId UUID
  
 instance ToSchema TransactionId
 
-data TransactionNewRequest = 
-     TransactionNewRequest 
-     { transactionNewRequestIdent :: Int }
+data Currency = USD | EU
+     deriving stock (Generic, Show)
+     deriving (FromJSON, ToJSON)
+      via WithOptions
+          '[ConstructorTagModifier '[UserDefined ToLower]]
+          Currency
+
+mkArbitrary ''Currency
+
+deriveToSchemaConstructorTag ''Currency [| map toLower |]
+
+data TransactionRegisterRequest = 
+     TransactionRegisterRequest 
+     { transactionRegisterRequestIdent :: !Int,
+       transactionRegisterRequestCurrency :: !Currency,
+       transactionRegisterRequestAmount :: !Double
+     }
      deriving stock (Generic, Show)
      deriving (FromJSON)
        via WithOptions
-          '[OmitNothingFields 'True, FieldLabelModifier '[UserDefined ToLower, UserDefined (StripConstructor TransactionNewRequest)]]
-          TransactionNewRequest
+          '[OmitNothingFields 'True, FieldLabelModifier '[UserDefined ToLower, UserDefined (StripConstructor TransactionRegisterRequest)]]
+          TransactionRegisterRequest
 
-deriveToSchemaFieldLabelModifier ''TransactionNewRequest [|modify (Proxy @TransactionNewRequest)|]
+mkEncoder ''TransactionRegisterRequest
+mkArbitrary ''TransactionRegisterRequest
 
-data Transaction = Transaction { transactionIdent :: UUID }
+deriveToSchemaFieldLabelModifier ''TransactionRegisterRequest [|modify (Proxy @TransactionRegisterRequest)|]
+
+data Transaction = 
+     Transaction 
+     { transactionIdent :: UUID
+     }
      deriving stock (Generic, Show)
      deriving (ToJSON)
        via WithOptions

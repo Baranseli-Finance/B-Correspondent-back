@@ -211,7 +211,7 @@ statement s@(Hasql.Statement sql _ _ _) a = do
   liftIO $ logger DebugS (ls (sql <> " { params: [" <> (render a ^. stext . textbs)) <> "] }")
   lift $ Hasql.statement a s
 
-transactionM :: Pool Hasql.Connection -> ReaderT KatipLoggerIO Session a -> KatipHandlerM a
+transactionM :: forall m a . KatipContext m => Pool Hasql.Connection -> ReaderT KatipLoggerIO Session a -> m a
 transactionM pool session = katipAddNamespace (Namespace ["db", "hasql"]) askLoggerIO >>= (liftIO . flip (transaction pool) session)
 
 transactionMViolationError :: Pool Hasql.Connection -> ReaderT KatipLoggerIO Session a -> KatipHandlerM (Either ViolationError a)

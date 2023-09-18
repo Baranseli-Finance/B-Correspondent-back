@@ -26,6 +26,7 @@ import Control.Monad.RWS.Strict as RWS
 import Control.Monad.Trans.Control
 import Katip.Handler
 import Control.Monad.IO.Unlift (MonadUnliftIO (withRunInIO))
+import Control.Monad.Time
 
 newtype ServerM a = ServerM {runServerM :: RWS.RWST KatipEnv KatipLogger KatipState IO a}
   deriving newtype (Functor)
@@ -41,6 +42,7 @@ newtype ServerM a = ServerM {runServerM :: RWS.RWST KatipEnv KatipLogger KatipSt
   deriving newtype (MonadCatch)
   deriving newtype (MonadThrow)
   deriving newtype (MonadUnliftIO)
+  deriving newtype (MonadTime)
 
 instance MonadUnliftIO (RWS.RWST KatipEnv KatipLogger KatipState IO) where
   withRunInIO inner = 

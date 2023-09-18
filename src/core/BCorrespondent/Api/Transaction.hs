@@ -18,10 +18,10 @@ import Data.Time.TypeLevel (TimePeriod (Second))
 import qualified Servant.Auth.Server as SA
 
 data TransactionApi route = TransactionApi
-  { _transactionApiNew ::
+  { _transactionApiRegister ::
       route
         :- SA.Auth '[JWT] AuthenticatedUser
-          :> ReqBody '[JSON] [TransactionNewRequest]
+          :> ReqBody '[JSON] [TransactionRegisterRequest]
           :> Put '[JSON] (Response [TransactionId]),
     _transactionApiGetConfirmed ::
       route
