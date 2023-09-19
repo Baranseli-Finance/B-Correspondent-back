@@ -69,7 +69,11 @@ instance HasSecurity JWT where
       type_ = SecuritySchemeApiKey (ApiKeyParams "Authorization" ApiKeyHeader)
       desc = "JSON Web Token-based API key"
 
-data AuthenticatedUser = AuthenticatedUser {ident :: Int64, account :: Auth.AccountType} deriving (Show)
+data AuthenticatedUser = 
+     AuthenticatedUser 
+     {ident :: Int64, 
+      account :: Auth.AccountType
+     } deriving (Show)
 
 instance FromJWT AuthenticatedUser where
   decodeJWT _ = Right $ AuthenticatedUser 0 Auth.User
@@ -108,11 +112,20 @@ validateJwt cfg@JWTSettings {..} checkToken input = do
       res <- checkToken (userIdentClaimsJwtUUID, userIdentClaimsIdent)
       return $ case res of
         Nothing -> Left TokenInvalid
-        Just (Auth.CheckToken {..}) -> if checkTokenIsValid then Right (AuthenticatedUser userIdentClaimsIdent checkTokenAccountType) else Left TokenInvalid
+        Just (Auth.CheckToken {..}) ->
+          if checkTokenIsValid
+          then 
+            Right $ 
+              AuthenticatedUser 
+              userIdentClaimsIdent 
+              checkTokenAccountType
+          else Left TokenInvalid
 
 withAuth :: AuthResult AuthenticatedUser -> (AuthenticatedUser -> KatipHandlerM (Response a)) -> KatipHandlerM (Response a)
 withAuth (Authenticated user) runApi = runApi user
-withAuth e _ = return $ Error (Just 401) $ asError @T.Text $ "only for authorized personnel, error: " <> mkError e
+withAuth e _ = do
+  $(logTM) ErrorS $ logStr @T.Text $ $location <> " ---> auth error:  " <> mkError e
+  return $ Error (Just 401) $ asError @T.Text $ "only for authorized personnel, error: " <> mkError e
   where
     mkError BadPassword = "wrong password"
     mkError NoSuchUser = "no user found"
@@ -168,7 +181,7 @@ withWSAuth pend controller = do
     let msg = 
           BSL.toStrict $
             encode @(Response ()) $
-              Error Nothing $
+              Error (Just 401) $
                 asError @T.Text $
                   "connection rejected " <> toS error
     liftIO $ pend `WS.rejectRequest` msg
