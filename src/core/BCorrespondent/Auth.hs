@@ -18,7 +18,6 @@ module BCorrespondent.Auth (AuthenticatedUser (..), JWT, UserIdentClaims, genera
 import BCorrespondent.Transport.Model.Auth (AuthToken (..))
 import BCorrespondent.Transport.Response
 import qualified BCorrespondent.Statement.Auth as Auth
-import BCorrespondent.Transport.Error (addMeta)
 import Control.Lens
 import Control.Monad (unless, join)
 import Control.Monad.IO.Class (liftIO)
@@ -111,7 +110,7 @@ validateJwt cfg@JWTSettings {..} checkToken input = do
 
 withAuth :: AuthResult AuthenticatedUser -> (AuthenticatedUser -> KatipHandlerM (Response a)) -> KatipHandlerM (Response a)
 withAuth (Authenticated user) runApi = runApi user
-withAuth e _ = return $ Error $ addMeta @Int "code" 401 $ asError @T.Text $ "only for authorized personnel, error: " <> mkError e
+withAuth e _ = return $ Error (Just 401) $ asError @T.Text $ "only for authorized personnel, error: " <> mkError e
   where
     mkError BadPassword = "wrong password"
     mkError NoSuchUser = "no user found"
@@ -167,7 +166,7 @@ withWSAuth pend controller = do
     let msg = 
           BSL.toStrict $
             encode @(Response ()) $
-              Error $
+              Error Nothing $
                 asError @T.Text $
                   "connection rejected " <> toS error
     liftIO $ pend `WS.rejectRequest` msg

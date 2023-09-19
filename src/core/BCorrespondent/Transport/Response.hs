@@ -8,6 +8,7 @@
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE DataKinds #-}
 
 -- |
 -- Generic response that should be used in services. Currently it doesn't
@@ -38,13 +39,14 @@ import GHC.Exts
 import GHC.Generics
 import Test.QuickCheck.Extended
 import Validation
+import Data.Aeson.WithField (WithField (..))
 
 --  Generic response for sirius services.
 data Response a = Response
   { -- | Computation result.
     responseResult :: Maybe a,
     responseWarnings :: [Error],
-    responseErrors :: [Error]
+    responseErrors :: [WithField "code" (Maybe Int) Error]
   }
   deriving stock (Show)
   deriving stock (Typeable)
@@ -54,16 +56,16 @@ data Response a = Response
   deriving stock (Functor)
 
 pattern Ok :: a -> Response a
-pattern Ok x = Response (Just x) ([] :: [BCorrespondent.Error]) ([] :: [BCorrespondent.Error])
+pattern Ok x = Response (Just x) ([] :: [BCorrespondent.Error]) ([] :: [WithField "code" (Maybe Int) BCorrespondent.Error])
 
 pattern Warnings :: a -> [Error] -> Response a
-pattern Warnings x warns = Response (Just x) warns ([] :: [BCorrespondent.Error])
+pattern Warnings x warns = Response (Just x) warns ([] :: [WithField "code" (Maybe Int) BCorrespondent.Error])
 
-pattern Errors :: [Error] -> Response a
+pattern Errors :: [WithField "code" (Maybe Int) Error] -> Response a
 pattern Errors errs = Response Nothing [] errs
 
-pattern Error :: Error -> Response a
-pattern Error err = Response Nothing [] [err]
+pattern Error :: Maybe Int -> Error -> Response a
+pattern Error code err = Response Nothing [] [WithField code err]
 
 instance ToJSON a => ToJSON (Response a) where
   toJSON (Response Nothing [] []) = object ["success" .= Null]
@@ -86,35 +88,31 @@ instance FromJSON a => FromJSON (Response a) where
 
 instance (ToSchema a, Typeable a) => ToSchema (Response a) where
   declareNamedSchema _ = do
-    eSchema <- declareSchemaRef (Proxy @[Error])
-    aSchema <- declareSchemaRef (Proxy @a)
+    e <- declareSchemaRef (Proxy @[WithField "code" (Maybe Int) Error])
+    w <- declareSchemaRef (Proxy @[Error])
+    v <- declareSchemaRef (Proxy @a)
     let ident = T.pack $ show (typeRep (Proxy @a))
     pure $
-      NamedSchema (Just $ "Response." <> ident) $
+      NamedSchema (Just $ "Response_" <> ident) $
         mempty
           & type_ ?~ SwaggerObject
-          & properties
-            .~ fromList
-              [ ("success", aSchema),
-                ("warnings", eSchema),
-                ("errors", eSchema)
-              ]
+          & properties .~ fromList [ ("success", v), ("warnings", w), ("errors", e) ]
 
 instance Arbitrary a => Arbitrary (Response a) where arbitrary = fmap (\x -> Response x [] []) arbitrary
 
 fromValidation :: Validation [BCorrespondent.Error] a -> Response a
-fromValidation v = either Errors Ok $ validationToEither v
+fromValidation v = either (Errors . map (WithField Nothing)) Ok $ validationToEither v
 
 fromEither :: AsError e => Either e a -> Response a
-fromEither = either (Errors . flip (:) [] . asError) Ok
+fromEither = either (Errors . map (WithField Nothing) . flip (:) [] . asError) Ok
 
 fromEithers :: AsError e => Either [e] a -> Response a
-fromEithers = either (Errors . map asError) Ok
+fromEithers = either (Errors . map (WithField Nothing) . map asError) Ok
 
 liftMaybe :: AsError e => Maybe a -> e -> Response a
 liftMaybe (Just x) _ = Ok x
-liftMaybe Nothing e = BCorrespondent.Transport.Response.Error (asError e)
+liftMaybe Nothing e = BCorrespondent.Transport.Response.Error Nothing (asError e)
 
 toEither :: Response a -> Either [Error] a
 toEither (Response (Just x) _ _) = Right x
-toEither (Response Nothing _ es) = Left es
+toEither (Response Nothing _ es) = Left $ flip map es $ \(WithField _ e) -> e

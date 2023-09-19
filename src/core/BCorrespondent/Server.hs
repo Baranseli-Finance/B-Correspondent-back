@@ -190,7 +190,7 @@ mk500Response error cfgServerError mute500 =
           (hAccessControlAllowOrigin, "*")
         ]
         $ encode @(Response.Response ())
-        $ Response.Error (asError @T.Text (showt error))
+        $ Response.Error Nothing (asError @T.Text (showt error))
     )
     mk500
     cfgServerError
@@ -211,7 +211,7 @@ mk500Response error cfgServerError mute500 =
               (hAccessControlAllowOrigin, "*")
             ]
             ( encode @(Response.Response ()) $
-                Response.Error $ addMeta @Int "code" 500 $ (asError @T.Text (showt error))
+                Response.Error (Just 500) $ (asError @T.Text (showt error))
             )
 
 logRequest :: KatipLoggerIO -> Request -> Status -> Maybe Integer -> IO ()

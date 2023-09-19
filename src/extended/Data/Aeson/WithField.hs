@@ -5,6 +5,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
 
 module Data.Aeson.WithField (WithField (..), getFirst) where
 
@@ -50,9 +51,13 @@ instance Functor (WithField s a) where
 instance Bifunctor (WithField s) where
   bimap fa fb (WithField a b) = WithField (fa a) (fb b)
 
+instance  {-# OVERLAPPING #-} (KnownSymbol s, ToJSON a, ToJSON (Maybe a), ToJSON b) => ToJSON (WithField (s :: Symbol) (Maybe a) b) where
+  toJSON (WithField Nothing y) = toJSON y
+  toJSON (WithField (Just x) y) = toJSON $ WithField @s x y
+
 instance (KnownSymbol s, ToJSON a, ToJSON b) => ToJSON (WithField (s :: Symbol) a b) where
   toJSON (WithField x y) = inject x (toJSON y)
-    where 
+    where
       inject x (Object obj) =
         Object $ K.insert (fromString (symbolVal (Proxy @s))) (toJSON x) obj
       inject x _ = object [ "value" .= toJSON y, fromString (symbolVal (Proxy @s)) .= toJSON x ]

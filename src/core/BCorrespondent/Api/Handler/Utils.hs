@@ -16,7 +16,7 @@ import qualified Data.ByteString as B
 import Data.Bifunctor (second)
 
 withErrorExt :: Show e => Either e (a, [E.Error]) -> (a -> r) -> Response r
-withErrorExt (Left e) _ = Error $ asError (show e ^. stext)
+withErrorExt (Left e) _ = Error Nothing $ asError (show e ^. stext)
 withErrorExt (Right (x, ws)) ok = Warnings (ok x) ws
 
 withError :: Show e => Either e a -> (a -> r) -> Response r

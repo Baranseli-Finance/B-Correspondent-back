@@ -110,7 +110,7 @@ handle req@SendGridSendMailRequest {..} = do
             then return $ Ok ()
             else
               $(logTM) ErrorS (logStr ("SendGrid error: " <> show (responseBody resp)))
-                $> Error (asError @T.Text "something went wrong")
+                $> Error (Just 500) (asError @T.Text "something went wrong")
     handleResp resp
   when (isNothing resp) $ $(logTM) InfoS "sendgrid key hasn't been found. skip"
   return $ fromMaybe (Ok ()) resp

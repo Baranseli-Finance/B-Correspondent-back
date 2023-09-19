@@ -10,7 +10,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -fno-warn-redundant-constraints #-}
 
-module BCorrespondent.Api.Handler.WS.Utils (withWS, listen, Listen) where
+module BCorrespondent.Api.Handler.WS.Utils (withWS, listenPsql, ListenPsql) where
 
 
 import BCorrespondent.Api.Handler.Utils (withError)
@@ -33,14 +33,13 @@ import Control.Monad (forever)
 import Control.Concurrent.Lifted (fork, killThread)
 import qualified Control.Concurrent.MVar.Lifted as Async
 import Data.Kind (Type, Constraint)
-import GHC.TypeLits (Symbol, symbolVal, KnownSymbol)
+import GHC.TypeLits (Symbol, symbolVal, KnownSymbol, KnownNat, natVal)
 import qualified Hasql.Notifications as Hasql
 import Data.Proxy (Proxy (..))
 import Control.Lens.Iso.Extended (bytesLazy)
 import Data.String.Conv (toS)
 import Control.Concurrent (threadDelay)
 import qualified Data.Text.Lazy as TL
-import Data.Int (Int64)
 
 withWS 
   :: forall a . 
@@ -85,11 +84,11 @@ withWS conn go = do
     liftIO $ Pool.putResource local db
     $(logTM) ErrorS $ logStr @String $ $location <> " ws ends up with an error ---> " <> show error
 
-type family Listen (s :: Symbol) (b :: Type) :: Constraint
+type family ListenPsql (s :: Symbol) (b :: Type) :: Constraint
 
-listen :: forall s a b . (KnownSymbol s, Listen s a, FromJSON a, ToJSON b) => WS.Connection -> Hasql.Connection -> Int64 -> (a -> b) -> IO ()
-listen c db ident go = do
-  let channel =  toS (symbolVal (Proxy @s)) <> "_" <> toS (show ident)
+listenPsql :: forall s n a b . (KnownNat n, KnownSymbol s, ListenPsql s a, FromJSON a, ToJSON b) => WS.Connection -> Hasql.Connection -> (a -> b) -> IO ()
+listenPsql c db go = do
+  let channel =  toS (symbolVal (Proxy @s)) <> "_" <> toS (show (natVal (Proxy @n)))
   let channelToListen = Hasql.toPgIdentifier channel
   Hasql.listen db channelToListen
   forever $

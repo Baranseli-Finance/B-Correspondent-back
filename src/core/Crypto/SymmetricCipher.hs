@@ -23,12 +23,12 @@ data Key c a where
   Key :: (BlockCipher c, ByteArray a) => a -> Key c a
 
 -- | Generates a string of bytes (key) of a specific length for a given block cipher
-genSecretKey :: forall m c a. (CRT.MonadRandom m, BlockCipher c, ByteArray a) => c -> Int -> m (Key c a)
-genSecretKey _ = fmap Key . CRT.getRandomBytes
+genSecretKey :: forall c a m. (CRT.MonadRandom m, BlockCipher c, ByteArray a) => Int -> m (Key c a)
+genSecretKey = fmap Key . CRT.getRandomBytes
 
 -- | Generate a random initialization vector for a given block cipher
-genRandomIV :: forall m c. (CRT.MonadRandom m, BlockCipher c) => c -> m (Maybe (IV c))
-genRandomIV _ = do
+genRandomIV :: forall c m . (CRT.MonadRandom m, BlockCipher c) => m (Maybe (IV c))
+genRandomIV = do
   bytes :: ByteString <- CRT.getRandomBytes $ blockSize (undefined :: c)
   return $ makeIV bytes
 
