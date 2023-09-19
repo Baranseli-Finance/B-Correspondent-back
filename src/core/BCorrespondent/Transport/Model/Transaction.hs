@@ -22,7 +22,8 @@ module BCorrespondent.Transport.Model.Transaction
         TransactionId,
         TransactionRegisterRequest,
         Transaction,
-        Currency (..)
+        Currency (..),
+        ExternalTransactionIdent
        ) where
 
 import Data.UUID (UUID)
@@ -37,8 +38,9 @@ import Data.Swagger.Schema.Extended
 import Data.Proxy (Proxy (..))
 import Data.Swagger (ToSchema)
 import TH.Mk (mkArbitrary, mkEncoder)
-import Test.QuickCheck.Extended ()
+import Test.QuickCheck.Extended (Arbitrary)
 import Data.Char (toLower)
+import Data.Word (Word64)
 
 data TransactionConfirmed =
      TransactionConfirmed 
@@ -69,14 +71,21 @@ mkArbitrary ''Currency
 
 deriveToSchemaConstructorTag ''Currency [| map toLower |]
 
+newtype ExternalTransactionIdent = ExternalTransactionIdent Word64
+  deriving stock (Generic, Show)
+  deriving newtype (FromJSON, ToJSON)
+  deriving newtype (Arbitrary)
+
+instance ToSchema ExternalTransactionIdent
+
 data TransactionRegisterRequest = 
      TransactionRegisterRequest 
-     { transactionRegisterRequestIdent :: !Int,
+     { transactionRegisterRequestIdent :: !ExternalTransactionIdent,
        transactionRegisterRequestCurrency :: !Currency,
        transactionRegisterRequestAmount :: !Double
      }
      deriving stock (Generic, Show)
-     deriving (FromJSON)
+     deriving (FromJSON, ToJSON)
        via WithOptions
           '[OmitNothingFields 'True, FieldLabelModifier '[UserDefined ToLower, UserDefined (StripConstructor TransactionRegisterRequest)]]
           TransactionRegisterRequest
