@@ -69,21 +69,21 @@ instance HasSecurity JWT where
       type_ = SecuritySchemeApiKey (ApiKeyParams "Authorization" ApiKeyHeader)
       desc = "JSON Web Token-based API key"
 
-newtype AuthenticatedUser = AuthenticatedUser {ident :: Int64} deriving (Show)
+data AuthenticatedUser = AuthenticatedUser {ident :: Int64, account :: Auth.AccountType} deriving (Show)
 
 instance FromJWT AuthenticatedUser where
-  decodeJWT _ = Right $ AuthenticatedUser 0
+  decodeJWT _ = Right $ AuthenticatedUser 0 Auth.User
 
 instance ToJWT AuthenticatedUser where
   encodeJWT _ = emptyClaimsSet
 
 instance IsAuth JWT AuthenticatedUser where
-  type AuthArgs JWT = '[JWTSettings, UUID -> IO Bool]
+  type AuthArgs JWT = '[JWTSettings, (UUID, Int64) -> IO (Maybe Auth.CheckToken)]
   runAuth _ _ = \cfg checkToken -> do
     res <- ask >>= Except.runExceptT . go cfg checkToken
     fromEither res
     where
-      go :: JWTSettings -> (UUID -> IO Bool) -> Request -> Except.ExceptT AuthError AuthCheck AuthenticatedUser
+      go :: JWTSettings -> ((UUID, Int64) -> IO (Maybe Auth.CheckToken)) -> Request -> Except.ExceptT AuthError AuthCheck AuthenticatedUser
       go cfg checkToken req = do
         header <- Except.except $ maybeToRight NoAuthHeader $ lookup "Authorization" (requestHeaders req)
         let bearer = "Token "
@@ -97,7 +97,7 @@ instance IsAuth JWT AuthenticatedUser where
       fromEither (Left TokenInvalid) = fail "TokenInvalid"
       fromEither (Right user) = pure user
 
-validateJwt :: JWTSettings -> (UUID -> IO Bool) -> BS.ByteString -> IO (Either AuthError AuthenticatedUser)
+validateJwt :: JWTSettings -> ((UUID, Int64) -> IO (Maybe Auth.CheckToken)) -> BS.ByteString -> IO (Either AuthError AuthenticatedUser)
 validateJwt cfg@JWTSettings {..} checkToken input = do
   keys <- validationKeys
   userClaimSet <- runJOSE @Jose.JWTError $ do
@@ -105,8 +105,10 @@ validateJwt cfg@JWTSettings {..} checkToken input = do
     Jose.verifyJWT (jwtSettingsToJwtValidationSettings cfg) keys unverifiedJWT
   fmap (join . first (const TokenInvalid)) $
     for userClaimSet $ \UserIdentClaims {userIdentClaimsIdent, userIdentClaimsJwtUUID} -> do 
-      isOk <- checkToken userIdentClaimsJwtUUID
-      return $ if isOk then Right (AuthenticatedUser userIdentClaimsIdent) else Left TokenInvalid
+      res <- checkToken (userIdentClaimsJwtUUID, userIdentClaimsIdent)
+      return $ case res of
+        Nothing -> Left TokenInvalid
+        Just (Auth.CheckToken {..}) -> if checkTokenIsValid then Right (AuthenticatedUser userIdentClaimsIdent checkTokenAccountType) else Left TokenInvalid
 
 withAuth :: AuthResult AuthenticatedUser -> (AuthenticatedUser -> KatipHandlerM (Response a)) -> KatipHandlerM (Response a)
 withAuth (Authenticated user) runApi = runApi user

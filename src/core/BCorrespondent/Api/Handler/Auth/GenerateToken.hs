@@ -6,7 +6,7 @@
 module BCorrespondent.Api.Handler.Auth.GenerateToken (handle) where
 
 import BCorrespondent.Api.Handler.Utils (withError)
-import BCorrespondent.Statement.Auth (getInstitutionCreds, insertInstToken, InstitutionCreds (..))
+import BCorrespondent.Statement.Auth (getInstitutionCreds, insertInstToken, InstitutionCreds (..), CheckToken (..), AccountType (Institution))
 import BCorrespondent.Transport.Model.Auth (AuthToken (..), InstitutionKey (..))
 import BCorrespondent.Transport.Response (Response)
 import BCorrespondent.Auth (generateJWT, validateJwt)
@@ -48,7 +48,8 @@ handle instKey = do
             Nothing -> mkToken institutionCredsIdent
             Just value -> do
               let isValid = fromMaybe undefined institutionCredsIsValid
-              res <- liftIO $ validateJwt (defaultJWTSettings key) (const $ pure isValid) $ toS value
+              let checkToken = CheckToken { checkTokenIsValid = isValid, checkTokenAccountType = Institution }
+              res <- liftIO $ validateJwt (defaultJWTSettings key) (const $ pure (Just checkToken)) $ toS value
               case res of 
                 Right _ -> pure $ Right value
                 Left _ -> mkToken institutionCredsIdent

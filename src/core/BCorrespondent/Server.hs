@@ -24,6 +24,7 @@ module BCorrespondent.Server (Cfg (..), ServerM (..), run) where
 
 import BuildInfo
 import qualified BCorrespondent.Job.Transaction as Job.Transaction
+import BCorrespondent.Statement.Auth (CheckToken)
 import BCorrespondent.Api
 import BCorrespondent.EnvKeys (Sendgrid)
 import qualified BCorrespondent.Api.Handler as Handler
@@ -75,6 +76,8 @@ import Data.ByteString (ByteString)
 import Network.Wai.RateLimit.Postgres (postgresBackend)
 import Database.PostgreSQL.Simple.Internal
 import qualified Data.Pool as Pool
+import Data.Int (Int64)
+
 
 data Cfg = Cfg
   { cfgHost :: !String,
@@ -117,7 +120,7 @@ run Cfg {..} = katipAddNamespace (Namespace ["application"]) $ do
   let hoistedServer =
         hoistServerWithContext
           (withSwagger api)
-          (Proxy @'[CookieSettings, JWTSettings, UUID -> IO Bool, Backend ByteString])
+          (Proxy @'[CookieSettings, JWTSettings, (UUID, Int64) -> IO (Maybe CheckToken), Backend ByteString])
           (fmap fst . runKatipController cfg (State mempty))
           ( toServant Handler.handler
               :<|> swaggerSchemaUIServerT
@@ -151,7 +154,7 @@ run Cfg {..} = katipAddNamespace (Namespace ["application"]) $ do
         multipartOpts :. 
         formatters :. 
         defaultJWTSettings (configKatipEnv ^. jwk) :. 
-        (checkToken :: UUID -> IO Bool) :. 
+        checkToken :. 
         rateBackend :.
         defaultCookieSettings :.
         EmptyContext

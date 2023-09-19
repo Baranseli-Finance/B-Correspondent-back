@@ -15,7 +15,9 @@ module BCorrespondent.Statement.Auth
         getUserIdByEmail, 
         insertToken,
         InstitutionCreds (..),
-        InsertionResult (..)
+        InsertionResult (..),
+        AccountType (..),
+        CheckToken (..)
        ) where
 
 import Control.Lens
@@ -23,15 +25,11 @@ import Data.Int (Int64)
 import qualified Data.Text as T
 import qualified Hasql.Statement as HS
 import Hasql.TH
-import Data.Maybe (fromMaybe)
 import Data.UUID (UUID)
 import Data.Aeson.Generic.DerivingVia
 import GHC.Generics (Generic)
 import Data.Aeson (FromJSON, decode, encode, eitherDecode')
 import Control.Monad (join)
-
-checkToken :: HS.Statement UUID Bool
-checkToken = rmap (fromMaybe False) $ [maybeStatement| select is_valid :: bool from auth.jwt where id = $1 :: uuid|]
 
 data InstitutionCreds = 
      InstitutionCreds 
@@ -167,3 +165,40 @@ insertToken =
        (user_id, jwt_id)
        select id, $4 :: uuid from user_ident
        where (select is_pass_valid from user_ident) is true|]
+
+data AccountType = Institution | User
+    deriving stock (Generic, Show, Eq)
+    deriving (FromJSON)
+    via WithOptions
+        '[ConstructorTagModifier '[UserDefined ToLower]]
+        AccountType
+
+data CheckToken = CheckToken { checkTokenIsValid :: Bool, checkTokenAccountType :: AccountType } 
+     deriving stock (Generic)
+     deriving
+     (FromJSON)
+     via WithOptions
+          '[FieldLabelModifier '[CamelTo2 "_", UserDefined (StripConstructor CheckToken)]]
+          CheckToken
+
+checkToken :: HS.Statement (UUID, Int64) (Maybe CheckToken)
+checkToken = 
+  rmap (join . fmap (decode @CheckToken . encode))
+  [maybeStatement|
+    with 
+      account_type as (
+        select
+          to_jsonb('user' :: text) :: jsonb
+        from auth.user_jwt
+        where user_id = $2 :: int8 and jwt_id = $1 :: uuid
+        union
+        select
+          to_jsonb('institution' :: text) :: jsonb
+        from auth.institution_jwt
+        where inst_id = $2 :: int8 and jwt_id = $1 :: uuid)
+   select
+     jsonb_build_object (
+      'is_valid', is_valid :: bool,
+      'account_type', (select * from account_type)) :: jsonb
+   from auth.jwt 
+   where id = $1 :: uuid|]
