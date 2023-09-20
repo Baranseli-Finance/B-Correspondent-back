@@ -88,10 +88,15 @@ insertNewPassword =
     jwt as (
       update auth.jwt 
       set is_valid = false 
-      where user_id = (select user_id from link))  
+      where id in 
+        (select 
+            jwt_id
+         from auth.user_jwt as uj 
+         inner join link as l
+         on uj.user_id = l.user_id))  
     update auth.user
     set pass = crypt($1 :: text, gen_salt('md5')),
-        modified = now()
+        modified_at = now()
     where id = (select user_id from link)|]
 
 data InsertionResult = Success T.Text | TMLeft Int64 | User404
