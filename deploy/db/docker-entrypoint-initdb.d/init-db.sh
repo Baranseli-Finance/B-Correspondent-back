@@ -54,9 +54,9 @@ Aborting."
 init_user_and_db() {
   psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" <<-EOSQL
      create user $DB_USER with password '$DB_PASSWORD'; 
-     create database $DB_DATABASE;
-     \c $DB_DATABASE;
-     grant all privileges on database $DB_DATABASE to $DB_USER;
+     create database "$DB_DATABASE";
+     \c "$DB_DATABASE";
+     grant all privileges on database "$DB_DATABASE" to $DB_USER;
      alter schema public owner to $DB_USER;
      create extension postgres_fdw;
      create extension hstore;
