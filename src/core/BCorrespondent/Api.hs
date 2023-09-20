@@ -16,6 +16,7 @@ module BCorrespondent.Api
     SendGridApi (..),
     ForeignApi (..),
     TransactionApi (..),
+    InvoiceApi (..),
     api,
     swaggerHttpApi,
   )

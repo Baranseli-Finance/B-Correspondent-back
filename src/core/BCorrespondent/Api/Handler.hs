@@ -19,7 +19,7 @@ import qualified BCorrespondent.Api.Handler.Auth.GenerateToken as Auth.GenerateT
 import qualified BCorrespondent.Api.Handler.Auth.Password.MakeResetLink as Auth.Password.MakeResetLink
 import qualified BCorrespondent.Api.Handler.Auth.Password.New as Auth.Password.New
 import qualified BCorrespondent.Api.Handler.Auth.Login as Auth.Login 
-import qualified BCorrespondent.Api.Handler.Transaction.Register as Transaction.Register
+import qualified BCorrespondent.Api.Handler.Invoice.Register as Invoice.Register
 import qualified BCorrespondent.Api.Handler.Transaction.GetConfirmed as Transaction.GetConfirmed
 import qualified BCorrespondent.Api.Handler.Transaction.GetHistory as Transaction.GetHistory
 import qualified BCorrespondent.Auth as Auth
@@ -39,7 +39,8 @@ httpApi =
   HttpApi
     { _httpApiAuth = toServant auth,
       _httpApiForeign = toServant _foreign,
-      _httpApiTransaction = toServant transaction
+      _httpApiTransaction = toServant transaction,
+      _httpApiInvoice = toServant invoice
     }
 
 auth :: AuthApi (AsServerT KatipHandlerM)
@@ -86,12 +87,7 @@ sendgrid =
 transaction :: TransactionApi (AsServerT KatipHandlerM)
 transaction =
   TransactionApi
-    { _transactionApiRegister = \auth req ->
-       auth `Auth.withAuth` \user ->
-         flip logExceptionM ErrorS $
-           katipAddNamespace
-             (Namespace ["transaction", "new"])
-             (Transaction.Register.handle user req),
+    {
       _transactionApiGetConfirmed = \auth xs ->
        auth `Auth.withAuth` \user ->
          flip logExceptionM ErrorS $
@@ -104,4 +100,15 @@ transaction =
            katipAddNamespace
              (Namespace ["transaction", "history"])
              Transaction.GetHistory.handle
+    }
+
+invoice :: InvoiceApi (AsServerT KatipHandlerM)
+invoice = 
+  InvoiceApi 
+    { _invoiceApiRegister = \auth req ->
+       auth `Auth.withAuth` \user ->
+         flip logExceptionM ErrorS $
+           katipAddNamespace
+             (Namespace ["invoice", "new"])
+             (Invoice.Register.handle user req)
     }

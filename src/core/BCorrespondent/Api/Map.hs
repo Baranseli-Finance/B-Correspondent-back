@@ -9,13 +9,15 @@ module BCorrespondent.Api.Map
   ( HttpApi (..),
     module Auth,
     module Foreign,
-    module Transaction
+    module Transaction,
+    module Invoice
   )
 where
 
 import BCorrespondent.Api.Foreign as Foreign
 import BCorrespondent.Api.Auth as Auth
 import BCorrespondent.Api.Transaction as Transaction
+import BCorrespondent.Api.Invoice as Invoice
 import Servant.API
 import Servant.API.Generic
 import Servant.Swagger.Tags
@@ -35,6 +37,11 @@ data HttpApi route = HttpApi
       route
         :- Tags "Transaction"
           :> "transaction"
-          :> ToServant TransactionApi AsApi      
+          :> ToServant TransactionApi AsApi,
+    _httpApiInvoice ::
+      route
+        :- Tags "Invoice"
+          :> "invoice"
+          :> ToServant InvoiceApi AsApi     
   }
   deriving stock (Generic)
