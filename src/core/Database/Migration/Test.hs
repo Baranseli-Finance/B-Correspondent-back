@@ -20,4 +20,5 @@ migrate = sql $ exts <> fold list
         create extension hstore;
         create extension ltree;
         create extension pg_trgm;
-        create extension pgcrypto;|]
+        create extension pgcrypto;
+        create extension "uuid-ossp";|]
