@@ -12,6 +12,8 @@
 module BCorrespondent.Explain (spec_explain) where
 
 import qualified BCorrespondent.Statement.Auth
+import qualified BCorrespondent.Statement.Invoice
+import qualified BCorrespondent.Statement.Transaction
 
 import Control.Lens
 import Control.Monad.IO.Class
@@ -25,7 +27,6 @@ import Hasql.Statement
 import Test.Hspec hiding (shouldBe)
 import Test.Hspec.DB.Hasql
 import Test.Hspec.Expectations.Lifted
--- import Test.QuickCheck (Arbitrary (arbitrary), generate)
 import Test.QuickCheck.Extended (Arbitrary (arbitrary), generate)
 
 spec_explain :: Spec
@@ -68,5 +69,11 @@ explainTests =
         "insertPasswordResetLink" =>> BCorrespondent.Statement.Auth.insertPasswordResetLink,
         "getUserIdByEmail" =>> BCorrespondent.Statement.Auth.getUserIdByEmail,
         "insertToken" =>> BCorrespondent.Statement.Auth.insertToken
+     ]
+  , "BCorrespondent.Statement.Invoice" ==>
+     [ "register" =>> BCorrespondent.Statement.Invoice.register]
+  , "BCorrespondent.Statement.Transaction" ==>
+     [  "getTransactionsToBeSent" =>> BCorrespondent.Statement.Transaction.getTransactionsToBeSent,
+        "insertFailedTransactions" =>> BCorrespondent.Statement.Transaction.insertFailedTransactions
      ]
   ]
