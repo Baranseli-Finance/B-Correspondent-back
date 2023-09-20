@@ -12,6 +12,7 @@ module Data.Swagger.Schema.Extended
     deriveToSchemaConstructorTagUnrestricted,
     module Data.Swagger.Schema,
     modify,
+    firstLetterModify
   )
 where
 
@@ -87,3 +88,11 @@ modify proxy =
     let (head : tail) =
           show (T.typeRep proxy)
      in maybe s (map toLower) (stripPrefix (toLower head : tail) s)
+
+firstLetterModify :: forall a. Typeable a => Proxy a -> String -> String
+firstLetterModify proxy =
+  \s ->
+    let (head : tail) =
+          show (T.typeRep proxy)
+     in maybe s (\(h:t) -> toLower h : t) (stripPrefix (toLower head : tail) s)
+
