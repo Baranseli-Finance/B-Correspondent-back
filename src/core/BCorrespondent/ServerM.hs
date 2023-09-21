@@ -17,7 +17,7 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module BCorrespondent.ServerM (ServerM (..)) where
+module BCorrespondent.ServerM (ServerM (..), ServerException (..)) where
 
 import Control.Monad.Base (MonadBase)
 import Control.Monad.Catch
@@ -50,4 +50,9 @@ instance MonadUnliftIO (RWS.RWST KatipEnv KatipLogger KatipState IO) where
       x <- withRunInIO $ \run -> 
         inner $ \m ->
           fmap fst $ RWS.evalRWST m r s
-      pure (x, s, mempty) 
+      pure (x, s, mempty)
+
+data ServerException = RecoveryFailed
+    deriving Show
+
+instance Exception ServerException

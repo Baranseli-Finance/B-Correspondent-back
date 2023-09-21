@@ -23,18 +23,21 @@ import Data.String.Conv (toS)
 
 forwardToElekse :: KatipContextT ServerM ()
 forwardToElekse =
-  forever $
+  forever $ do 
+    threadDelay $ 10 * 1_000_000
     withElapsedTime ($location <> ":forwardToElekse") $ do
-      threadDelay $ 10 * 1_000_000
       hasql <- fmap (^. hasqlDbPool) ask
-      xs <- transactionM hasql $ statement getInvoicesToBeSent ()
-      ys <- for xs $ \_ -> undefined
-      let (es, os) = partitionEithers ys
-      for_ es $ \ident ->
-        $(logTM) ErrorS $ 
-          logStr @T.Text $ 
-            $location <>
-            ":forwardToElekse: --> invoice failed to be sent, " <> 
-            toS (show ident) 
-      transactionM hasql $ statement insertFailedInvoices es
-      transactionM hasql $ statement updateStatus $ os <&> \x -> (x, ForwardedToElekse)
+      res <- transactionM hasql $ statement getInvoicesToBeSent ()
+      case res of
+        Right xs -> do
+          ys <- for xs $ \_ -> undefined
+          let (es, os) = partitionEithers ys
+          for_ es $ \ident ->
+            $(logTM) ErrorS $ 
+            logStr @T.Text $ 
+              $location <>
+              ":forwardToElekse: --> invoice failed to be sent, " <> 
+              toS (show ident)
+          transactionM hasql $ statement insertFailedInvoices es
+          transactionM hasql $ statement updateStatus $ os <&> \x -> (x, ForwardedToElekse)
+        Left err -> $(logTM) CriticalS $ logStr @T.Text $ $location <> ":forwardToElekse: decode error ---> " <> toS err

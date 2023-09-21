@@ -8,7 +8,6 @@
 
 module BCorrespondent.Api.Transaction (TransactionApi (..)) where
 
-import BCorrespondent.Transport.Model.Transaction
 import BCorrespondent.Transport.Response (Response)
 import BCorrespondent.Auth (AuthenticatedUser, JWT)
 import Servant.API.Extended
@@ -20,7 +19,7 @@ data TransactionApi route = TransactionApi
       route
         :- "history"
           :> SA.Auth '[JWT] AuthenticatedUser
-          :> Get '[JSON] (Response [Transaction]),
+          :> Get '[JSON] (Response ()),
     _transactionApiDayTimeline ::
       route
         :- "timeline"

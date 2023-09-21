@@ -119,6 +119,7 @@ newtype KatipControllerWriter = KatipControllerWriter [String]
 
 
 newtype KatipState = KatipState Int
+  deriving newtype Num
 
 instance Default KatipState where
   def = KatipState 0

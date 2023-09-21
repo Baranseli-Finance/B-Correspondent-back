@@ -201,7 +201,7 @@ mkEncoder name = do
         FunD
           (mkName ("mkEncoder" <> nameBase name))
           [Clause [] (NormalB (LamE [VarP (mkName "x")] (AppE (ConE (mkName "Just")) (TupE (mkTplExp [] fields))))) []]
-  return [mkTypeSyn, mkEncoderSig, mkEncoderFun]
+  return [mkTypeSyn, mkEncoderSig, mkEncoderFun] 
   where
     mkType t =
       case nameModule t of

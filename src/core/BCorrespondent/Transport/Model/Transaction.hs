@@ -19,8 +19,8 @@
 
 module BCorrespondent.Transport.Model.Transaction 
        (TransactionConfirmed, 
-        TransactionId,
-        Transaction
+        TransactionId (..),
+        TransactionDelivery
        ) where
 
 import Data.UUID (UUID)
@@ -45,19 +45,19 @@ data TransactionConfirmed =
 deriveToSchemaFieldLabelModifier ''TransactionConfirmed [|modify (Proxy @TransactionConfirmed)|]
 
 newtype TransactionId = TransactionId UUID
-  deriving stock (Generic)
+  deriving stock (Generic, Show)
   deriving newtype (ToJSON, FromJSON, Arbitrary, ParamsShow)
  
 instance ToSchema TransactionId
 
-data Transaction = 
-     Transaction 
-     { transactionIdent :: UUID
+data TransactionDelivery = 
+     TransactionDelivery 
+     { transactionDeliveryIdent :: UUID
      }
      deriving stock (Generic, Show)
-     deriving (ToJSON)
+     deriving (ToJSON, FromJSON)
        via WithOptions
-          '[OmitNothingFields 'True, FieldLabelModifier '[UserDefined ToLower, UserDefined (StripConstructor Transaction)]]
-          Transaction
+          '[OmitNothingFields 'True, FieldLabelModifier '[UserDefined ToLower, UserDefined (StripConstructor TransactionDelivery)]]
+          TransactionDelivery
 
-deriveToSchemaFieldLabelModifier ''Transaction [|modify (Proxy @Transaction)|]
+deriveToSchemaFieldLabelModifier ''TransactionDelivery [|modify (Proxy @TransactionDelivery)|]

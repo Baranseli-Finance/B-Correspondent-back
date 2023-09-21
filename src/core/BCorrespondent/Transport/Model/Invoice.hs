@@ -24,6 +24,7 @@ module BCorrespondent.Transport.Model.Invoice
         InvoiceRegisterRequest (..), 
         InvoiceId (..),
         ExternalCustomerId (..),
+        InvoiceToElekse (..),
         encodeInvoice
        ) where
 
@@ -45,6 +46,7 @@ import Database.Transaction (ParamsShow (..))
 import Data.Maybe (fromMaybe)
 import Data.Time.Clock (UTCTime)
 import Data.Int (Int64)
+import Data.UUID (UUID)
 
 data Currency = USD | EUR
      deriving stock (Generic, Show)
@@ -134,3 +136,10 @@ newtype InvoiceId = InvoiceId Int64
   deriving newtype (Arbitrary)
 
 instance ToSchema InvoiceId
+
+data InvoiceToElekse = InvoiceToElekse { invoiceToElekseExternalId :: UUID }
+     deriving stock (Generic, Show)
+     deriving (FromJSON, ToJSON)
+       via WithOptions
+          '[OmitNothingFields 'True, FieldLabelModifier '[UserDefined FirstLetterToLower, UserDefined (StripConstructor InvoiceToElekse)]]
+          InvoiceToElekse

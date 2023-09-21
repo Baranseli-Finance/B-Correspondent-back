@@ -71,7 +71,11 @@ explainTests =
         "insertToken" =>> BCorrespondent.Statement.Auth.insertToken
      ]
   , "BCorrespondent.Statement.Invoice" ==>
-     [ "register" =>> BCorrespondent.Statement.Invoice.register]
+     [ "register" =>> BCorrespondent.Statement.Invoice.register,
+       "getInvoicesToBeSent" =>> BCorrespondent.Statement.Invoice.getInvoicesToBeSent,
+       "insertFailedInvoices" =>> BCorrespondent.Statement.Invoice.insertFailedInvoices,
+       "updateStatus" =>> BCorrespondent.Statement.Invoice.updateStatus
+     ] 
   , "BCorrespondent.Statement.Transaction" ==>
      [  "getTransactionsToBeSent" =>> BCorrespondent.Statement.Transaction.getTransactionsToBeSent,
         "insertFailedTransactions" =>> BCorrespondent.Statement.Transaction.insertFailedTransactions

@@ -19,16 +19,23 @@ import Data.Traversable (for)
 import Data.Foldable (for_)
 import Data.Either (partitionEithers)
 import qualified Data.Text as T
+import Data.String.Conv (toS)
 
 sendToTochkaBank :: KatipContextT ServerM ()
 sendToTochkaBank = 
-  forever $
+  forever $ do 
+    threadDelay $ 10 * 1_000_000   
     withElapsedTime ($location <> ":sendToTochkaBank") $ do
-      threadDelay $ 10 * 1_000_000
       hasql <- fmap (^. hasqlDbPool) ask
-      xs <- transactionM hasql $ statement getTransactionsToBeSent ()
-      ys <- for xs $ \_ -> undefined
-      let es = fst $ partitionEithers ys
-      for_ es $ \_ ->
-        $(logTM) ErrorS $ logStr @T.Text $ $location <> ":sendToTochkaBank: --> error"
-      transactionM hasql $ statement insertFailedTransactions es
+      res <- transactionM hasql $ statement getTransactionsToBeSent ()
+      case res of 
+        Right xs -> do
+          ys <- for xs $ \_ -> undefined
+          let es = fst $ partitionEithers ys
+          for_ es $ \ident ->
+            $(logTM) ErrorS $
+              logStr @T.Text $
+                $location <> ":sendToTochkaBank: --> transaction details failed to be sent, " <>
+                toS (show ident)
+          transactionM hasql $ statement insertFailedTransactions es
+        Left err -> $(logTM) CriticalS $ logStr @T.Text $ $location <> ":sendToTochkaBank: decode error ---> " <> toS err

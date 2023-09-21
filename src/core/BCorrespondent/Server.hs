@@ -34,7 +34,8 @@ import BCorrespondent.ServerM
 import qualified BCorrespondent.Config as Cfg
 import BCorrespondent.Transport.Error
 import qualified BCorrespondent.Transport.Response as Response
-import qualified Control.Concurrent.Async.Lifted as Async.Lifted 
+import qualified Control.Concurrent.Async.Lifted as Async.Lifted
+import Control.Concurrent.Lifted (threadDelay)
 import Control.Exception
 import Control.Lens
 import Control.Lens.Iso.Extended
@@ -78,6 +79,7 @@ import Network.Wai.RateLimit.Postgres (postgresBackend)
 import Database.PostgreSQL.Simple.Internal
 import qualified Data.Pool as Pool
 import Data.Int (Int64)
+import qualified Control.Monad.State.Class as ST
 
 
 data Cfg = Cfg
@@ -170,9 +172,12 @@ run Cfg {..} = katipAddNamespace (Namespace ["application"]) $ do
   sendAsync <- Async.Lifted.async $ Job.Transaction.sendToTochkaBank
   forwardAsync <- Async.Lifted.async $ Job.Invoice.forwardToElekse
 
-  end <- fmap snd $ flip logExceptionM ErrorS $ Async.Lifted.waitAnyCatchCancel [serverAsync, sendAsync, forwardAsync]
-  
-  whenLeft end $ \e -> $(logTM) EmergencyS $ logStr $ "server has been terminated. error " <> show e
+  forever $ do
+    threadDelay 1_000_000
+    KatipState c <- get
+    when (c == 10) $ throwM RecoveryFailed
+    end <- fmap snd $ flip logExceptionM ErrorS $ Async.Lifted.waitAnyCatchCancel [serverAsync, sendAsync, forwardAsync]
+    whenLeft end $ \e -> do lift $ ST.modify' (+1); $(logTM) EmergencyS $ logStr $ "server has been terminated. error " <> show e
 
 middleware :: Cfg.Cors -> KatipLoggerLocIO -> Application -> Application
 middleware cors log app = mkCors cors app
