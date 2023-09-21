@@ -24,6 +24,7 @@ module BCorrespondent.Server (Cfg (..), ServerM (..), run) where
 
 import BuildInfo
 import qualified BCorrespondent.Job.Transaction as Job.Transaction
+import qualified BCorrespondent.Job.Invoice as Job.Invoice
 import BCorrespondent.Statement.Auth (CheckToken)
 import BCorrespondent.Api
 import BCorrespondent.EnvKeys (Sendgrid)
@@ -150,10 +151,10 @@ run Cfg {..} = katipAddNamespace (Namespace ["application"]) $ do
 
   rateBackend <- liftIO $ postgresBackend psqlpool "rate_limit"
 
-  let mkCtx = 
+  let mkCtx =
         multipartOpts :. 
-        formatters :. 
-        defaultJWTSettings (configKatipEnv ^. jwk) :. 
+        formatters :.
+        defaultJWTSettings (configKatipEnv ^. jwk) :.
         checkToken :. 
         rateBackend :.
         defaultCookieSettings :.
@@ -166,8 +167,8 @@ run Cfg {..} = katipAddNamespace (Namespace ["application"]) $ do
       Katip.Wai.runApplication toIO $ 
         mkApplication $ serveWithContext (withSwagger api) mkCtx hoistedServer
   
-  sendAsync <- Async.Lifted.async $ Job.Transaction.sendCompletedToTochkaBank
-  forwardAsync <- Async.Lifted.async $ Job.Transaction.forwardToElekse
+  sendAsync <- Async.Lifted.async $ Job.Transaction.sendToTochkaBank
+  forwardAsync <- Async.Lifted.async $ Job.Invoice.forwardToElekse
 
   end <- fmap snd $ flip logExceptionM ErrorS $ Async.Lifted.waitAnyCatchCancel [serverAsync, sendAsync, forwardAsync]
   

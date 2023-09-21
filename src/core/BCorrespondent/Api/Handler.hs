@@ -20,8 +20,9 @@ import qualified BCorrespondent.Api.Handler.Auth.Password.MakeResetLink as Auth.
 import qualified BCorrespondent.Api.Handler.Auth.Password.New as Auth.Password.New
 import qualified BCorrespondent.Api.Handler.Auth.Login as Auth.Login 
 import qualified BCorrespondent.Api.Handler.Invoice.Register as Invoice.Register
-import qualified BCorrespondent.Api.Handler.Transaction.GetConfirmed as Transaction.GetConfirmed
+import qualified BCorrespondent.Api.Handler.Transaction.GetTimeline as Transaction.GetTimeline
 import qualified BCorrespondent.Api.Handler.Transaction.GetHistory as Transaction.GetHistory
+import qualified BCorrespondent.Api.Handler.Webhook.CatchElekse as Webhook.CatchElekse
 import qualified BCorrespondent.Auth as Auth
 import Katip
 import Katip.Handler hiding (webhook)
@@ -72,7 +73,11 @@ auth =
     }
 
 _foreign :: ForeignApi (AsServerT KatipHandlerM)
-_foreign = ForeignApi { _foreignApiSendGrid = toServant sendgrid }
+_foreign = 
+  ForeignApi 
+  { _foreignApiSendGrid = toServant sendgrid,
+    _foreignApiWebhook = toServant webhook 
+  }
 
 sendgrid :: SendGridApi (AsServerT KatipHandlerM)
 sendgrid =
@@ -84,16 +89,26 @@ sendgrid =
           . SendGrid.Send.handle
     }
 
+webhook :: WebhookApi (AsServerT KatipHandlerM)
+webhook =
+  WebhookApi
+  { _webhookApidApiCatchElekse =
+      flip logExceptionM ErrorS
+        . katipAddNamespace
+          (Namespace ["webhook", "Elekse"])
+        . Webhook.CatchElekse.catch
+  }
+
 transaction :: TransactionApi (AsServerT KatipHandlerM)
 transaction =
   TransactionApi
     {
-      _transactionApiGetConfirmed = \auth xs ->
+      _transactionApiDayTimeline = \auth ->
        auth `Auth.withAuth` \user ->
          flip logExceptionM ErrorS $
            katipAddNamespace
-             (Namespace ["transaction", "list", "confirmed"])
-             (Transaction.GetConfirmed.handle user xs),
+             (Namespace ["transaction", "timeline"])
+             (Transaction.GetTimeline.handle user),
      _transactionApiHistory = \auth ->
        auth `Auth.withAuth` \_ ->
          flip logExceptionM ErrorS $

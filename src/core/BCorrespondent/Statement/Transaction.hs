@@ -1,10 +1,15 @@
 {-# OPTIONS_GHC -fno-warn-unused-top-binds #-}
 
-module BCorrespondent.Statement.Transaction (insert) where
+module BCorrespondent.Statement.Transaction 
+       (getTransactionsToBeSent, insertFailedTransactions) 
+       where
+
+import BCorrespondent.Transport.Model.Transaction (Transaction, TransactionId)
 
 import qualified Hasql.Statement as HS
 
-data Status = Registered | ForwardedToElekse | Confirmed | Declined
+getTransactionsToBeSent :: HS.Statement () [Transaction]
+getTransactionsToBeSent = undefined
 
-insert :: HS.Statement () ()
-insert = undefined
+insertFailedTransactions :: HS.Statement [TransactionId] ()
+insertFailedTransactions = undefined

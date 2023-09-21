@@ -908,3 +908,5 @@ type family ToTuple s where
   ToTuple (NP I '[a, b, c, d, e, f, g, h, i, j, k, l, m, n]) = (a, b, c, d, e, f, g, h, i, j, k, l, m, n)
   ToTuple (NP I '[a, b, c, d, e, f, g, h, i, j, k, l, m, n, o]) = (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o)
   ToTuple (NP I '[a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p]) = (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p)
+  ToTuple (NP I '[a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q]) = (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q)
+  ToTuple (NP I '[a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r]) = (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r)

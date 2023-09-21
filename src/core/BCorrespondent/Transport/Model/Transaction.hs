@@ -30,6 +30,8 @@ import GHC.Generics
 import Data.Swagger.Schema.Extended (deriveToSchemaFieldLabelModifier, modify)
 import Data.Proxy (Proxy (..))
 import Data.Swagger (ToSchema)
+import Test.QuickCheck.Extended (Arbitrary)
+import Database.Transaction (ParamsShow)
 
 data TransactionConfirmed =
      TransactionConfirmed 
@@ -42,10 +44,9 @@ data TransactionConfirmed =
 
 deriveToSchemaFieldLabelModifier ''TransactionConfirmed [|modify (Proxy @TransactionConfirmed)|]
 
-
 newtype TransactionId = TransactionId UUID
   deriving stock (Generic)
-  deriving newtype (ToJSON, FromJSON)
+  deriving newtype (ToJSON, FromJSON, Arbitrary, ParamsShow)
  
 instance ToSchema TransactionId
 

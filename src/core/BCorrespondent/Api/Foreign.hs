@@ -8,18 +8,24 @@
 
 module BCorrespondent.Api.Foreign
   ( ForeignApi (..),
-    module SendGrid
+    module SendGrid,
+    module Webhook
   )
 where
 
 import BCorrespondent.Api.Foreign.SendGrid as SendGrid
+import BCorrespondent.Api.Foreign.Webhook as Webhook
 import Servant.API.Extended (AsApi, ToServant, type (:>))
 import Servant.API.Generic (Generic, GenericMode (type (:-)))
 
-newtype ForeignApi route = ForeignApi
+data ForeignApi route = ForeignApi
   { _foreignApiSendGrid ::
       route
         :- "sendgrid"
-          :> ToServant SendGridApi AsApi
+          :> ToServant SendGridApi AsApi,
+    _foreignApiWebhook ::
+      route
+        :- "webhook"
+          :> ToServant WebhookApi AsApi
   }
   deriving stock (Generic)

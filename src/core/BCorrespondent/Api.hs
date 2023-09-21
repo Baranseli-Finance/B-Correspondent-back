@@ -17,6 +17,7 @@ module BCorrespondent.Api
     ForeignApi (..),
     TransactionApi (..),
     InvoiceApi (..),
+    WebhookApi (..),
     api,
     swaggerHttpApi,
   )

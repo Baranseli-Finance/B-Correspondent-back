@@ -205,7 +205,6 @@ library:
     - wai-rate-limit
     - wai-rate-limit-postgres
     - postgresql-simple
-    - tuple-append
 
   source-dirs:
     - src/core
