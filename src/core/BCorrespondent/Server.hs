@@ -38,7 +38,6 @@ import qualified Control.Concurrent.Async.Lifted as Async.Lifted
 import Control.Concurrent.Lifted (threadDelay)
 import Control.Exception
 import Control.Lens
-import Control.Lens.Iso.Extended
 import Control.Monad.Catch
 import Control.Monad.IO.Class
 import Control.Monad.RWS.Strict as RWS
@@ -67,7 +66,6 @@ import Servant.Auth.Server
 import Servant.Error.Formatters (formatters)
 import Servant.Multipart
 import Servant.Swagger.UI
-import TextShow
 import qualified Katip.Wai as Katip.Wai
 import Control.Monad.IO.Unlift (MonadUnliftIO (withRunInIO))
 import qualified Network.Minio as Minio
@@ -80,7 +78,7 @@ import Database.PostgreSQL.Simple.Internal
 import qualified Data.Pool as Pool
 import Data.Int (Int64)
 import qualified Control.Monad.State.Class as ST
-
+import Data.String (fromString)
 
 data Cfg = Cfg
   { cfgHost :: !String,
@@ -108,7 +106,7 @@ run Cfg {..} = katipAddNamespace (Namespace ["application"]) $ do
   whenLeft version_e $ \e -> throwM $ ErrorCall e
   let Right ver = version_e
 
-  $(logTM) DebugS $ ls $ "server run on: " <> "http://127.0.0.1:" <> showt cfgServerPort
+  $(logTM) DebugS $ fromString $ "server run on: " <> "http://127.0.0.1:" <> toS (show cfgServerPort)
 
   configKatipEnv <- lift ask
   let initCfg = do
@@ -163,21 +161,21 @@ run Cfg {..} = katipAddNamespace (Namespace ["application"]) $ do
         EmptyContext
 
   mware_logger <- katipAddNamespace (Namespace ["middleware"]) askLoggerWithLocIO
-  serverAsync <- Async.Lifted.async $ liftIO $ Warp.runSettings settings $ do 
-    let toIO = runKatipContextT logEnv () ns
-    middleware cfgCors mware_logger $ 
-      Katip.Wai.runApplication toIO $ 
-        mkApplication $ serveWithContext (withSwagger api) mkCtx hoistedServer
-  
-  sendAsync <- Async.Lifted.async $ Job.Transaction.sendToTochkaBank jobFrequency
-  forwardAsync <- Async.Lifted.async $ Job.Invoice.forwardToElekse jobFrequency
 
   forever $ do
     threadDelay 1_000_000
+    serverAsync <- Async.Lifted.async $ liftIO $ Warp.runSettings settings $ do 
+      let toIO = runKatipContextT logEnv () ns
+      middleware cfgCors mware_logger $ 
+        Katip.Wai.runApplication toIO $ 
+          mkApplication $ 
+            serveWithContext (withSwagger api) mkCtx hoistedServer
+    sendAsync <- Async.Lifted.async $ Job.Transaction.sendToTochkaBank jobFrequency
+    forwardAsync <- Async.Lifted.async $ Job.Invoice.forwardToElekse jobFrequency
     KatipState c <- get
-    when (c == 10) $ throwM RecoveryFailed
+    when (c == 50) $ throwM RecoveryFailed
     end <- fmap snd $ flip logExceptionM ErrorS $ Async.Lifted.waitAnyCatchCancel [serverAsync, sendAsync, forwardAsync]
-    whenLeft end $ \e -> do lift $ ST.modify' (+1); $(logTM) EmergencyS $ logStr $ "server has been terminated. error " <> show e
+    whenLeft end $ \e -> do ST.modify' (+1); $(logTM) EmergencyS $ fromString $ "server has been terminated. error " <> show e
 
 middleware :: Cfg.Cors -> KatipLoggerLocIO -> Application -> Application
 middleware cors log app = mkCors cors app
@@ -199,7 +197,7 @@ mk500Response error cfgServerError mute500 =
           (hAccessControlAllowOrigin, "*")
         ]
         $ encode @(Response.Response ())
-        $ Response.Error Nothing (asError @T.Text (showt error))
+        $ Response.Error Nothing (asError @T.Text (toS (show error)))
     )
     mk500
     cfgServerError
@@ -212,7 +210,7 @@ mk500Response error cfgServerError mute500 =
             [ (H.hContentType, "text/plain; charset=utf-8"),
               (hAccessControlAllowOrigin, "*")
             ]
-            (showt error ^. textbsl)
+            (toS (show error))
         _ ->
           responseLBS
             status200
@@ -220,7 +218,7 @@ mk500Response error cfgServerError mute500 =
               (hAccessControlAllowOrigin, "*")
             ]
             ( encode @(Response.Response ()) $
-                Response.Error (Just 500) $ (asError @T.Text (showt error))
+                Response.Error (Just 500) $ (asError @T.Text (toS (show error)))
             )
 
 logRequest :: KatipLoggerIO -> Request -> Status -> Maybe Integer -> IO ()
