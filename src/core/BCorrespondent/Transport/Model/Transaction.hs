@@ -32,6 +32,7 @@ import Data.Proxy (Proxy (..))
 import Data.Swagger (ToSchema)
 import Test.QuickCheck.Extended (Arbitrary)
 import Database.Transaction (ParamsShow)
+import qualified Data.Text as T
 
 data TransactionConfirmed =
      TransactionConfirmed 
@@ -50,9 +51,9 @@ newtype TransactionId = TransactionId UUID
  
 instance ToSchema TransactionId
 
-data TransactionDelivery = 
+data TransactionDelivery =
      TransactionDelivery 
-     { transactionDeliveryIdent :: UUID
+     { transactionDeliverySenderName :: T.Text
      }
      deriving stock (Generic, Show)
      deriving (ToJSON, FromJSON)

@@ -39,6 +39,8 @@ import Data.Aeson (encode, eitherDecode)
 import Data.Bifunctor (second)
 import TH.Mk (mkArbitrary)
 import GHC.Generics
+import Data.Aeson.WithField (WithField)
+import qualified Data.Text as T
 
 data Status = Registered | ForwardedToElekse | Confirmed | Declined
   deriving stock (Generic, Show)
@@ -148,16 +150,36 @@ updateStatus =
      as x(ident, status)
      where id = x.ident|]
   
-getInvoicesToBeSent :: HS.Statement () (Either String [InvoiceToElekse])
+getInvoicesToBeSent :: HS.Statement () (Either String [WithField "ident" Int64 InvoiceToElekse])
 getInvoicesToBeSent =
-  rmap (sequence . map (eitherDecode @InvoiceToElekse . encode) .  V.toList)
+  rmap (sequence . map (eitherDecode @(WithField "ident" Int64 InvoiceToElekse) . encode) .  V.toList)
   [vectorStatement|
     select
-      jsonb_build_object('externalId', d.external_id) :: jsonb
+      jsonb_build_object(
+        'ident', i.id,
+        'externalId', d.external_id) :: jsonb
     from institution.invoice as i
     inner join institution.invoice_to_institution_delivery as d
     on i.id = d.invoice_id
     where not d.is_delivered|]
 
-insertFailedInvoices :: HS.Statement [Int64] ()
-insertFailedInvoices = undefined
+insertFailedInvoices :: HS.Statement [(Int64, T.Text)] ()
+insertFailedInvoices =
+  lmap (V.unzip . V.fromList)
+  [resultlessStatement|
+    insert into institution.invoice_to_institution_delivery
+    ( invoice_id, 
+      institution_id, 
+      attempts, 
+      last_attempt_sent_at, 
+      error)
+    select
+      x.invoice_id, i.institution_id, 1, now(), x.error
+    from unnest($1 :: int8[], $2 :: text[]) as x(invoice_id, error)
+    inner join institution.invoice as i
+    on x.invoice_id = i.id
+    on conflict (invoice_id, institution_id)
+    do update set
+    attempts = invoice_to_institution_delivery.attempts + 1,
+    last_attempt_sent_at = now(),
+    error = excluded.error|]

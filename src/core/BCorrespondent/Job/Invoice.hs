@@ -38,6 +38,7 @@ forwardToElekse =
               $location <>
               ":forwardToElekse: --> invoice failed to be sent, " <> 
               toS (show ident)
-          transactionM hasql $ statement insertFailedInvoices es
-          transactionM hasql $ statement updateStatus $ os <&> \x -> (x, ForwardedToElekse)
+          transactionM hasql $ do 
+            statement insertFailedInvoices es
+            statement updateStatus $ os <&> \x -> (x, ForwardedToElekse)
         Left err -> $(logTM) CriticalS $ logStr @T.Text $ $location <> ":forwardToElekse: decode error ---> " <> toS err

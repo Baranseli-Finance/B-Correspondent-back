@@ -10,7 +10,10 @@
 
 module BCorrespondent.Statement.Transaction 
        (getTransactionsToBeSent, 
-        insertFailedTransactions) 
+        insertFailedTransactions,
+        insertSentTransactions,
+        create
+       ) 
        where
 
 import BCorrespondent.Transport.Model.Transaction (TransactionDelivery, TransactionId (..))
@@ -23,13 +26,17 @@ import Control.Lens
 import Data.Bifunctor (first)
 import Data.Coerce (coerce)
 import Data.Aeson (encode, eitherDecode)
+import Data.Aeson.WithField (WithField)
+import Data.UUID (UUID)
 
-getTransactionsToBeSent :: HS.Statement () (Either String [TransactionDelivery])
+getTransactionsToBeSent :: HS.Statement () (Either String [WithField "id" UUID TransactionDelivery])
 getTransactionsToBeSent =
-  rmap (sequence . map (eitherDecode @TransactionDelivery . encode) .  V.toList)
+  rmap (sequence . map (eitherDecode @(WithField "id" UUID TransactionDelivery) . encode) .  V.toList)
   [vectorStatement|
     select
-      jsonb_build_object('id', t.id) :: jsonb
+      jsonb_build_object(
+        'id', t.id, 
+        'senderName', t.sender_name) :: jsonb
     from institution.transaction as t
     inner join institution.transaction_to_institution_delivery as d
     on t.id = d.transaction_id
@@ -62,3 +69,14 @@ insertFailedTransactions =
     attempts = transaction_to_institution_delivery.attempts + 1,
     last_attempt_sent_at = now(),
     error = excluded.error|]
+
+insertSentTransactions :: HS.Statement [UUID] ()
+insertSentTransactions =
+  lmap V.fromList $
+  [resultlessStatement|
+    update institution.transaction_to_institution_delivery
+    set is_delivered = true
+    where transaction_id = any($1 :: uuid[])|]
+
+create :: HS.Statement () ()
+create = undefined

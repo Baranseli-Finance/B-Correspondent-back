@@ -5,7 +5,8 @@
 
 module BCorrespondent.Job.Transaction (sendToTochkaBank) where
 
-import BCorrespondent.Statement.Transaction (getTransactionsToBeSent, insertFailedTransactions)
+import BCorrespondent.Statement.Transaction 
+       (getTransactionsToBeSent, insertSentTransactions, insertFailedTransactions)
 import BCorrespondent.Job.Utils (withElapsedTime)
 import BCorrespondent.ServerM 
 import Katip
@@ -31,11 +32,13 @@ sendToTochkaBank =
       case res of 
         Right xs -> do
           ys <- for xs $ \_ -> undefined
-          let es = fst $ partitionEithers ys
+          let (es, os) = partitionEithers ys
           for_ es $ \ident ->
             $(logTM) ErrorS $
               logStr @T.Text $
                 $location <> ":sendToTochkaBank: --> transaction details failed to be sent, " <>
                 toS (show ident)
-          transactionM hasql $ statement insertFailedTransactions es
+          transactionM hasql $ do 
+            statement insertFailedTransactions es
+            statement insertSentTransactions os
         Left err -> $(logTM) CriticalS $ logStr @T.Text $ $location <> ":sendToTochkaBank: decode error ---> " <> toS err

@@ -29,6 +29,7 @@ create table institution.invoice_to_institution_delivery (
     is_delivered bool not null default false,
     attempts int,
     last_attempt_sent_at timestamptz,
+    error text,  
     constraint institution__invoice_to_institution_delivery__invoice_id__fk foreign key (invoice_id) references institution.invoice(id),
     constraint institution__invoice_id__fk foreign key (institution_id) references auth.institution(id),
     constraint institution__invoice_institution_id__unique unique (invoice_id, institution_id));
