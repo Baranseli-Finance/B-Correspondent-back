@@ -15,11 +15,12 @@ import Control.Concurrent.Lifted (threadDelay)
 import Katip.Handler
 import Control.Lens ((^.), (<&>))
 import Database.Transaction (statement, transactionM)
-import Data.Traversable (for)
 import Data.Foldable (for_)
 import Data.Either (partitionEithers)
 import qualified Data.Text as T
 import Data.String.Conv (toS)
+import qualified Control.Concurrent.Async.Lifted as Async
+import Data.Aeson.WithField (WithField (..))
 
 forwardToElekse :: Int -> KatipContextT ServerM ()
 forwardToElekse freq =
@@ -30,13 +31,15 @@ forwardToElekse freq =
       res <- transactionM hasql $ statement getInvoicesToBeSent ()
       case res of
         Right xs -> do
-          ys <- for xs $ \_ -> undefined
+          ys <- Async.forConcurrently xs $
+            \(WithField _ _) -> undefined
           let (es, os) = partitionEithers ys
           for_ es $ \ident ->
             $(logTM) ErrorS $ 
-            logStr @T.Text $ 
+            logStr @T.Text $
               $location <>
-              ":forwardToElekse: --> invoice failed to be sent, " <> 
+              ":forwardToElekse: --> \
+              \ invoice failed to be sent, " <> 
               toS (show ident)
           transactionM hasql $ do 
             statement insertFailedInvoices es

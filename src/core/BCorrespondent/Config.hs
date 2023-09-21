@@ -70,6 +70,7 @@ import qualified Data.Text as T
 import Data.Yaml
 import GHC.Generics
 import TH.Mk
+import Control.Monad.Catch (throwM)
 
 data Db = Db
   { dbHost :: !String,
@@ -178,7 +179,13 @@ deriveFromJSON defaultOptions ''Cors
 deriveFromJSON defaultOptions ''Swagger
 deriveFromJSON defaultOptions ''Config
 
+data ConfigException = ConfigFailed String
+    deriving Show
+
+instance Exception ConfigException
+
 -- Load program configuration from file (server.yaml), or
 -- raise YamlException and terminate program.
 load :: FromJSON a => FilePath -> IO a
-load path = decodeFileEither path >>= either throwIO pure
+load path = decodeFileEither path >>= either (throwM . ConfigFailed . show) pure
+

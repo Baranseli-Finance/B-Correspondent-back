@@ -16,11 +16,12 @@ import Control.Concurrent.Lifted (threadDelay)
 import Katip.Handler
 import Control.Lens ((^.))
 import Database.Transaction (statement, transactionM)
-import Data.Traversable (for)
 import Data.Foldable (for_)
 import Data.Either (partitionEithers)
 import qualified Data.Text as T
 import Data.String.Conv (toS)
+import Data.Aeson.WithField (WithField (..))
+import qualified Control.Concurrent.Async.Lifted as Async
 
 sendToTochkaBank :: Int -> KatipContextT ServerM ()
 sendToTochkaBank freq = 
@@ -31,12 +32,15 @@ sendToTochkaBank freq =
       res <- transactionM hasql $ statement getTransactionsToBeSent ()
       case res of 
         Right xs -> do
-          ys <- for xs $ \_ -> undefined
+          ys <- Async.forConcurrently xs $ 
+            \(WithField _ _) -> undefined
           let (es, os) = partitionEithers ys
           for_ es $ \ident ->
             $(logTM) ErrorS $
               logStr @T.Text $
-                $location <> ":sendToTochkaBank: --> transaction details failed to be sent, " <>
+                $location <>
+                ":sendToTochkaBank: --> \ 
+                \ transaction details failed to be sent, " <>
                 toS (show ident)
           transactionM hasql $ do 
             statement insertFailedTransactions es
