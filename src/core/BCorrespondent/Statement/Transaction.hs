@@ -6,17 +6,19 @@
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE TemplateHaskell #-}
 {-# OPTIONS_GHC -fno-warn-unused-top-binds #-}
 
 module BCorrespondent.Statement.Transaction 
        (getTransactionsToBeSent, 
         insertFailedTransactions,
         insertSentTransactions,
-        create
+        create,
+        Transaction (..)
        ) 
        where
 
-import BCorrespondent.Transport.Model.Transaction (TransactionDelivery, TransactionId (..))
+import BCorrespondent.Transport.Model.Transaction (TransactionToBank, TransactionId (..))
 
 import qualified Hasql.Statement as HS
 import Hasql.TH
@@ -28,10 +30,15 @@ import Data.Coerce (coerce)
 import Data.Aeson (encode, eitherDecode)
 import Data.Aeson.WithField (WithField)
 import Data.UUID (UUID)
+import Data.Aeson (ToJSON, FromJSON)
+import Data.Aeson.Generic.DerivingVia
+import GHC.Generics
+import TH.Mk (mkArbitrary, mkEncoder)
+import Data.Maybe (fromMaybe)
 
-getTransactionsToBeSent :: HS.Statement () (Either String [WithField "id" UUID TransactionDelivery])
+getTransactionsToBeSent :: HS.Statement () (Either String [WithField "id" UUID TransactionToBank])
 getTransactionsToBeSent =
-  rmap (sequence . map (eitherDecode @(WithField "id" UUID TransactionDelivery) . encode) .  V.toList)
+  rmap (sequence . map (eitherDecode @(WithField "id" UUID TransactionToBank) . encode) .  V.toList)
   [vectorStatement|
     select
       jsonb_build_object(
@@ -78,5 +85,36 @@ insertSentTransactions =
     set is_delivered = true
     where transaction_id = any($1 :: uuid[])|]
 
-create :: HS.Statement () ()
-create = undefined
+data Transaction = 
+     Transaction 
+     { transactionExternalId :: UUID,
+       transactionsSenderName :: T.Text
+     }
+     deriving stock (Generic, Show)
+     deriving (ToJSON, FromJSON)
+     via WithOptions
+        '[OmitNothingFields 'True, FieldLabelModifier '[CamelTo2 "_", UserDefined (StripConstructor Transaction)]]
+        Transaction
+
+mkEncoder ''Transaction
+mkArbitrary ''Transaction
+
+create :: HS.Statement Transaction ()
+create =
+  lmap (fromMaybe undefined . mkEncoderTransaction)
+  [resultlessStatement|
+    with transaction as (
+      insert into institution.transaction
+      (invoice_id, sender_name)
+      select
+        invoice_id,
+        $2 :: text
+      from institution.invoice_to_institution_delivery
+      where external_id = $1 :: uuid
+      returning id :: uuid, invoice_id :: int8)
+    insert into institution.transaction_to_institution_delivery
+    (transaction_id, institution_id)
+    select t.id, i.institution_id 
+    from transaction as t
+    inner join institution.invoice as i
+    on t.invoice_id = i.id|]

@@ -78,6 +78,8 @@ explainTests =
      ] 
   , "BCorrespondent.Statement.Transaction" ==>
      [  "getTransactionsToBeSent" =>> BCorrespondent.Statement.Transaction.getTransactionsToBeSent,
-        "insertFailedTransactions" =>> BCorrespondent.Statement.Transaction.insertFailedTransactions
+        "insertFailedTransactions" =>> BCorrespondent.Statement.Transaction.insertFailedTransactions,
+        "insertSentTransactions" =>> BCorrespondent.Statement.Transaction.insertSentTransactions,
+        "create" =>> BCorrespondent.Statement.Transaction.create
      ]
   ]

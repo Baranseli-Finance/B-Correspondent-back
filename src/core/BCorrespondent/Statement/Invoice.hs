@@ -174,7 +174,11 @@ insertFailedInvoices =
       last_attempt_sent_at, 
       error)
     select
-      x.invoice_id, i.institution_id, 1, now(), x.error
+      x.invoice_id, 
+      i.institution_id, 
+      1, 
+      now(), 
+      x.error
     from unnest($1 :: int8[], $2 :: text[]) as x(invoice_id, error)
     inner join institution.invoice as i
     on x.invoice_id = i.id
