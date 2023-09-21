@@ -181,12 +181,17 @@ middleware :: Cfg.Cors -> KatipLoggerLocIO -> Application -> Application
 middleware cors log app = mkCors cors app
 
 logUncaughtException :: KatipLoggerIO -> Maybe Request -> SomeException -> IO ()
-logUncaughtException log req e =
-  when (Warp.defaultShouldDisplayException e) $
-    maybe
-      ( log CriticalS (logStr ("before request being handled" <> show e)))
-      ( \r -> log CriticalS (logStr ("\"" <> toS (requestMethod r) <> " " <> toS (rawPathInfo r) <> " " <> toS (show (httpVersion r)) <> "500 - " <> show e)))
-      req
+logUncaughtException log reqm e =
+  when (Warp.defaultShouldDisplayException e) $ do
+    let withReq req = 
+          log CriticalS $ 
+            fromString $ 
+              "\"" <> 
+              toS (requestMethod req) <> " " 
+              <> toS (rawPathInfo req) <> " " <> 
+              toS (show (httpVersion req)) <> 
+              "500 - " <> show e
+    maybe (log CriticalS (logStr ("before request being handled" <> show e))) withReq reqm
 
 mk500Response :: SomeException -> Bool -> Maybe Bool -> Response
 mk500Response error cfgServerError mute500 =
