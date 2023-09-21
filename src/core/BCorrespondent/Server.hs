@@ -193,12 +193,27 @@ logUncaughtException log reqm e =
     maybe (log CriticalS (logStr ("before request being handled" <> show e))) withReq reqm
 
 mk500Response :: SomeException -> Bool -> Maybe Bool -> Response
-mk500Response error False _ = responseLBS status200 hs $ encode @(Response.Response ()) $ Response.Error Nothing (asError @T.Text (toS (show error)))
-  where hs = [ (H.hContentType, "application/json; charset=utf-8"), (hAccessControlAllowOrigin, "*")]
-mk500Response error True (Just True) = responseLBS status500 hs $ toS (show error)
-  where hs = [ (H.hContentType, "text/plain; charset=utf-8"), (hAccessControlAllowOrigin, "*") ]
-mk500Response error True _ = responseLBS status200 hs $ encode @(Response.Response ()) $ Response.Error (Just 500) $ (asError @T.Text (toS (show error)))
-  where hs = [ (H.hContentType, "text/json; charset=utf-8"), (hAccessControlAllowOrigin, "*") ]
+mk500Response error False _ = 
+  responseLBS status200 hs $ 
+    encode @(Response.Response ()) $ 
+      Response.Error (Just 500) $ 
+        asError @T.Text (toS (show error))
+  where hs = [ (H.hContentType, "application/json; charset=utf-8"), 
+               (hAccessControlAllowOrigin, "*")
+             ]
+mk500Response error True (Just True) = 
+  responseLBS status500 hs $ toS (show error)
+  where hs = [ (H.hContentType, "text/plain; charset=utf-8"), 
+               (hAccessControlAllowOrigin, "*") 
+             ]
+mk500Response error True _ = 
+  responseLBS status200 hs $ 
+    encode @(Response.Response ()) $ 
+      Response.Error (Just 500) $ 
+        asError @T.Text (toS (show error))
+  where hs = [ (H.hContentType, "text/json; charset=utf-8"), 
+               (hAccessControlAllowOrigin, "*") 
+             ]
 
 logRequest :: KatipLoggerIO -> Request -> Status -> Maybe Integer -> IO ()
 logRequest log req _ _ = log InfoS (logStr (show req))
@@ -230,5 +245,6 @@ askLoggerWithLocIO = do
       logItem ctx ns loc sev msg
 
 mkApplication :: Application -> Katip.Wai.ApplicationT (KatipContextT IO)
-mkApplication hoistedApp = Katip.Wai.middleware DebugS $ \request send ->
-  withRunInIO $ \toIO -> hoistedApp request (toIO . send) 
+mkApplication hoistedApp = 
+  Katip.Wai.middleware DebugS $ \request send ->
+    withRunInIO $ \toIO -> hoistedApp request (toIO . send)

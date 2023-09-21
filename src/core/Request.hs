@@ -16,6 +16,7 @@ import Network.HTTP.Client.MultipartFormData (Part, formDataBody)
 import qualified UnliftIO.Async as Async (pooledForConcurrentlyN)
 import Control.Monad.IO.Unlift (MonadUnliftIO)
 import UnliftIO.Retry (retrying, constantDelay, limitRetries)
+import Data.Bifunctor (first)
 
 make ::
   ToJSON a =>
@@ -54,14 +55,14 @@ make url manager headers method bodye = do
    else Left response
 
 withError :: 
-  forall a b e. FromJSON a => 
-  Either (HTTP.Response BL.ByteString) (B.ByteString, HTTP.ResponseHeaders) -> 
-  (HTTP.Response BL.ByteString -> Either e b) -> 
-  ((a,  HTTP.ResponseHeaders) -> Either e b) -> Either e b
-withError (Right (bs, hs)) onError onOk = do
-  case eitherDecodeStrict @a bs of 
-    Right res -> onOk (res, hs)
-    Left e -> error $ e <> ", raw bytes: " <> toS bs
+  forall a b e. 
+  FromJSON a => 
+  Either (HTTP.Response BL.ByteString) B.ByteString -> 
+  (HTTP.Response BL.ByteString -> Either e b) ->
+  (a -> Either e b) ->
+  Either e b
+withError (Right bs) onError onOk = 
+  first (\e -> error $ e <> ", raw bytes: " <> toS bs) (eitherDecodeStrict @a bs) >>= onOk
 withError (Left err) onError _ = onError err
 
 forConcurrentlyNRetry 
