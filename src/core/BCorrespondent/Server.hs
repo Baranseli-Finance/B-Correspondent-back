@@ -42,7 +42,6 @@ import Control.Monad.Catch
 import Control.Monad.IO.Class
 import Control.Monad.RWS.Strict as RWS
 import Data.Aeson
-import Data.Bool
 import Data.Coerce
 import Data.Either.Combinators
 import Data.Generics.Product.Fields
@@ -194,37 +193,12 @@ logUncaughtException log reqm e =
     maybe (log CriticalS (logStr ("before request being handled" <> show e))) withReq reqm
 
 mk500Response :: SomeException -> Bool -> Maybe Bool -> Response
-mk500Response error cfgServerError mute500 =
-  bool
-    ( responseLBS
-        status200
-        [ (H.hContentType, "application/json; charset=utf-8"),
-          (hAccessControlAllowOrigin, "*")
-        ]
-        $ encode @(Response.Response ())
-        $ Response.Error Nothing (asError @T.Text (toS (show error)))
-    )
-    mk500
-    cfgServerError
-  where
-    mk500 =
-      case mute500 of
-        Just True ->
-          responseLBS
-            status500
-            [ (H.hContentType, "text/plain; charset=utf-8"),
-              (hAccessControlAllowOrigin, "*")
-            ]
-            (toS (show error))
-        _ ->
-          responseLBS
-            status200
-            [ (H.hContentType, "text/json; charset=utf-8"),
-              (hAccessControlAllowOrigin, "*")
-            ]
-            ( encode @(Response.Response ()) $
-                Response.Error (Just 500) $ (asError @T.Text (toS (show error)))
-            )
+mk500Response error False _ = responseLBS status200 hs $ encode @(Response.Response ()) $ Response.Error Nothing (asError @T.Text (toS (show error)))
+  where hs = [ (H.hContentType, "application/json; charset=utf-8"), (hAccessControlAllowOrigin, "*")]
+mk500Response error True (Just True) = responseLBS status500 hs $ toS (show error)
+  where hs = [ (H.hContentType, "text/plain; charset=utf-8"), (hAccessControlAllowOrigin, "*") ]
+mk500Response error True _ = responseLBS status200 hs $ encode @(Response.Response ()) $ Response.Error (Just 500) $ (asError @T.Text (toS (show error)))
+  where hs = [ (H.hContentType, "text/json; charset=utf-8"), (hAccessControlAllowOrigin, "*") ]
 
 logRequest :: KatipLoggerIO -> Request -> Status -> Maybe Integer -> IO ()
 logRequest log req _ _ = log InfoS (logStr (show req))

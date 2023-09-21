@@ -187,5 +187,5 @@ instance Exception ConfigException
 -- Load program configuration from file (server.yaml), or
 -- raise YamlException and terminate program.
 load :: FromJSON a => FilePath -> IO a
-load path = decodeFileEither path >>= either (throwM . ConfigFailed . show) pure
+load path = decodeFileEither path >>= either (throwM . ConfigFailed . prettyPrintParseException) pure
 
