@@ -22,10 +22,10 @@ import Data.Either (partitionEithers)
 import qualified Data.Text as T
 import Data.String.Conv (toS)
 
-sendToTochkaBank :: KatipContextT ServerM ()
-sendToTochkaBank = 
+sendToTochkaBank :: Int -> KatipContextT ServerM ()
+sendToTochkaBank freq = 
   forever $ do 
-    threadDelay $ 100 * 1_000_000   
+    threadDelay $ freq * 1_000_000   
     withElapsedTime ($location <> ":sendToTochkaBank") $ do
       hasql <- fmap (^. hasqlDbPool) ask
       res <- transactionM hasql $ statement getTransactionsToBeSent ()

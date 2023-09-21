@@ -169,8 +169,8 @@ run Cfg {..} = katipAddNamespace (Namespace ["application"]) $ do
       Katip.Wai.runApplication toIO $ 
         mkApplication $ serveWithContext (withSwagger api) mkCtx hoistedServer
   
-  sendAsync <- Async.Lifted.async $ Job.Transaction.sendToTochkaBank
-  forwardAsync <- Async.Lifted.async $ Job.Invoice.forwardToElekse
+  sendAsync <- Async.Lifted.async $ Job.Transaction.sendToTochkaBank jobFrequency
+  forwardAsync <- Async.Lifted.async $ Job.Invoice.forwardToElekse jobFrequency
 
   forever $ do
     threadDelay 1_000_000

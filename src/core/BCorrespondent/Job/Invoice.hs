@@ -21,10 +21,10 @@ import Data.Either (partitionEithers)
 import qualified Data.Text as T
 import Data.String.Conv (toS)
 
-forwardToElekse :: KatipContextT ServerM ()
-forwardToElekse =
+forwardToElekse :: Int -> KatipContextT ServerM ()
+forwardToElekse freq =
   forever $ do 
-    threadDelay $ 100 * 1_000_000
+    threadDelay $ freq * 1_000_000
     withElapsedTime ($location <> ":forwardToElekse") $ do
       hasql <- fmap (^. hasqlDbPool) ask
       res <- transactionM hasql $ statement getInvoicesToBeSent ()
