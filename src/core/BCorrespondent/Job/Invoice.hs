@@ -24,7 +24,7 @@ import Data.String.Conv (toS)
 forwardToElekse :: KatipContextT ServerM ()
 forwardToElekse =
   forever $ do 
-    threadDelay $ 10 * 1_000_000
+    threadDelay $ 100 * 1_000_000
     withElapsedTime ($location <> ":forwardToElekse") $ do
       hasql <- fmap (^. hasqlDbPool) ask
       res <- transactionM hasql $ statement getInvoicesToBeSent ()

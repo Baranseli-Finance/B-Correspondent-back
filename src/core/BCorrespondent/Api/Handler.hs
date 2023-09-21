@@ -20,8 +20,9 @@ import qualified BCorrespondent.Api.Handler.Auth.Password.MakeResetLink as Auth.
 import qualified BCorrespondent.Api.Handler.Auth.Password.New as Auth.Password.New
 import qualified BCorrespondent.Api.Handler.Auth.Login as Auth.Login 
 import qualified BCorrespondent.Api.Handler.Invoice.Register as Invoice.Register
-import qualified BCorrespondent.Api.Handler.Transaction.GetTimeline as Transaction.GetTimeline
-import qualified BCorrespondent.Api.Handler.Transaction.GetHistory as Transaction.GetHistory
+import qualified BCorrespondent.Api.Handler.Frontend.GetTimeline as Frontend.GetTimeline
+import qualified BCorrespondent.Api.Handler.Frontend.GetHistory as Frontend.GetHistory
+import qualified BCorrespondent.Api.Handler.Frontend.MakeProcuratory as Frontend.MakeProcuratory
 import qualified BCorrespondent.Api.Handler.Webhook.CatchElekse as Webhook.CatchElekse
 import qualified BCorrespondent.Auth as Auth
 import Katip
@@ -40,7 +41,7 @@ httpApi =
   HttpApi
     { _httpApiAuth = toServant auth,
       _httpApiForeign = toServant _foreign,
-      _httpApiTransaction = toServant transaction,
+      _httpApiFrontend = toServant frontend,
       _httpApiInvoice = toServant invoice
     }
 
@@ -99,22 +100,27 @@ webhook =
         . Webhook.CatchElekse.catch
   }
 
-transaction :: TransactionApi (AsServerT KatipHandlerM)
-transaction =
-  TransactionApi
-    {
-      _transactionApiDayTimeline = \auth ->
+frontend :: FrontendApi (AsServerT KatipHandlerM)
+frontend =
+  FrontendApi
+    { _frontendApiGetDayTimeline = \auth ->
        auth `Auth.withAuth` \user ->
          flip logExceptionM ErrorS $
            katipAddNamespace
-             (Namespace ["transaction", "timeline"])
-             (Transaction.GetTimeline.handle user),
-     _transactionApiHistory = \auth ->
+             (Namespace ["frontend", "timeline"])
+             (Frontend.GetTimeline.handle user),
+      _frontendApiGetHistory = \auth ->
        auth `Auth.withAuth` \_ ->
          flip logExceptionM ErrorS $
            katipAddNamespace
-             (Namespace ["transaction", "history"])
-             Transaction.GetHistory.handle
+             (Namespace ["frontend", "history"])
+             Frontend.GetHistory.handle,
+     _frontendApiMakeProcuratory = \auth req ->
+       auth `Auth.withAuth` \user ->
+         flip logExceptionM ErrorS $
+           katipAddNamespace
+             (Namespace ["frontend", "procuratory"])
+             (Frontend.MakeProcuratory.handle user req) 
     }
 
 invoice :: InvoiceApi (AsServerT KatipHandlerM)

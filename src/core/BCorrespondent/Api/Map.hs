@@ -9,14 +9,14 @@ module BCorrespondent.Api.Map
   ( HttpApi (..),
     module Auth,
     module Foreign,
-    module Transaction,
+    module Frontend,
     module Invoice
   )
 where
 
 import BCorrespondent.Api.Foreign as Foreign
 import BCorrespondent.Api.Auth as Auth
-import BCorrespondent.Api.Transaction as Transaction
+import BCorrespondent.Api.Frontend as Frontend
 import BCorrespondent.Api.Invoice as Invoice
 import Servant.API
 import Servant.API.Generic
@@ -33,11 +33,11 @@ data HttpApi route = HttpApi
         :- Tags "Foreign"
           :> "foreign"
           :> ToServant ForeignApi AsApi,
-    _httpApiTransaction ::
+    _httpApiFrontend ::
       route
-        :- Tags "Transaction"
-          :> "transaction"
-          :> ToServant TransactionApi AsApi,
+        :- Tags "Frontend"
+          :> "frontend"
+          :> ToServant FrontendApi AsApi,
     _httpApiInvoice ::
       route
         :- Tags "Invoice"

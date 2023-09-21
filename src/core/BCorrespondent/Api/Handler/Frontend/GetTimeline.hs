@@ -1,4 +1,4 @@
-module BCorrespondent.Api.Handler.Transaction.GetTimeline (handle) where
+module BCorrespondent.Api.Handler.Frontend.GetTimeline (handle) where
 
 import BCorrespondent.Transport.Response (Response)
 import qualified BCorrespondent.Auth as Auth

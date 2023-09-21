@@ -15,7 +15,7 @@ module BCorrespondent.Api
     AuthApi (..),
     SendGridApi (..),
     ForeignApi (..),
-    TransactionApi (..),
+    FrontendApi (..),
     InvoiceApi (..),
     WebhookApi (..),
     api,
