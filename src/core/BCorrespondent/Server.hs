@@ -22,7 +22,6 @@
 
 module BCorrespondent.Server (Cfg (..), ServerM (..), run) where
 
-import BuildInfo
 import qualified BCorrespondent.Job.Transaction as Job.Transaction
 import qualified BCorrespondent.Job.Invoice as Job.Invoice
 import BCorrespondent.Statement.Auth (CheckToken)
@@ -37,6 +36,7 @@ import qualified BCorrespondent.Transport.Response as Response
 import qualified Control.Concurrent.Async.Lifted as Async.Lifted
 import Control.Concurrent.Lifted (threadDelay)
 import Control.Exception
+import BuildInfo
 import Control.Lens
 import Control.Monad.Catch
 import Control.Monad.IO.Class
@@ -78,6 +78,7 @@ import qualified Data.Pool as Pool
 import Data.Int (Int64)
 import qualified Control.Monad.State.Class as ST
 import Data.String (fromString)
+import Pretty (mkPretty)
 
 data Cfg = Cfg
   { cfgHost :: !String,
@@ -174,7 +175,7 @@ run Cfg {..} = katipAddNamespace (Namespace ["application"]) $ do
     KatipState c <- get
     when (c == 50) $ throwM RecoveryFailed
     end <- fmap snd $ flip logExceptionM ErrorS $ Async.Lifted.waitAnyCatchCancel [serverAsync, sendAsync, forwardAsync]
-    whenLeft end $ \e -> do ST.modify' (+1); $(logTM) EmergencyS $ fromString $ "server has been terminated. error " <> show e
+    whenLeft end $ \e -> do ST.modify' (+1); $(logTM) EmergencyS $ fromString $ mkPretty mempty $ "server has been terminated. error " <> show e
 
 middleware :: Cfg.Cors -> KatipLoggerLocIO -> Application -> Application
 middleware cors log app = mkCors cors app

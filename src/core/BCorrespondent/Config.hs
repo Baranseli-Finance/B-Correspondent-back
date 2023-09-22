@@ -14,8 +14,6 @@ module BCorrespondent.Config
   ( Config,
     Katip (..),
     Db,
-    Service (..),
-    ApiKeys (..),
     Swagger (..),
     Env (..),
     Cors (..),
@@ -41,7 +39,6 @@ module BCorrespondent.Config
     severity,
     stdoutFormat,
     env,
-    service,
     accessKey,
     secretKey,
     logBucket,
@@ -112,12 +109,6 @@ data Katip = Katip
   }
   deriving (Show)
 
-newtype ApiKeys = ApiKeys [(String, String)]
-  deriving (Show)
-
-newtype Service = Service {serviceApiKeys :: ApiKeys}
-  deriving (Show)
-
 data Minio = Minio
   { minioAccessKey :: !T.Text,
     minioSecretKey :: !T.Text,
@@ -149,7 +140,6 @@ data Config = Config
     configSwagger :: !Swagger,
     configHasql :: !HasqlSettings,
     configKatip :: !Katip,
-    configService :: !Service,
     configMinio :: !Minio,
     configServerConnection :: !ServerConnection,
     configCors :: !Cors,
@@ -171,8 +161,6 @@ makeFields ''Cors
 deriveFromJSON defaultOptions ''Db
 deriveFromJSON defaultOptions ''HasqlSettings
 deriveFromJSON defaultOptions ''Katip
-deriveFromJSON defaultOptions ''ApiKeys
-deriveFromJSON defaultOptions ''Service
 deriveFromJSON defaultOptions ''Minio
 deriveFromJSON defaultOptions ''ServerConnection
 deriveFromJSON defaultOptions ''Cors

@@ -327,7 +327,6 @@ main = do
           { katipEnvTerminal = term,
             katipEnvHasqlDbPool = hasqlpool,
               katipEnvHttpReqManager = manager,
-              katipEnvApiKeys = (cfg ^. service . coerced),
               katipEnvMinio = katipMinio,
               katipEnvSendGrid = 
                 envKeys >>= envKeysSendgrid <&> \sendgrid -> 
