@@ -39,7 +39,6 @@ services:
       - ${HOME}/config.yaml:/server/deploy/config.yaml
       - ${PWD}/deploy/init.sh:/server/deploy/init.sh
       - ${HOME}/jwk.txt:/server/deploy/jwk.txt
-      - ${HOME}/meta/:/server/meta/
     networks:
       b-correspondent:
          ipv4_address: 192.168.22.6
@@ -64,8 +63,8 @@ services:
     volumes:
       - minio_data:/data
     environment:
-      MINIO_ROOT_USER: sonny
-      MINIO_ROOT_PASSWORD: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+      MINIO_ROOT_USER: ${MINIO_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_PASS}
     command: server --address ":9000" --console-address ":9001" /data
     networks:
       b-correspondent:
