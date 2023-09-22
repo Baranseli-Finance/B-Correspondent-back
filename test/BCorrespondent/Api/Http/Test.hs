@@ -15,6 +15,7 @@ import BCorrespondent.Config (Email)
 import BCorrespondent.Api.Foreign.SendGrid (SendGridApi)
 import BCorrespondent.Transport.Model.Frontend (ProcuratoryRequest)
 import BCorrespondent.Transport.Model.Invoice (InvoiceRegisterResponse)
+import BCorrespondent.Transport.Model.Frontend (Init, Sha, JWTStatus)
 
 import Servant.API.Generic
 import Servant.Swagger.Test
@@ -28,6 +29,9 @@ mkArbitrary ''SendGridSendMailRequest
 mkArbitrary ''NewPassword
 mkArbitrary ''ProcuratoryRequest
 mkArbitrary ''InvoiceRegisterResponse
+mkArbitrary ''JWTStatus
+mkArbitrary ''Sha
+mkArbitrary ''Init
 
 spec_api :: Spec
 spec_api =
