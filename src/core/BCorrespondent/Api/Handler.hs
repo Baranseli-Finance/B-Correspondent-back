@@ -23,6 +23,7 @@ import qualified BCorrespondent.Api.Handler.Invoice.Register as Invoice.Register
 import qualified BCorrespondent.Api.Handler.Frontend.GetTimeline as Frontend.GetTimeline
 import qualified BCorrespondent.Api.Handler.Frontend.GetHistory as Frontend.GetHistory
 import qualified BCorrespondent.Api.Handler.Frontend.MakeProcuratory as Frontend.MakeProcuratory
+import qualified BCorrespondent.Api.Handler.Frontend.Init as Frontend.Init
 import qualified BCorrespondent.Api.Handler.Webhook.CatchElekse as Webhook.CatchElekse
 import qualified BCorrespondent.Auth as Auth
 import Katip
@@ -115,12 +116,18 @@ frontend =
            katipAddNamespace
              (Namespace ["frontend", "history"])
              Frontend.GetHistory.handle,
-     _frontendApiMakeProcuratory = \auth req ->
+      _frontendApiMakeProcuratory = \auth req ->
        auth `Auth.withAuth` \user ->
          flip logExceptionM ErrorS $
            katipAddNamespace
              (Namespace ["frontend", "procuratory"])
-             (Frontend.MakeProcuratory.handle user req) 
+             (Frontend.MakeProcuratory.handle user req),
+      _frontendApiInit =
+        flip logExceptionM ErrorS
+           . katipAddNamespace
+             (Namespace ["frontend", "init"])
+           . Frontend.Init.handle
+
     }
 
 invoice :: InvoiceApi (AsServerT KatipHandlerM)

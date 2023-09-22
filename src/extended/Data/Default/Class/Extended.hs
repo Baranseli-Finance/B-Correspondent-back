@@ -7,8 +7,12 @@ import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
 import Data.Default.Class
 import qualified Data.Text.Lazy as LT
+import qualified Data.Text as T
 import qualified Data.Vector.Extended as V
 import Data.Time.Clock (UTCTime (..))
+
+instance Default T.Text where
+  def = T.empty
 
 instance Default LT.Text where
   def = LT.empty
