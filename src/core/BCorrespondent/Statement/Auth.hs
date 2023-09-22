@@ -41,7 +41,9 @@ data InstitutionCreds =
      deriving
      (FromJSON)
      via WithOptions
-          '[FieldLabelModifier '[CamelTo2 "_", UserDefined (StripConstructor InstitutionCreds)]]
+          '[FieldLabelModifier 
+            '[CamelTo2 "_", 
+              UserDefined (StripConstructor InstitutionCreds)]]
           InstitutionCreds
 
 getInstitutionCreds :: HS.Statement T.Text (Maybe InstitutionCreds)
@@ -103,7 +105,8 @@ data InsertionResult = Success T.Text | TMLeft Int64 | User404
     deriving stock (Generic)
     deriving (FromJSON)
     via WithOptions
-        '[SumEnc UntaggedVal, ConstructorTagModifier '[CamelTo2 "_"]]
+        '[SumEnc UntaggedVal, 
+          ConstructorTagModifier '[CamelTo2 "_"]]
         InsertionResult
 
 insertPasswordResetLink :: HS.Statement (Int64, T.Text) (Either String InsertionResult)
@@ -183,7 +186,9 @@ data CheckToken = CheckToken { checkTokenIsValid :: Bool, checkTokenAccountType 
      deriving
      (FromJSON)
      via WithOptions
-          '[FieldLabelModifier '[CamelTo2 "_", UserDefined (StripConstructor CheckToken)]]
+          '[FieldLabelModifier 
+            '[CamelTo2 "_", 
+              UserDefined (StripConstructor CheckToken)]]
           CheckToken
 
 checkToken :: HS.Statement (UUID, Int64) (Maybe CheckToken)

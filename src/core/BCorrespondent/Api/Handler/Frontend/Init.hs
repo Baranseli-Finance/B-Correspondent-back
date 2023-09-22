@@ -9,7 +9,7 @@ import BCorrespondent.Transport.Response (Response, fromEither)
 import BCorrespondent.Transport.Model.Frontend (Init, Sha (..), isJwtValid, defInit, shaXs, JWTStatus (..))
 import BCorrespondent.Transport.Model.Auth (AuthToken (..))
 import BCorrespondent.EnvKeys (key, repos)
-import BCorrespondent.Auth (validateJwt)
+import BCorrespondent.Auth (validateJwt, AuthenticatedUser (..), account, AccountType (Institution))
 import Database.Transaction (transaction, statement)
 import Data.String.Conv (toS)
 import Data.Coerce (coerce)
@@ -42,8 +42,10 @@ handle token = do
     hasql <- fmap (^. katipEnv . hasqlDbPool) ask
     auth_logger <- katipAddNamespace (Namespace ["auth"]) askLoggerIO
     let checkToken = transaction hasql auth_logger . statement Auth.checkToken
-    res <- liftIO $ validateJwt (defaultJWTSettings key) checkToken $ toS @Text $ coerce tk
-    return $ case res of Left _ -> Invalid; _ -> Valid
+    let analyse (Left _) = Invalid
+        analyse (Right AuthenticatedUser {account = Institution}) = Invalid
+        analyse _ = Valid
+    liftIO $ fmap analyse $ validateJwt (defaultJWTSettings key) checkToken $ toS @Text $ coerce tk
 
   github <- fmap (^. katipEnv . github) ask
   resp <- fmap (join . maybeToRight Content404) $

@@ -13,7 +13,16 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TupleSections #-}
 
-module BCorrespondent.Auth (AuthenticatedUser (..), JWT, UserIdentClaims, generateJWT, validateJwt, withAuth, withWSAuth) where
+module BCorrespondent.Auth 
+       (AuthenticatedUser (..), 
+        JWT, 
+        UserIdentClaims, 
+        generateJWT, 
+        validateJwt, 
+        withAuth, 
+        withWSAuth, 
+        Auth.AccountType (..)
+       ) where
 
 import BCorrespondent.Transport.Model.Auth (AuthToken (..))
 import BCorrespondent.Transport.Response
@@ -154,7 +163,9 @@ data UserIdentClaims = UserIdentClaims
   deriving
     (ToJSON, FromJSON)
     via WithOptions
-          '[FieldLabelModifier '[UserDefined FirstLetterToLower, UserDefined (StripConstructor UserIdentClaims)]]
+          '[FieldLabelModifier 
+            '[UserDefined FirstLetterToLower, 
+              UserDefined (StripConstructor UserIdentClaims)]]
           UserIdentClaims
 
 instance Jose.HasClaimsSet UserIdentClaims where
