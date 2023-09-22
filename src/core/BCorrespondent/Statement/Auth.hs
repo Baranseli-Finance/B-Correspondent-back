@@ -190,20 +190,20 @@ checkToken :: HS.Statement (UUID, Int64) (Maybe CheckToken)
 checkToken = 
   rmap (join . fmap (decode @CheckToken . encode))
   [maybeStatement|
-    with 
-      account_type as (
-        select
-          to_jsonb('user' :: text) :: jsonb
-        from auth.user_jwt
-        where user_id = $2 :: int8 and jwt_id = $1 :: uuid
-        union
-        select
-          to_jsonb('institution' :: text) :: jsonb
-        from auth.institution_jwt
-        where inst_id = $2 :: int8 and jwt_id = $1 :: uuid)
    select
      jsonb_build_object (
       'is_valid', is_valid :: bool,
-      'account_type', (select * from account_type)) :: jsonb
-   from auth.jwt 
+      'account_type', 
+      coalesce(uj.ty, ij.ty)) :: jsonb
+   from auth.jwt as j
+   left join (
+    select *, 'user' as ty 
+    from auth.user_jwt) as uj
+   on j.id = uj.jwt_id 
+   and user_id = $2 :: int8
+   left join (
+    select *, 'institution' as ty 
+    from auth.institution_jwt) as ij
+   on j.id = ij.jwt_id 
+   and inst_id = $2 :: int8
    where id = $1 :: uuid|]
