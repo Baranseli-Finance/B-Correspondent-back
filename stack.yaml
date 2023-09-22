@@ -56,10 +56,7 @@ extra-deps:
   - servant-auth-swagger-0.2.10.2@sha256:3be316edeb4ae5c347307179cff5cf891443adc7cc311483b06ee8ee089a98ac,2909
   - servant-rawm-server-1.0.0.1@sha256:bdbc14572a3ca58a8468b1ea1ccb160d77aa56702007c19b55e01e0a4a87ef11,1869
   - validation-selective-0.2.0.0@sha256:e699838c3d0bb374e6a379dc9c3f00596dc4a41141effbedafa15f41b58aa255,3812
-  - google-oauth2-jwt-0.3.3@sha256:ed80b7a72a06ca6d31382aef7210149fb987257e32d9fc3f57cd332fcad3063d,1376
   - wai-rate-limit-postgres-0.6.0.0@sha256:524f9c4015f4b93bd3cc9f3838c83c3c30d98c60a02f2ab668d169327900c2cf,3009
-  # - jose-0.10
-  # - servant-auth-server-0.4.8.0
   - ./src/foreign/SendGrid
 
 # - acme-missiles-0.3
@@ -92,10 +89,10 @@ extra-deps:
 # Allow a newer minor version of GHC than the snapshot specifies
 # compiler-check: newer-minor
 
-nix:
-  enable: true
-  pure: true
-  shell-file: shell.nix
+# nix:
+#   enable: true
+#   pure: true
+#   shell-file: shell.nix
 
 # docker:
 #   enable: true

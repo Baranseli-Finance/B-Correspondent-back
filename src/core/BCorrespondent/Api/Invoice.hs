@@ -8,7 +8,7 @@
 
 module BCorrespondent.Api.Invoice (InvoiceApi (..)) where
 
-import BCorrespondent.Transport.Model.Invoice (InvoiceRegisterRequest, InvoiceId)
+import BCorrespondent.Transport.Model.Invoice (InvoiceRegisterRequest, InvoiceRegisterResponse)
 import BCorrespondent.Transport.Response (Response)
 import BCorrespondent.Auth (AuthenticatedUser, JWT)
 import Servant.API.Extended
@@ -21,6 +21,6 @@ newtype InvoiceApi route =
             route
               :- SA.Auth '[JWT] AuthenticatedUser
                 :> ReqBody '[JSON] [InvoiceRegisterRequest]
-                :> Put '[JSON] (Response [InvoiceId])
+                :> Put '[JSON] (Response [InvoiceRegisterResponse])
         }
         deriving stock (Generic)

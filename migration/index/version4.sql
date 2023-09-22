@@ -59,6 +59,11 @@ create table institution.transaction_to_institution_delivery (
     constraint transaction__transaction_id__fk foreign key (institution_id) references auth.institution(id),
     constraint institution__transaction_institution_id__unique unique (transaction_id, institution_id));
 
+create table institution.invoice_external_ident (
+     invoice_id bigserial not null,
+     external_id uuid not null default uuid_generate_v4(),
+     constraint institution__invoice_external_ident__invoice_id__fk foreign key (invoice_id) references institution.invoice(id));
+
 create table institution.account (
     institution_id bigserial not null,
     currency text not null,

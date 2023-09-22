@@ -25,6 +25,7 @@ module BCorrespondent.Transport.Model.Invoice
         InvoiceId (..),
         ExternalCustomerId (..),
         InvoiceToElekse (..),
+        InvoiceRegisterResponse (..),
         encodeInvoice
        ) where
 
@@ -112,7 +113,10 @@ data InvoiceRegisterRequest =
      deriving stock (Generic, Show)
      deriving (FromJSON, ToJSON)
        via WithOptions
-          '[OmitNothingFields 'True, FieldLabelModifier '[UserDefined FirstLetterToLower, UserDefined (StripConstructor InvoiceRegisterRequest)]]
+          '[OmitNothingFields 'True, 
+            FieldLabelModifier 
+            '[UserDefined FirstLetterToLower, 
+              UserDefined (StripConstructor InvoiceRegisterRequest)]]
           InvoiceRegisterRequest
 
 mkEncoder ''InvoiceRegisterRequest
@@ -137,9 +141,28 @@ newtype InvoiceId = InvoiceId Int64
 
 instance ToSchema InvoiceId
 
+data InvoiceRegisterResponse = 
+     InvoiceRegisterResponse 
+     { invoiceRegisterResponseExternalIdent :: !ExternalInvoiceId,
+       invoiceRegisterResponseInternalIdent :: !InvoiceId
+     }
+     deriving stock (Generic, Show)
+     deriving (FromJSON, ToJSON)
+       via WithOptions
+          '[OmitNothingFields 'True, 
+            FieldLabelModifier 
+            '[UserDefined FirstLetterToLower, 
+              UserDefined (StripConstructor InvoiceRegisterResponse)]]
+          InvoiceRegisterResponse
+
+deriveToSchemaFieldLabelModifier ''InvoiceRegisterResponse [|firstLetterModify (Proxy @InvoiceRegisterResponse)|]
+
 data InvoiceToElekse = InvoiceToElekse { invoiceToElekseExternalId :: UUID }
      deriving stock (Generic, Show)
      deriving (FromJSON, ToJSON)
        via WithOptions
-          '[OmitNothingFields 'True, FieldLabelModifier '[UserDefined FirstLetterToLower, UserDefined (StripConstructor InvoiceToElekse)]]
+          '[OmitNothingFields 'True, 
+            FieldLabelModifier 
+            '[UserDefined FirstLetterToLower, 
+              UserDefined (StripConstructor InvoiceToElekse)]]
           InvoiceToElekse

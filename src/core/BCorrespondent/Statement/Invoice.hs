@@ -20,7 +20,7 @@ module BCorrespondent.Statement.Invoice
 
 import BCorrespondent.Transport.Model.Invoice 
        (InvoiceRegisterRequest, 
-        InvoiceId (..), 
+        InvoiceRegisterResponse, 
         ExternalInvoiceId (..), 
         ExternalCustomerId (..),
         InvoiceToElekse,
@@ -50,9 +50,9 @@ instance ParamsShow Status where
 
 mkArbitrary ''Status
 
-register :: HS.Statement (Int64, [InvoiceRegisterRequest]) [InvoiceId]
+register :: HS.Statement (Int64, [InvoiceRegisterRequest]) (Either String [InvoiceRegisterResponse])
 register = 
-  dimap mkEncoder (V.toList . V.map coerce) $ 
+  dimap mkEncoder (sequence . map (eitherDecode @InvoiceRegisterResponse . encode) . V.toList) $ 
   [vectorStatement|
     with xs as (
         insert into institution.invoice
@@ -124,11 +124,21 @@ register =
             amount, 
             vat)
         on conflict (customer_id, invoice_id, institution_id) do nothing
-        returning id :: int8 as invoice_id)
-    insert into institution.invoice_to_institution_delivery
-    (invoice_id, institution_id)
-    select invoice_id, $17 :: int8 from xs
-    returning invoice_id :: int8|]
+        returning id :: int8 as invoice_id, invoice_id as external_id),
+      delivery as (
+        insert into institution.invoice_to_institution_delivery
+        (invoice_id, institution_id)
+        select invoice_id, $17 :: int8 from xs),
+      external_ident as (  
+        insert into institution.invoice_external_ident
+        (invoice_id)
+        select invoice_id from xs
+        returning invoice_id, external_id)
+      select  
+        jsonb_build_object(
+          'externalIdent', external_id, 
+          'internalIdent', invoice_id) :: jsonb
+      from external_ident|]
   where 
     mkEncoder (instId, xs) = 
       snocT instId $
