@@ -30,7 +30,7 @@ done < "${b-correspondent_env_file}"
 
 /liquibase/liquibase \
     --driver=org.postgresql.Driver \
-    --url=jdbc:postgresql://db:5432/b-correspondent \
+    --url=jdbc:postgresql://db:5432/${keysmap[3]} \
     --changeLogFile=changelog/changelog.xml \
     --username=${keysmap[0]} \
     --password=${keysmap[1]} \
