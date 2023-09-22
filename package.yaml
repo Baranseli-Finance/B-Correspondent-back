@@ -205,6 +205,7 @@ library:
     - wai-rate-limit
     - wai-rate-limit-postgres
     - postgresql-simple
+    - github
 
   source-dirs:
     - src/core

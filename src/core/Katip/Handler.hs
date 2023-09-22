@@ -35,6 +35,7 @@ module Katip.Handler
     conn,
     jwk,
     webhook,
+    github,
 
     -- * run
     runKatipController,
@@ -89,7 +90,8 @@ data KatipEnv = KatipEnv
     katipEnvMinio :: !Minio,
     katipEnvSendGrid :: !(Maybe (Sendgrid, SendGrid.Configuration)),
     katipEnvJwk :: !Jose.JWK,
-    katipEnvWebhook :: !T.Text
+    katipEnvWebhook :: !T.Text,
+    katipEnvGithub :: !(Maybe Github)
   }
 
 data Minio = Minio {minioConn :: !Minio.MinioConn, minioBucketPrefix :: !T.Text}

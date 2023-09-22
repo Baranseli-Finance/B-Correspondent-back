@@ -19,29 +19,51 @@ import qualified Data.Text as T
 import GHC.Generics
 
 
-data Telegram = 
-     Telegram {
-      telegramBot :: T.Text,
-      telegramChat :: T.Text,
-      telegramHost :: T.Text,
-      telegramEnv :: T.Text
+data Github = 
+     Github 
+     { githubKey :: !T.Text, 
+       githubRepos :: ![T.Text]
      }
   deriving stock (Generic)
   deriving stock (Show)
   deriving
     (FromJSON)
     via WithOptions
-          '[FieldLabelModifier '[UserDefined ToLower, UserDefined (StripConstructor Telegram)]]
-          Telegram
+          '[FieldLabelModifier 
+            '[UserDefined ToLower, 
+              UserDefined (StripConstructor Github)]]
+          Github
 
-
-data Person = Person { personEmail :: !T.Text, personPersonalization :: !T.Text }
+data Telegram = 
+     Telegram 
+     { telegramBot :: T.Text,
+       telegramChat :: T.Text,
+       telegramHost :: T.Text,
+       telegramEnv :: T.Text
+     }
   deriving stock (Generic)
   deriving stock (Show)
   deriving
     (FromJSON)
     via WithOptions
-          '[FieldLabelModifier '[UserDefined ToLower, UserDefined (StripConstructor Person)]]
+          '[FieldLabelModifier 
+            '[UserDefined ToLower, 
+              UserDefined (StripConstructor Telegram)]]
+          Telegram
+
+data Person = 
+     Person 
+     { personEmail :: !T.Text, 
+       personPersonalization :: !T.Text 
+     }
+  deriving stock (Generic)
+  deriving stock (Show)
+  deriving
+    (FromJSON)
+    via WithOptions
+          '[FieldLabelModifier 
+            '[UserDefined ToLower, 
+              UserDefined (StripConstructor Person)]]
           Person
 
 data Sendgrid = 
@@ -56,21 +78,27 @@ data Sendgrid =
   deriving
     (FromJSON)
     via WithOptions
-          '[FieldLabelModifier '[UserDefined ToLower, UserDefined (StripConstructor Sendgrid)]]
+          '[FieldLabelModifier 
+            '[UserDefined ToLower, 
+              UserDefined (StripConstructor Sendgrid)]]
           Sendgrid
 
 
 data EnvKeys = EnvKeys
   { envKeysSendgrid :: !(Maybe Sendgrid),
-    envKeysTelegram :: !(Maybe Telegram)
+    envKeysTelegram :: !(Maybe Telegram),
+    envKeysGithub :: !(Maybe Github)
   }
   deriving stock (Generic)
   deriving stock (Show)
   deriving
     (FromJSON)
     via WithOptions
-          '[FieldLabelModifier '[UserDefined ToLower, UserDefined (StripConstructor EnvKeys)]]
+          '[FieldLabelModifier 
+            '[UserDefined ToLower, 
+              UserDefined (StripConstructor EnvKeys)]]
           EnvKeys
 
 makeFields ''EnvKeys
 makeFields ''Sendgrid
+makeFields ''Github

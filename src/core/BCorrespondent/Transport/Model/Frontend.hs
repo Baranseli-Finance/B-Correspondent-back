@@ -22,6 +22,9 @@ module BCorrespondent.Transport.Model.Frontend
        (ProcuratoryRequest (..),
         Init,
         defInit,
+        isJwtValid,
+        shaXs,
+        Sha (..),
         JWTStatus (..)
        ) where
 
@@ -31,8 +34,7 @@ import Data.Aeson.Generic.DerivingVia
 import GHC.Generics (Generic)
 import Data.Swagger.Schema.Extended 
        (deriveToSchemaFieldLabelModifier,
-        firstLetterModify,
-        modify
+        firstLetterModify
        )
 import Data.Proxy (Proxy (..))
 import Data.Default.Class
@@ -40,6 +42,8 @@ import Data.Default.Class.Extended ()
 import TH.Mk (mkToSchemaAndJSON, mkEnumConvertor, mkParamSchemaEnum, mkFromHttpApiDataEnum)
 import Control.Lens
 import Control.Lens.Iso.Extended (jsonb, stext)
+import Data.Char (toLower)
+
 
 data ProcuratoryRequest = 
      ProcuratoryRequest { procuratoryTest :: Text }
@@ -66,10 +70,21 @@ mkEnumConvertor ''JWTStatus
 mkParamSchemaEnum ''JWTStatus [|isoJWTStatus . jsonb|]
 mkFromHttpApiDataEnum ''JWTStatus [|from stext . from isoJWTStatus . to Right|]
 
+data Sha = Sha { shaKey :: !Text, shaValue :: !Text } 
+     deriving stock (Generic, Show)
+     deriving (FromJSON, ToJSON)
+       via WithOptions
+          '[OmitNothingFields 'True, 
+            FieldLabelModifier 
+            '[UserDefined FirstLetterToLower, 
+              UserDefined (StripConstructor Sha)]]
+          Sha
+
+deriveToSchemaFieldLabelModifier ''Sha [|firstLetterModify (Proxy @Sha)|]
+
 data Init =
      Init
-    { sha :: !Text,
-      shaCss :: !Text,
+    { shaXs :: ![Sha],
       isJwtValid :: !JWTStatus
     }
     deriving stock (Generic, Show)
@@ -81,6 +96,6 @@ data Init =
 
 instance Default Init
 
-deriveToSchemaFieldLabelModifier ''Init [| modify (Proxy @Init) |]
+deriveToSchemaFieldLabelModifier ''Init [| map toLower |]
 
-defInit = Init def def def
+defInit = Init def def

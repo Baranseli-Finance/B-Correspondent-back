@@ -332,7 +332,8 @@ main = do
                 envKeys >>= envKeysSendgrid <&> \sendgrid -> 
                   (sendgrid, SendGrid.configure (sendgrid^.url) (sendgrid^.key) ),
               katipEnvJwk = jwk,
-              katipEnvWebhook = cfg^.webhook
+              katipEnvWebhook = cfg^.webhook,
+              katipEnvGithub = envKeys >>= envKeysGithub
           }
 
     let shutdownMsg = print "------ server is shut down --------"
