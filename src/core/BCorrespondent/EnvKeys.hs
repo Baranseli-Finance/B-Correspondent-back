@@ -83,21 +83,21 @@ data Sendgrid =
               UserDefined (StripConstructor Sendgrid)]]
           Sendgrid
 
-
-data EnvKeys = EnvKeys
-  { envKeysSendgrid :: !(Maybe Sendgrid),
-    envKeysTelegram :: !(Maybe Telegram),
-    envKeysGithub :: !(Maybe Github)
-  }
-  deriving stock (Generic)
-  deriving stock (Show)
-  deriving
-    (FromJSON)
-    via WithOptions
-          '[FieldLabelModifier 
-            '[UserDefined ToLower, 
-              UserDefined (StripConstructor EnvKeys)]]
-          EnvKeys
+data EnvKeys = 
+     EnvKeys
+     { envKeysSendgrid :: !(Maybe Sendgrid),
+       envKeysTelegram :: !(Maybe Telegram),
+       envKeysGithub :: !(Maybe Github)
+     }
+     deriving stock (Generic)
+     deriving stock (Show)
+     deriving
+      (FromJSON)
+      via WithOptions
+            '[FieldLabelModifier 
+              '[UserDefined ToLower, 
+                UserDefined (StripConstructor EnvKeys)]]
+            EnvKeys
 
 makeFields ''EnvKeys
 makeFields ''Sendgrid

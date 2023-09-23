@@ -1,12 +1,17 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TupleSections #-}
+{-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE DerivingVia #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE DeriveGeneric #-}
 
 module BCorrespondent.Api.Handler.Frontend.Init (handle) where
 
 import qualified BCorrespondent.Statement.Auth as Auth (checkToken)
 import BCorrespondent.Transport.Response (Response, fromEither)
-import BCorrespondent.Transport.Model.Frontend (Init, Sha (..), isJwtValid, defInit, shaXs, JWTStatus (..))
+import BCorrespondent.Transport.Model.Frontend (Init, Sha (..), isJwtValid, logLevel, toTelegram, defInit, shaXs, JWTStatus (..), LogLevel)
 import BCorrespondent.Transport.Model.Auth (AuthToken (..))
 import BCorrespondent.EnvKeys (key, repos)
 import BCorrespondent.Auth (validateJwt, AuthenticatedUser (..), account, AccountType (Institution))
@@ -28,6 +33,9 @@ import Control.Monad (join)
 import Data.Either.Combinators (maybeToRight)
 import Data.String (fromString)
 import Data.Bifunctor
+import Data.Aeson (eitherDecodeFileStrict, FromJSON)
+import Data.Aeson.Generic.DerivingVia
+import GHC.Generics (Generic)
 
 data Error = Github GitHub.Error | Content404
 
@@ -35,8 +43,26 @@ instance Show Error where
   show (Github e) = "cannot find resource on github: " <> show e
   show Content404 = "content not found"
 
+data FrontEnvs = 
+     FrontEnvs 
+     { frontEnvsLogLevel :: !LogLevel, 
+       frontEnvsToTelegram :: !Bool 
+     }
+    deriving stock (Generic)
+    deriving
+      (FromJSON)
+      via WithOptions 
+         '[FieldLabelModifier 
+           '[UserDefined ToLower,
+             UserDefined (StripConstructor FrontEnvs)]]
+      FrontEnvs
+
 handle :: Maybe AuthToken -> KatipHandlerM (Response Init)
-handle token = do 
+handle token = do
+  
+  path <- fmap (^. katipEnv . frontEnvFilePath) ask
+  Right FrontEnvs {frontEnvsLogLevel, frontEnvsToTelegram} <- liftIO $ eitherDecodeFileStrict @FrontEnvs path 
+
   tokenResp <- for token $ \tk -> do
     key <- fmap (^. katipEnv . jwk) ask
     hasql <- fmap (^. katipEnv . hasqlDbPool) ask
@@ -57,9 +83,12 @@ handle token = do
                   "Baranseli-Finance"
                   (fromString (toS repo))
                   (GitHub.FetchAtLeast 1)
-          let mkKey | repo == "B-Correspondent-front" = "sha"
-                    | otherwise = undefined
-          fmap (second ((Sha mkKey) . GitHub.untagName . V.head . fmap GitHub.commitSha)) $
+          fmap (second ((Sha repo) . GitHub.untagName . V.head . fmap GitHub.commitSha)) $
             GitHub.github (GitHub.OAuth (toS (val^.key))) query
 
-  return $ fromEither $ (first (toS @_ @Text . show))  $ resp <&> \xs -> defInit { shaXs = xs, isJwtValid = fromMaybe Skip tokenResp }
+  return $ fromEither $ (first (toS @_ @Text . show)) $ resp <&> \xs -> 
+    defInit { 
+      shaXs = xs, 
+      isJwtValid = fromMaybe Skip tokenResp, 
+      logLevel = frontEnvsLogLevel, 
+      toTelegram = frontEnvsToTelegram }

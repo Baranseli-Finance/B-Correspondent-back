@@ -105,7 +105,8 @@ data Cmd w = Cmd
     mute500 :: w ::: Maybe Bool <?> "how to render 500 error",
     bCorrespondentDbUser :: w ::: String <?> "db user",
     bCorrespondentDbPass :: w ::: String <?> "db pass",
-    bCorrespondentDatabase :: w ::: String <?> "database"
+    bCorrespondentDatabase :: w ::: String <?> "database",
+    frontEnvFilePath :: w ::: String <?> "path to frontend envs"
   }
   deriving stock (Generic)
 
@@ -333,7 +334,8 @@ main = do
                   (sendgrid, SendGrid.configure (sendgrid^.url) (sendgrid^.key) ),
               katipEnvJwk = jwk,
               katipEnvWebhook = cfg^.webhook,
-              katipEnvGithub = envKeys >>= envKeysGithub
+              katipEnvGithub = envKeys >>= envKeysGithub,
+              katipEnvFrontEnvFilePath = frontEnvFilePath
           }
 
     let shutdownMsg = print "------ server is shut down --------"

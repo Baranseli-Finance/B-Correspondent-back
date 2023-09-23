@@ -24,8 +24,11 @@ module BCorrespondent.Transport.Model.Frontend
         defInit,
         isJwtValid,
         shaXs,
+        toTelegram,
+        logLevel,
         Sha (..),
-        JWTStatus (..)
+        JWTStatus (..),
+        LogLevel,
        ) where
 
 import Data.Text (Text)
@@ -34,12 +37,13 @@ import Data.Aeson.Generic.DerivingVia
 import GHC.Generics (Generic)
 import Data.Swagger.Schema.Extended 
        (deriveToSchemaFieldLabelModifier,
-        firstLetterModify
+        firstLetterModify,
+        deriveToSchemaConstructorTag
        )
 import Data.Proxy (Proxy (..))
 import Data.Default.Class
 import Data.Default.Class.Extended ()
-import TH.Mk (mkToSchemaAndJSON, mkEnumConvertor, mkParamSchemaEnum, mkFromHttpApiDataEnum)
+import TH.Mk (mkToSchemaAndJSON, mkEnumConvertor, mkParamSchemaEnum, mkFromHttpApiDataEnum, mkArbitrary)
 import Control.Lens
 import Control.Lens.Iso.Extended (jsonb, stext)
 import Data.Char (toLower)
@@ -70,7 +74,7 @@ mkEnumConvertor ''JWTStatus
 mkParamSchemaEnum ''JWTStatus [|isoJWTStatus . jsonb|]
 mkFromHttpApiDataEnum ''JWTStatus [|from stext . from isoJWTStatus . to Right|]
 
-data Sha = Sha { shaKey :: !Text, shaValue :: !Text } 
+data Sha = Sha { shaKey :: !Text, shaValue :: !Text }
      deriving stock (Generic, Show)
      deriving (FromJSON, ToJSON)
        via WithOptions
@@ -82,20 +86,38 @@ data Sha = Sha { shaKey :: !Text, shaValue :: !Text }
 
 deriveToSchemaFieldLabelModifier ''Sha [|firstLetterModify (Proxy @Sha)|]
 
+
+data LogLevel = Prod | Dev
+  deriving stock (Generic, Show)
+  deriving (FromJSON, ToJSON)
+    via WithOptions
+       '[ConstructorTagModifier '[UserDefined ToLower]]
+    LogLevel
+
+instance Default LogLevel where
+  def = Dev
+
+mkArbitrary ''LogLevel
+
+deriveToSchemaConstructorTag ''LogLevel [| map toLower |]
+
 data Init =
      Init
     { shaXs :: ![Sha],
-      isJwtValid :: !JWTStatus
+      isJwtValid :: !JWTStatus,
+      logLevel :: !LogLevel,
+      toTelegram :: !Bool
     }
     deriving stock (Generic, Show)
     deriving
       (ToJSON, FromJSON)
       via WithOptions 
          '[FieldLabelModifier 
-           '[UserDefined ToLower]] Init
+           '[UserDefined ToLower]] 
+      Init
 
 instance Default Init
 
 deriveToSchemaFieldLabelModifier ''Init [| map toLower |]
 
-defInit = Init def def
+defInit = Init def def def def

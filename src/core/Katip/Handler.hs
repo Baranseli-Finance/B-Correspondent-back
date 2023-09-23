@@ -36,6 +36,7 @@ module Katip.Handler
     jwk,
     webhook,
     github,
+    frontEnvFilePath,
 
     -- * run
     runKatipController,
@@ -78,7 +79,6 @@ import "sendgrid" OpenAPI.Common as SendGrid
 import Servant.Server (Handler)
 import Servant.Server.Internal.ServerError
 
-
 type KatipLoggerIO = Severity -> LogStr -> IO ()
 
 type KatipLoggerLocIO = Maybe Loc -> Severity -> LogStr -> IO ()
@@ -91,7 +91,8 @@ data KatipEnv = KatipEnv
     katipEnvSendGrid :: !(Maybe (Sendgrid, SendGrid.Configuration)),
     katipEnvJwk :: !Jose.JWK,
     katipEnvWebhook :: !T.Text,
-    katipEnvGithub :: !(Maybe Github)
+    katipEnvGithub :: !(Maybe Github),
+    katipEnvFrontEnvFilePath :: !FilePath
   }
 
 data Minio = Minio {minioConn :: !Minio.MinioConn, minioBucketPrefix :: !T.Text}
@@ -149,6 +150,7 @@ newtype KatipHandlerM a = KatipHandlerM
   deriving newtype (MonadMask)
   deriving newtype (MonadTime)
   deriving newtype (MonadRWS Config KatipControllerWriter State)
+  deriving newtype (MonadFail)
 
 makeFields ''Config
 makeFields ''KatipEnv
