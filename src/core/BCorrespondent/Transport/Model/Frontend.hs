@@ -25,7 +25,7 @@ module BCorrespondent.Transport.Model.Frontend
         isJwtValid,
         shaXs,
         toTelegram,
-        logLevel,
+        level,
         Sha (..),
         JWTStatus (..),
         LogLevel,
@@ -105,7 +105,7 @@ data Init =
      Init
     { shaXs :: ![Sha],
       isJwtValid :: !JWTStatus,
-      logLevel :: !LogLevel,
+      level :: !LogLevel,
       toTelegram :: !Bool
     }
     deriving stock (Generic, Show)

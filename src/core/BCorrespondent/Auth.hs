@@ -125,7 +125,7 @@ validateJwt cfg@JWTSettings {..} checkToken input = do
           if checkTokenIsValid
           then 
             Right $ 
-              AuthenticatedUser 
+              AuthenticatedUser
               userIdentClaimsIdent 
               checkTokenAccountType
           else Left TokenInvalid
@@ -164,7 +164,7 @@ data UserIdentClaims = UserIdentClaims
     (ToJSON, FromJSON)
     via WithOptions
           '[FieldLabelModifier 
-            '[UserDefined FirstLetterToLower, 
+            '[UserDefined ToLower, 
               UserDefined (StripConstructor UserIdentClaims)]]
           UserIdentClaims
 

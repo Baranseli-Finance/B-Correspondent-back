@@ -11,7 +11,7 @@ module BCorrespondent.Api.Handler.Frontend.Init (handle) where
 
 import qualified BCorrespondent.Statement.Auth as Auth (checkToken)
 import BCorrespondent.Transport.Response (Response, fromEither)
-import BCorrespondent.Transport.Model.Frontend (Init, Sha (..), isJwtValid, logLevel, toTelegram, defInit, shaXs, JWTStatus (..), LogLevel)
+import BCorrespondent.Transport.Model.Frontend (Init, Sha (..), isJwtValid, level, toTelegram, defInit, shaXs, JWTStatus (..), LogLevel)
 import BCorrespondent.Transport.Model.Auth (AuthToken (..))
 import BCorrespondent.EnvKeys (key, repos)
 import BCorrespondent.Auth (validateJwt, AuthenticatedUser (..), account, AccountType (Institution))
@@ -90,5 +90,5 @@ handle token = do
     defInit { 
       shaXs = xs, 
       isJwtValid = fromMaybe Skip tokenResp, 
-      logLevel = frontEnvsLogLevel, 
+      level = frontEnvsLogLevel, 
       toTelegram = frontEnvsToTelegram }
