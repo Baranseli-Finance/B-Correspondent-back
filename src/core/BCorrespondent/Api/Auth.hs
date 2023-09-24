@@ -18,6 +18,7 @@ import RateLimit (RateLimit, FixedWindow, IPAddressPolicy)
 import Data.Time.TypeLevel (TimePeriod (Second))
 import qualified Servant.Auth.Server as SA
 import Data.Int (Int64)
+import Data.Text (Text)
 
 data AuthApi route = AuthApi
   { _authApiGenerateToken ::
@@ -46,6 +47,12 @@ data AuthApi route = AuthApi
         :- "code"
           :> ReqBody '[JSON] Credentials
           :> Put '[JSON] (Response AuthCodeHash),
+    _authApiResendAuthCode ::
+      route
+        :- "code"
+          :> "resend"
+          :> ReqBody '[JSON] Text
+          :> Put '[JSON] (Response AuthCodeHash),        
     _authApiLogin ::
       route
         :- "login"

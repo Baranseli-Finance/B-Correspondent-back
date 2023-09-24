@@ -15,6 +15,7 @@ module BCorrespondent.Statement.Auth
         getUserCredByCode, 
         insertToken,
         insertCode,
+        insertResendCode,
         InstitutionCreds (..),
         InsertionResult (..),
         AccountType (..),
@@ -268,14 +269,14 @@ insertCode =
       select
         u.id,
         u.email,
-       (pass = crypt($2 :: text, pass)) :: bool 
+        (pass = crypt($2 :: text, pass)) :: bool 
           as is_pass_valid,
-       coalesce(
+        coalesce(
          extract(
          epoch from c.created_at +
          interval '1 min') -
          extract(epoch from now()), 0)
-        as time_left
+           as time_left
       from auth.user as u
       left join auth.code as c
       on u.id = c.user_id
@@ -292,6 +293,44 @@ insertCode =
         'hash', uuid,
         'code', code, 
         'email', (select email from condition)) as value)
+    select to_jsonb(time_left :: int) :: jsonb 
+    from condition where time_left > 0
+    union
+    select value :: jsonb from new_code|]
+
+insertResendCode :: HS.Statement T.Text (Maybe (Either String AuthCodeHash))
+insertResendCode = 
+  rmap (fmap (eitherDecode' @AuthCodeHash . encode))
+  [maybeStatement|
+    with condition as (
+      select
+        u.id,
+        u.email,
+        coalesce(
+         extract(
+         epoch from c.created_at +
+         interval '1 min') -
+         extract(epoch from now()), 0)
+           as time_left
+      from auth.user as u
+      left join auth.code as c
+      on u.id = c.user_id
+      where c.uuid = $1 :: text and not c.is_expended),
+    new_code as (
+      insert into auth.code 
+      (user_id, uuid)
+      select id, md5(cast(id as text) || cast(now() as text)) 
+      from condition
+      where (select time_left <= 0 from condition)
+      returning jsonb_build_object(
+        'hash', uuid,
+        'code', code, 
+        'email', (select email from condition)) as value),
+    code as (
+      update auth.code
+      set is_expended = true
+      where uuid = $1 :: text 
+      and (select count(*) > 0 from new_code))
     select to_jsonb(time_left :: int) :: jsonb 
     from condition where time_left > 0
     union

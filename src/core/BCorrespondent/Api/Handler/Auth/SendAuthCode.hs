@@ -5,7 +5,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE PackageImports #-}
 
-module BCorrespondent.Api.Handler.Auth.SendAuthCode (handle) where
+module BCorrespondent.Api.Handler.Auth.SendAuthCode (handle, sendAuthCode) where
 
 import BCorrespondent.EnvKeys (Sendgrid (..))
 import qualified BCorrespondent.Statement.Auth as Auth
