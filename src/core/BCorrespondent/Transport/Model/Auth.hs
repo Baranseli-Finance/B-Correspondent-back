@@ -19,7 +19,9 @@ module BCorrespondent.Transport.Model.Auth
         AuthType, 
         InstitutionKey (..),
         NewPassword (..),
-        ResetPasswordLink (..)
+        ResetPasswordLink (..),
+        AuthCode (..),
+        AuthCodeHash (..)
        ) where
 
 import Control.Lens
@@ -34,6 +36,7 @@ import GHC.Generics (Generic)
 import Servant.API (FromHttpApiData (parseQueryParam))
 import TH.Mk
 import Data.Swagger.Schema.Extended (deriveToSchemaFieldLabelModifier, modify)
+
 
 data AuthType = JWT
   deriving stock (Generic)
@@ -58,12 +61,13 @@ instance ToSchema AuthToken where
       NamedSchema (Just "AuthToken") $
         toSchema (Proxy @Text)
 
-data Credentials = Credentials {email :: Text, password :: Text}
+data Credentials = Credentials {login :: Text, password :: Text}
   deriving stock (Generic, Show)
   deriving
     (ToJSON, FromJSON)
     via WithOptions
-          '[FieldLabelModifier '[UserDefined (StripConstructor Credentials)]]
+          '[FieldLabelModifier 
+            '[UserDefined (StripConstructor Credentials)]]
           Credentials
 
 instance ToSchema Credentials where
@@ -73,7 +77,26 @@ instance ToSchema Credentials where
       NamedSchema (Just "Credentials") $
         mempty
           & type_ ?~ SwaggerObject
-          & properties .~ fromList [("email", textSchema), ("password", textSchema)]
+          & properties .~ 
+            fromList [("login", textSchema), ("password", textSchema)]
+
+data AuthCode = AuthCode { authCodeCode :: Int }
+  deriving stock (Generic, Show)
+  deriving
+    (ToJSON, FromJSON)
+    via WithOptions
+          '[FieldLabelModifier 
+            '[UserDefined FirstLetterToLower, 
+              UserDefined (StripConstructor AuthCode)]]
+          AuthCode
+
+deriveToSchemaFieldLabelModifier ''AuthCode [|modify (Proxy @AuthCode)|]
+
+newtype AuthCodeHash = AuthCodeHash Text
+  deriving stock (Generic)
+  deriving newtype (ToJSON, FromJSON)
+
+instance ToSchema AuthCodeHash
 
 newtype InstitutionKey = InstitutionKey Text
   deriving stock (Generic)
@@ -84,7 +107,9 @@ data NewPassword = NewPassword { newPasswordPassword :: Text, newPasswordKey :: 
   deriving stock (Generic, Show)
   deriving (FromJSON, ToJSON)
     via WithOptions
-          '[FieldLabelModifier '[UserDefined FirstLetterToLower, UserDefined (StripConstructor NewPassword)]]
+          '[FieldLabelModifier 
+            '[UserDefined FirstLetterToLower, 
+              UserDefined (StripConstructor NewPassword)]]
           NewPassword
 
 deriveToSchemaFieldLabelModifier ''NewPassword [|modify (Proxy @NewPassword)|]

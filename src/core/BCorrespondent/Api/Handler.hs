@@ -18,7 +18,8 @@ import qualified BCorrespondent.Api.Handler.SendGrid.SendMail as SendGrid.Send
 import qualified BCorrespondent.Api.Handler.Auth.GenerateToken as Auth.GenerateToken
 import qualified BCorrespondent.Api.Handler.Auth.Password.MakeResetLink as Auth.Password.MakeResetLink
 import qualified BCorrespondent.Api.Handler.Auth.Password.New as Auth.Password.New
-import qualified BCorrespondent.Api.Handler.Auth.Login as Auth.Login 
+import qualified BCorrespondent.Api.Handler.Auth.SendAuthCode as Auth.SendAuthCode 
+import qualified BCorrespondent.Api.Handler.Auth.Login as Auth.Login
 import qualified BCorrespondent.Api.Handler.Invoice.Register as Invoice.Register
 import qualified BCorrespondent.Api.Handler.Frontend.GetTimeline as Frontend.GetTimeline
 import qualified BCorrespondent.Api.Handler.Frontend.GetHistory as Frontend.GetHistory
@@ -66,6 +67,11 @@ auth =
           . katipAddNamespace
               (Namespace ["auth", "password", "new"])
           . Auth.Password.New.handle,
+     _authApiSendAuthCode =
+        flip logExceptionM ErrorS
+          . katipAddNamespace
+              (Namespace ["auth", "code"])
+          . Auth.SendAuthCode.handle,
      _authApiLogin =
       const $
         flip logExceptionM ErrorS

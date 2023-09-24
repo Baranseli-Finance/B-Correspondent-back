@@ -12,12 +12,15 @@ module BCorrespondent.Statement.Auth
         insertInstToken, 
         insertNewPassword,
         insertPasswordResetLink,
-        getUserIdByEmail, 
+        getUserCredByCode, 
         insertToken,
+        insertCode,
         InstitutionCreds (..),
         InsertionResult (..),
         AccountType (..),
-        CheckToken (..)
+        CheckToken (..),
+        UserCred (..),
+        AuthCodeHash (..)
        ) where
 
 import Control.Lens
@@ -30,6 +33,7 @@ import Data.Aeson.Generic.DerivingVia
 import GHC.Generics (Generic)
 import Data.Aeson (FromJSON, decode, encode, eitherDecode')
 import Control.Monad (join)
+
 
 data InstitutionCreds = 
      InstitutionCreds 
@@ -143,36 +147,37 @@ insertPasswordResetLink =
          (select to_jsonb(email :: text) :: jsonb from link),
 		     to_jsonb('user404' :: text) :: jsonb) :: jsonb|]
 
-getUserIdByEmail :: HS.Statement T.Text (Maybe Int64)
-getUserIdByEmail = [maybeStatement|select id :: int8 from auth.user where email = $1 :: text|]
+data UserCred = UserCred { userCredIdent :: Int64, userCredEmail :: T.Text }
+     deriving stock (Generic)
+     deriving
+     (FromJSON)
+     via WithOptions
+          '[FieldLabelModifier 
+            '[CamelTo2 "_", 
+              UserDefined (StripConstructor UserCred)]]
+          UserCred
 
-insertToken :: HS.Statement (T.Text, T.Text, T.Text, UUID) Bool
+getUserCredByCode :: HS.Statement Int (Maybe UserCred)
+getUserCredByCode = undefined
+
+insertToken :: HS.Statement (Int64, T.Text, UUID) Bool
 insertToken =
   rmap (> 0)
     [rowsAffectedStatement|
        with
-         user_ident as (
-           select 
-           id,
-           (pass = crypt($2 :: text, pass)) :: bool as is_pass_valid 
-           from auth.user 
-           where email = $1 :: text),
          invalidated_jwt as (
            update auth.jwt 
            set is_valid = false 
            where 
              is_valid and
-             id in (select jwt_id from auth.user_jwt where user_id = (select id from user_ident))
-             and (select is_pass_valid from user_ident) is true),
+             id in (select jwt_id from auth.user_jwt where user_id = $1 :: int8)),
          jwt as (
-          insert into auth.jwt 
+          insert into auth.jwt
           (value, id)
-          select $3 :: text, $4 :: uuid
-          where (select is_pass_valid from user_ident))
+          select $2 :: text, $3 :: uuid)
        insert into auth.user_jwt
        (user_id, jwt_id)
-       select id, $4 :: uuid from user_ident
-       where (select is_pass_valid from user_ident) is true|]
+       values ($1 :: int8 , $3 :: uuid)|]
 
 data AccountType = Institution | User
     deriving stock (Generic, Show, Eq)
@@ -212,3 +217,53 @@ checkToken =
    on j.id = ij.jwt_id 
    and inst_id = $2 :: int8
    where id = $1 :: uuid|]
+
+data AuthCodeHash = 
+     HashAndCode 
+     { hash :: T.Text, 
+       code :: Int,
+       email :: T.Text
+     } 
+     | NextAttemptIn Int
+  deriving stock (Generic, Show)
+  deriving
+    (FromJSON)
+    via WithOptions
+        '[SumEnc UntaggedVal]
+        AuthCodeHash
+
+insertCode :: HS.Statement (T.Text, T.Text) (Maybe (Either String AuthCodeHash))
+insertCode =
+  rmap (fmap (eitherDecode' @AuthCodeHash . encode))
+  [maybeStatement|
+    with condition as (
+      select
+        u.id,
+        u.email,
+       (pass = crypt($2 :: text, pass)) :: bool 
+          as is_pass_valid,
+       coalesce(
+         extract(
+         epoch from c.created_at +
+         interval '1 min') -
+         extract(epoch from now()), 0)
+        as time_left
+      from auth.user as u
+      left join auth.code as c
+      on u.id = c.user_id
+      where u.login = $1 :: text
+      order by c.created_at desc limit 1),
+    new_code as (
+      insert into auth.code 
+      (user_id, uuid)
+      select id, md5(cast(id as text) || cast(now() as text)) 
+      from condition
+      where (select is_pass_valid from condition) 
+      and (select time_left <= 0 from condition)
+      returning jsonb_build_object(
+        'hash', uuid,
+        'code', code, 
+        'email', (select email from condition)) as value)
+    select to_jsonb(time_left :: int) :: jsonb from condition where time_left > 0
+    union
+    select value :: jsonb from new_code|]

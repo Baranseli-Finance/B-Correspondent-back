@@ -143,6 +143,8 @@ class ParamsShow a where
 
 instance ParamsShow () where render () = mempty
 
+instance ParamsShow Int where render = show
+
 instance ParamsShow Int32 where render = show
 
 instance ParamsShow Int64 where render = show
