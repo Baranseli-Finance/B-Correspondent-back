@@ -33,7 +33,7 @@ import Data.Aeson.Generic.DerivingVia
 import GHC.Generics (Generic)
 import Data.Aeson (FromJSON, decode, encode, eitherDecode')
 import Control.Monad (join)
-
+import Data.Bifunctor (first)
 
 data InstitutionCreds = 
      InstitutionCreds 
@@ -157,27 +157,55 @@ data UserCred = UserCred { userCredIdent :: Int64, userCredEmail :: T.Text }
               UserDefined (StripConstructor UserCred)]]
           UserCred
 
-getUserCredByCode :: HS.Statement Int (Maybe UserCred)
-getUserCredByCode = undefined
+getUserCredByCode :: HS.Statement (Int, T.Text) (Maybe UserCred)
+getUserCredByCode =
+  dimap (first fromIntegral) (join . fmap (decode @UserCred . encode))
+  [maybeStatement|
+    with cred as (
+      select 
+        u.id,
+        u.email,
+        (c.code = $1 :: int and 
+         not c.is_expended and 
+         (extract(epoch from c.expire_at) -
+          extract(epoch from now()) > 0))
+          as is_code_valid
+      from auth.user as u
+      inner join auth.code as c
+      on u.id = c.user_id
+      where c.uuid = $2 :: text)
+    select 
+      jsonb_build_object(
+        'ident', id :: int8, 
+        'email', email :: text) :: jsonb 
+    from cred
+    where is_code_valid|]
 
-insertToken :: HS.Statement (Int64, T.Text, UUID) Bool
+insertToken :: HS.Statement (Int64, T.Text, UUID, T.Text) Bool
 insertToken =
   rmap (> 0)
     [rowsAffectedStatement|
        with
          invalidated_jwt as (
            update auth.jwt 
-           set is_valid = false 
+           set is_valid = false
            where 
              is_valid and
-             id in (select jwt_id from auth.user_jwt where user_id = $1 :: int8)),
+             id in (
+              select jwt_id 
+              from auth.user_jwt 
+              where user_id = $1 :: int8)),
          jwt as (
           insert into auth.jwt
           (value, id)
-          select $2 :: text, $3 :: uuid)
+          select $2 :: text, $3 :: uuid),
+         code as (
+          update auth.code
+          set is_expended = true 
+          where uuid = $4 :: text)
        insert into auth.user_jwt
        (user_id, jwt_id)
-       values ($1 :: int8 , $3 :: uuid)|]
+       values ($1 :: int8, $3 :: uuid)|]
 
 data AccountType = Institution | User
     deriving stock (Generic, Show, Eq)
@@ -251,7 +279,7 @@ insertCode =
       from auth.user as u
       left join auth.code as c
       on u.id = c.user_id
-      where u.login = $1 :: text
+      where u.login = $1 :: text and not c.is_expended
       order by c.created_at desc limit 1),
     new_code as (
       insert into auth.code 
@@ -264,6 +292,7 @@ insertCode =
         'hash', uuid,
         'code', code, 
         'email', (select email from condition)) as value)
-    select to_jsonb(time_left :: int) :: jsonb from condition where time_left > 0
+    select to_jsonb(time_left :: int) :: jsonb 
+    from condition where time_left > 0
     union
     select value :: jsonb from new_code|]

@@ -19,24 +19,24 @@ import Database.Transaction
 import Katip.Handler
 import Data.Functor (($>))
 
-data Error = User404 | JWT
+data Error = Code | JWT
 
 instance Show Error where
-  show User404 = "user wrong"
+  show Code = "code wrong"
   show JWT = "jwt generation error"
  
 handle :: AuthCode -> KatipHandlerM (Response AuthToken)
-handle (AuthCode code) = do
+handle (AuthCode code hash) = do
   hasql <- fmap (^. katipEnv . hasqlDbPool) ask
   key <- fmap (^. katipEnv . jwk) ask
   let mkToken ident email = liftIO $ Auth.generateJWT key ident (Just email) 2_592_000
   res <- fmap join $ transactionM hasql $ do
-    identm <- statement Auth.getUserCredByCode code
-    fmap (maybeToRight User404) $
+    identm <- statement Auth.getUserCredByCode (code, hash)
+    fmap (maybeToRight Code) $
       for identm $ \(Auth.UserCred {..}) -> do
         tokene <- mkToken userCredIdent userCredEmail
         fmap (first (const JWT)) $
           for tokene $ \(tokenbs, uuid) -> do
             let token = tokenbs ^. bytesLazy . from textbs
-            statement Auth.insertToken (userCredIdent, token, uuid) $> token
+            statement Auth.insertToken (userCredIdent, token, uuid, hash) $> token
   return $ withError res AuthToken

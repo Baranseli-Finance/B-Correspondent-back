@@ -80,7 +80,7 @@ instance ToSchema Credentials where
           & properties .~ 
             fromList [("login", textSchema), ("password", textSchema)]
 
-data AuthCode = AuthCode { authCodeCode :: Int }
+data AuthCode = AuthCode { authCodeCode :: Int, authCodeHash :: Text }
   deriving stock (Generic, Show)
   deriving
     (ToJSON, FromJSON)

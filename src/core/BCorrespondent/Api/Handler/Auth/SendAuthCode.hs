@@ -33,7 +33,7 @@ import OpenAPI.Types.ToEmailArray (mkToEmailArrayItem)
 import Data.Time.Clock.System (getSystemTime, systemSeconds)
 import Control.Monad (void)
 import Control.Monad.IO.Class (liftIO)
-import Data.Functor (($>))
+import Control.Concurrent.Lifted (fork)
 
 data Error = User404
 
@@ -47,8 +47,9 @@ handle Credentials {..} = do
       mkResponse (Just (Right (Auth.NextAttemptIn value))) = 
         pure $ Warnings (AuthCodeHash mempty) [asError @T.Text $ toS (show value)]
       mkResponse (Just (Left e)) = pure $ Error Nothing $ asError @T.Text $ toS e
-      mkResponse (Just (Right (Auth.HashAndCode hash code email))) = 
-        sendAuthCode code email $> Ok (AuthCodeHash hash)
+      mkResponse (Just (Right (Auth.HashAndCode hash code email))) = do
+        void $ fork $ sendAuthCode code email
+        return $ Ok (AuthCodeHash hash)
   mkResponse =<< transactionM hasql (statement Auth.insertCode (login, password))
 
 sendAuthCode :: Int -> T.Text -> KatipHandlerM ()
