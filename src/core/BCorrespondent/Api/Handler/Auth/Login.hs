@@ -30,12 +30,12 @@ handle :: Credentials -> KatipHandlerM (Response AuthToken)
 handle cred = do
   hasql <- fmap (^. katipEnv . hasqlDbPool) ask
   key <- fmap (^. katipEnv . jwk) ask
-  let mkToken ident = liftIO $ Auth.generateJWT key ident 2_592_000
+  let mkToken ident = liftIO $ Auth.generateJWT key ident (Just (email cred)) 2_592_000
   res <- fmap join $ transactionM hasql $ do
     identm <- statement Auth.getUserIdByEmail (email cred)
     fmap (maybeToRight User404) $
       for identm $ \ident -> do
-        tokene <- mkToken ident
+        tokene <- mkToken ident 
         fmap (join . first (const JWT)) $
           for tokene $ \(tokenbs, uuid) -> do
             let token = tokenbs ^. bytesLazy . from textbs

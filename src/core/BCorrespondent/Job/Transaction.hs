@@ -8,7 +8,8 @@ module BCorrespondent.Job.Transaction (sendToTochkaBank) where
 import BCorrespondent.Statement.Transaction 
        (getTransactionsToBeSent, insertSentTransactions, insertFailedTransactions)
 import BCorrespondent.Job.Utils (withElapsedTime)
-import BCorrespondent.ServerM 
+import BCorrespondent.ServerM
+import BCorrespondent.Transport.Model.Transaction (TransactionToBank)
 import Katip
 import BuildInfo (location)
 import Control.Monad (forever)
@@ -22,6 +23,7 @@ import qualified Data.Text as T
 import Data.String.Conv (toS)
 import Data.Aeson.WithField (WithField (..))
 import qualified Control.Concurrent.Async.Lifted as Async
+import qualified Request as Request
 
 sendToTochkaBank :: Int -> KatipContextT ServerM ()
 sendToTochkaBank freq = 
@@ -32,8 +34,12 @@ sendToTochkaBank freq =
       res <- transactionM hasql $ statement getTransactionsToBeSent ()
       case res of 
         Right xs -> do
+          manager <- fmap (^.httpReqManager) ask
           ys <- Async.forConcurrently xs $ 
-            \(WithField _ _) -> undefined
+            \(WithField _ transaction) -> do  
+                let req = Left $ Just $ transaction
+                _ <- Request.make @TransactionToBank undefined manager [] Request.methodPost req
+                undefined
           let (es, os) = partitionEithers ys
           for_ es $ \ident ->
             $(logTM) ErrorS $

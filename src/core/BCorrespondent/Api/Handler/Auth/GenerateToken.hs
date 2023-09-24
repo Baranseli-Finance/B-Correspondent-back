@@ -34,7 +34,7 @@ handle instKey = do
   hasql <- fmap (^. katipEnv . hasqlDbPool) ask
   key <- fmap (^. katipEnv . jwk) ask
   let mkToken ident = do
-       res <- liftIO $ generateJWT key ident 1800
+       res <- liftIO $ generateJWT key ident Nothing 1800
        fmap (join . first (const JWT)) $
          for res $ \(bs, uuid) -> 
            fmap (const (Right (toS bs))) $ 

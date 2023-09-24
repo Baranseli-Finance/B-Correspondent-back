@@ -5,9 +5,11 @@
 
 module BCorrespondent.Job.Invoice (forwardToElekse) where
 
-import BCorrespondent.Statement.Invoice (getInvoicesToBeSent, insertFailedInvoices, updateStatus, Status (ForwardedToElekse))
+import BCorrespondent.Statement.Invoice 
+       (getInvoicesToBeSent, insertFailedInvoices, updateStatus, Status (ForwardedToElekse))
 import BCorrespondent.Job.Utils (withElapsedTime)
-import BCorrespondent.ServerM 
+import BCorrespondent.ServerM
+import BCorrespondent.Transport.Model.Invoice (InvoiceToElekse)
 import Katip
 import BuildInfo (location)
 import Control.Monad (forever)
@@ -21,6 +23,7 @@ import qualified Data.Text as T
 import Data.String.Conv (toS)
 import qualified Control.Concurrent.Async.Lifted as Async
 import Data.Aeson.WithField (WithField (..))
+import qualified Request as Request 
 
 forwardToElekse :: Int -> KatipContextT ServerM ()
 forwardToElekse freq =
@@ -31,11 +34,15 @@ forwardToElekse freq =
       res <- transactionM hasql $ statement getInvoicesToBeSent ()
       case res of
         Right xs -> do
+          manager <- fmap (^.httpReqManager) ask
           ys <- Async.forConcurrently xs $
-            \(WithField _ _) -> undefined
+            \(WithField _ invoice) -> do
+              let req = Left $ Just $ invoice
+              _ <- Request.make @InvoiceToElekse undefined manager [] Request.methodPost req
+              undefined
           let (es, os) = partitionEithers ys
           for_ es $ \ident ->
-            $(logTM) ErrorS $ 
+            $(logTM) ErrorS $
             logStr @T.Text $
               $location <>
               ":forwardToElekse: --> \

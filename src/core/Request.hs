@@ -2,7 +2,7 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Request (make, withError, forConcurrentlyNRetry, retry) where
+module Request (make, withError, forConcurrentlyNRetry, retry, HTTP.methodPost) where
 
 import qualified Network.HTTP.Types as HTTP
 import qualified Network.HTTP.Client as HTTP
@@ -17,17 +17,18 @@ import qualified UnliftIO.Async as Async (pooledForConcurrentlyN)
 import Control.Monad.IO.Unlift (MonadUnliftIO)
 import UnliftIO.Retry (retrying, constantDelay, limitRetries)
 import Data.Bifunctor (first)
+import Control.Monad.IO.Class (liftIO, MonadIO)
 
 make ::
-  ToJSON a =>
+  (ToJSON a, MonadIO m) =>
   T.Text
   -> HTTP.Manager
   -> [HTTP.Header]
   -> HTTP.Method
   -> Either (Maybe a) [Part]
-  -> IO (Either (HTTP.Response BL.ByteString) B.ByteString)
+  -> m (Either (HTTP.Response BL.ByteString) B.ByteString)
 make url manager headers method bodye = do
- req_tmp <- HTTP.parseRequest $ T.unpack url
+ req_tmp <- liftIO $ HTTP.parseRequest $ T.unpack url
  let req =
       case bodye of 
         Left body ->
@@ -41,7 +42,7 @@ make url manager headers method bodye = do
                     fmap encode body
             }
         Right parts -> formDataBody parts req_tmp { HTTP.requestHeaders = headers }
- response <- flip HTTP.httpLbs manager =<< req
+ response <- liftIO $ flip HTTP.httpLbs manager =<< req
  let response_status = HTTP.statusCode $ HTTP.responseStatus response
  let response_body = toS $ HTTP.responseBody response
  return $
