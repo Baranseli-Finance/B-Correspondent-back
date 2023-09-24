@@ -2,10 +2,20 @@ create schema if not exists auth;
 create table auth.user (
     id bigserial primary key,
     email text not null,
+    login text not null,
     pass text not null,
     created_at timestamptz not null default now(),
     modified_at timestamptz,
     constraint auth_user__email__uk unique (email));
+
+create table auth.code (
+    code int not null default cast((random()*1000000) as decimal(6)),
+    expire_at timestamptz not null default now() + interval '5 min',
+    user_id bigserial not null,
+    created_at timestamptz not null default now(),
+    uuid text not null,
+    constraint auth_code__user_id__fk foreign key (user_id) references auth.user(id),
+    constraint auth_code__uuid__uk unique (uuid));
 
 create table auth.institution (
     id bigserial primary key,
