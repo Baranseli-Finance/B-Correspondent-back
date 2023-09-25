@@ -50,7 +50,7 @@ handle Credentials {..} = do
       mkResponse (Just (Right (Auth.HashAndCode hash code email))) = do
         void $ fork $ sendAuthCode code email
         return $ Ok (AuthCodeHash hash)
-  mkResponse =<< transactionM hasql (statement Auth.insertCode (login, password))
+  mkResponse =<< transactionM hasql (statement Auth.insertCode (login, password, browserFp))
 
 sendAuthCode :: Int -> T.Text -> KatipHandlerM ()
 sendAuthCode code email = do

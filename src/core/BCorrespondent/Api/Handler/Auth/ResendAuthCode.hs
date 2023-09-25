@@ -1,12 +1,13 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module BCorrespondent.Api.Handler.Auth.ResendAuthCode (handle) where
 
 import BCorrespondent.Api.Handler.Auth.SendAuthCode (sendAuthCode)
 import qualified BCorrespondent.Statement.Auth as Auth
-import BCorrespondent.Transport.Model.Auth (AuthCodeHash (..))
+import BCorrespondent.Transport.Model.Auth (AuthCodeHash (..), ResendCode (..))
 import BCorrespondent.Transport.Response (Response (Error, Ok, Warnings))
 import BCorrespondent.Transport.Error (AsError (asError))
 import Control.Lens
@@ -22,8 +23,8 @@ data Error = Code
 instance Show Error where
   show Code = "code wrong"
 
-handle :: T.Text -> KatipHandlerM (Response AuthCodeHash)
-handle hash = do 
+handle :: ResendCode -> KatipHandlerM (Response AuthCodeHash)
+handle ResendCode {..} = do 
   hasql <- fmap (^. katipEnv . hasqlDbPool) ask
   let mkResponse Nothing = pure $ Error Nothing $ asError @T.Text $ toS (show Code)
       mkResponse (Just (Right (Auth.NextAttemptIn value))) = 
@@ -32,4 +33,4 @@ handle hash = do
       mkResponse (Just (Right (Auth.HashAndCode hash code email))) = do
         void $ fork $ sendAuthCode code email
         return $ Ok (AuthCodeHash hash)
-  mkResponse =<< transactionM hasql (statement Auth.insertResendCode hash)
+  mkResponse =<< transactionM hasql (statement Auth.insertResendCode (resendCodeHash, resendCodeBrowserFp))

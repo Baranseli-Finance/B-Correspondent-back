@@ -21,7 +21,8 @@ module BCorrespondent.Transport.Model.Auth
         NewPassword (..),
         ResetPasswordLink (..),
         AuthCode (..),
-        AuthCodeHash (..)
+        AuthCodeHash (..),
+        ResendCode (..)
        ) where
 
 import Control.Lens
@@ -35,7 +36,8 @@ import GHC.Exts
 import GHC.Generics (Generic)
 import Servant.API (FromHttpApiData (parseQueryParam))
 import TH.Mk
-import Data.Swagger.Schema.Extended (deriveToSchemaFieldLabelModifier, modify)
+import Data.Swagger.Schema.Extended 
+       (deriveToSchemaFieldLabelModifier, modify, firstLetterModify)
 
 
 data AuthType = JWT
@@ -61,7 +63,12 @@ instance ToSchema AuthToken where
       NamedSchema (Just "AuthToken") $
         toSchema (Proxy @Text)
 
-data Credentials = Credentials {login :: Text, password :: Text}
+data Credentials = 
+     Credentials 
+     { login :: Text, 
+       password :: Text, 
+       browserFp :: Text 
+     }
   deriving stock (Generic, Show)
   deriving
     (ToJSON, FromJSON)
@@ -78,7 +85,10 @@ instance ToSchema Credentials where
         mempty
           & type_ ?~ SwaggerObject
           & properties .~ 
-            fromList [("login", textSchema), ("password", textSchema)]
+            fromList [
+              ("login", textSchema), 
+              ("password", textSchema), 
+              ("browserFp", textSchema)]
 
 data AuthCode = AuthCode { authCodeCode :: Int, authCodeHash :: Text }
   deriving stock (Generic, Show)
@@ -119,3 +129,18 @@ newtype ResetPasswordLink = ResetPasswordLink Text
   deriving newtype (FromJSON, ToJSON)
 
 instance ToSchema ResetPasswordLink
+
+data ResendCode = 
+     ResendCode 
+     { resendCodeHash :: Text, 
+       resendCodeBrowserFp :: Text 
+     }
+  deriving stock (Generic, Show)
+  deriving (FromJSON, ToJSON)
+    via WithOptions
+          '[FieldLabelModifier 
+            '[UserDefined FirstLetterToLower, 
+              UserDefined (StripConstructor ResendCode)]]
+          ResendCode
+
+deriveToSchemaFieldLabelModifier ''ResendCode [|firstLetterModify (Proxy @ResendCode)|]

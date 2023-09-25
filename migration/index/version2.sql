@@ -14,6 +14,8 @@ create table auth.code (
     user_id bigserial not null,
     created_at timestamptz not null default now(),
     uuid text not null,
+    browser_fp text not null,
+    is_expended bool not null default false,
     constraint auth_code__user_id__fk foreign key (user_id) references auth.user(id),
     constraint auth_code__uuid__uk unique (uuid));
 

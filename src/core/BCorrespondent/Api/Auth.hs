@@ -9,7 +9,7 @@
 module BCorrespondent.Api.Auth (AuthApi (..)) where
 
 import BCorrespondent.Transport.Model.Auth 
-       (AuthToken, InstitutionKey, NewPassword, AuthType, Credentials, AuthCode, AuthCodeHash)
+       (AuthToken, InstitutionKey, NewPassword, AuthType, Credentials, AuthCode, AuthCodeHash, ResendCode)
 import BCorrespondent.Transport.Response (Response)
 import BCorrespondent.Auth (AuthenticatedUser, JWT)
 import Servant.API.Extended
@@ -18,7 +18,6 @@ import RateLimit (RateLimit, FixedWindow, IPAddressPolicy)
 import Data.Time.TypeLevel (TimePeriod (Second))
 import qualified Servant.Auth.Server as SA
 import Data.Int (Int64)
-import Data.Text (Text)
 
 data AuthApi route = AuthApi
   { _authApiGenerateToken ::
@@ -51,7 +50,7 @@ data AuthApi route = AuthApi
       route
         :- "code"
           :> "resend"
-          :> ReqBody '[JSON] Text
+          :> ReqBody '[JSON] ResendCode
           :> Put '[JSON] (Response AuthCodeHash),        
     _authApiLogin ::
       route

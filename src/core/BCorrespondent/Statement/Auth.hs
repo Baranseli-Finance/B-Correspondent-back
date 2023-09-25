@@ -261,7 +261,7 @@ data AuthCodeHash =
         '[SumEnc UntaggedVal]
         AuthCodeHash
 
-insertCode :: HS.Statement (T.Text, T.Text) (Maybe (Either String AuthCodeHash))
+insertCode :: HS.Statement (T.Text, T.Text, T.Text) (Maybe (Either String AuthCodeHash))
 insertCode =
   rmap (fmap (eitherDecode' @AuthCodeHash . encode))
   [maybeStatement|
@@ -279,13 +279,15 @@ insertCode =
            as time_left
       from auth.user as u
       left join auth.code as c
-      on u.id = c.user_id
-      where u.login = $1 :: text and not c.is_expended
+      on u.id = c.user_id and 
+      coalesce(c.browser_fp = $3 :: text, true)
+      where u.login = $1 :: text and
+      not coalesce(c.is_expended, false)
       order by c.created_at desc limit 1),
     new_code as (
       insert into auth.code 
-      (user_id, uuid)
-      select id, md5(cast(id as text) || cast(now() as text)) 
+      (user_id, uuid, browser_fp)
+      select id, md5(cast(id as text) || cast(now() as text)), $3 :: text
       from condition
       where (select is_pass_valid from condition) 
       and (select time_left <= 0 from condition)
@@ -298,7 +300,7 @@ insertCode =
     union
     select value :: jsonb from new_code|]
 
-insertResendCode :: HS.Statement T.Text (Maybe (Either String AuthCodeHash))
+insertResendCode :: HS.Statement (T.Text, T.Text) (Maybe (Either String AuthCodeHash))
 insertResendCode = 
   rmap (fmap (eitherDecode' @AuthCodeHash . encode))
   [maybeStatement|
@@ -318,8 +320,11 @@ insertResendCode =
       where c.uuid = $1 :: text and not c.is_expended),
     new_code as (
       insert into auth.code 
-      (user_id, uuid)
-      select id, md5(cast(id as text) || cast(now() as text)) 
+      (user_id, uuid, browser_fp)
+      select 
+        id, 
+        md5(cast(id as text) || cast(now() as text)), 
+        $2 :: text
       from condition
       where (select time_left <= 0 from condition)
       returning jsonb_build_object(
