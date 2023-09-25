@@ -9,7 +9,7 @@ import Data.Proxy
 import BCorrespondent.Api.Auth (AuthApi)
 import BCorrespondent.Api.Invoice (InvoiceApi)
 import BCorrespondent.Api.Frontend (FrontendApi)
-import BCorrespondent.Transport.Model.Auth (Credentials, AuthToken, NewPassword)
+import BCorrespondent.Transport.Model.Auth (Credentials, AuthToken, NewPassword, AuthCodeHash, ResendCode, AuthCode)
 import BCorrespondent.Api.Handler.SendGrid.SendMail (SendGridSendMailRequest)
 import BCorrespondent.Config (Email)
 import BCorrespondent.Api.Foreign.SendGrid (SendGridApi)
@@ -32,6 +32,9 @@ mkArbitrary ''InvoiceRegisterResponse
 mkArbitrary ''JWTStatus
 mkArbitrary ''Sha
 mkArbitrary ''Init
+mkArbitrary ''AuthCodeHash
+mkArbitrary ''ResendCode
+mkArbitrary ''AuthCode
 
 spec_api :: Spec
 spec_api =

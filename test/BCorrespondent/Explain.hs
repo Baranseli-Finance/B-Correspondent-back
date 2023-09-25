@@ -67,8 +67,10 @@ explainTests =
         "checkToken" =>> BCorrespondent.Statement.Auth.checkToken,
         "insertNewPassword" =>> BCorrespondent.Statement.Auth.insertNewPassword,
         "insertPasswordResetLink" =>> BCorrespondent.Statement.Auth.insertPasswordResetLink,
-        "getUserIdByEmail" =>> BCorrespondent.Statement.Auth.getUserIdByEmail,
-        "insertToken" =>> BCorrespondent.Statement.Auth.insertToken
+        "getUserCredByCode" =>> BCorrespondent.Statement.Auth.getUserCredByCode,
+        "insertToken" =>> BCorrespondent.Statement.Auth.insertToken,
+        "insertCode" =>> BCorrespondent.Statement.Auth.insertCode,
+        "insertResendCode" =>> BCorrespondent.Statement.Auth.insertResendCode
      ]
   , "BCorrespondent.Statement.Invoice" ==>
      [ "register" =>> BCorrespondent.Statement.Invoice.register,

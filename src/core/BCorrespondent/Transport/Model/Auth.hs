@@ -103,7 +103,7 @@ data AuthCode = AuthCode { authCodeCode :: Int, authCodeHash :: Text }
 deriveToSchemaFieldLabelModifier ''AuthCode [|modify (Proxy @AuthCode)|]
 
 newtype AuthCodeHash = AuthCodeHash Text
-  deriving stock (Generic)
+  deriving stock (Generic, Show)
   deriving newtype (ToJSON, FromJSON)
 
 instance ToSchema AuthCodeHash
