@@ -10,6 +10,9 @@ import qualified Data.Text.Lazy as LT
 import qualified Data.Text as T
 import qualified Data.Vector.Extended as V
 import Data.Time.Clock (UTCTime (..))
+import Data.UUID (UUID)
+import System.IO.Unsafe (unsafePerformIO)
+import System.Random (randomIO)
 
 instance Default T.Text where
   def = T.empty
@@ -30,3 +33,6 @@ instance Default Bool where
 
 instance Default UTCTime where
   def = UTCTime (read "1970-01-01") 0
+
+instance Default UUID where
+  def = unsafePerformIO randomIO

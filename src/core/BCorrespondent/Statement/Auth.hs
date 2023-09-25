@@ -16,6 +16,7 @@ module BCorrespondent.Statement.Auth
         insertToken,
         insertCode,
         insertResendCode,
+        logout,
         InstitutionCreds (..),
         InsertionResult (..),
         AccountType (..),
@@ -340,3 +341,6 @@ insertResendCode =
     from condition where time_left > 0
     union
     select value :: jsonb from new_code|]
+
+logout :: HS.Statement UUID Bool
+logout = rmap (>0) [rowsAffectedStatement|update auth.jwt set is_valid = false where id = $1 :: uuid|]

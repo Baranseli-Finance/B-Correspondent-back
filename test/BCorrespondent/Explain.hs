@@ -70,7 +70,8 @@ explainTests =
         "getUserCredByCode" =>> BCorrespondent.Statement.Auth.getUserCredByCode,
         "insertToken" =>> BCorrespondent.Statement.Auth.insertToken,
         "insertCode" =>> BCorrespondent.Statement.Auth.insertCode,
-        "insertResendCode" =>> BCorrespondent.Statement.Auth.insertResendCode
+        "insertResendCode" =>> BCorrespondent.Statement.Auth.insertResendCode,
+        "logout" =>> BCorrespondent.Statement.Auth.logout
      ]
   , "BCorrespondent.Statement.Invoice" ==>
      [ "register" =>> BCorrespondent.Statement.Invoice.register,

@@ -18,7 +18,7 @@ module BCorrespondent.Auth
         JWT, 
         UserIdentClaims, 
         generateJWT, 
-        validateJwt, 
+        validateJwt,
         withAuth, 
         withWSAuth, 
         Auth.AccountType (..)
@@ -65,7 +65,7 @@ import BuildInfo (location)
 import Data.UUID (UUID)
 import System.Random (randomIO)
 import Database.Transaction (transaction, statement)
-
+import Data.Default.Class.Extended (def)
 
 data AuthError = NoAuthHeader | NoBearer | TokenInvalid
 
@@ -80,12 +80,13 @@ instance HasSecurity JWT where
 
 data AuthenticatedUser = 
      AuthenticatedUser 
-     {ident :: Int64, 
-      account :: Auth.AccountType
+     { ident :: !Int64, 
+       account :: !Auth.AccountType,
+       jwtIdent :: !UUID
      } deriving (Show)
 
 instance FromJWT AuthenticatedUser where
-  decodeJWT _ = Right $ AuthenticatedUser 0 Auth.User
+  decodeJWT _ = Right $ AuthenticatedUser 0 Auth.User def
 
 instance ToJWT AuthenticatedUser where
   encodeJWT _ = emptyClaimsSet
@@ -126,8 +127,9 @@ validateJwt cfg@JWTSettings {..} checkToken input = do
           then 
             Right $ 
               AuthenticatedUser
-              userIdentClaimsIdent 
-              checkTokenAccountType
+                userIdentClaimsIdent 
+                checkTokenAccountType
+                userIdentClaimsJwtUUID
           else Left TokenInvalid
 
 withAuth :: AuthResult AuthenticatedUser -> (AuthenticatedUser -> KatipHandlerM (Response a)) -> KatipHandlerM (Response a)

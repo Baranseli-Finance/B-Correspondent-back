@@ -57,6 +57,11 @@ data AuthApi route = AuthApi
         :- "login"
           :> Capture "auth_type" AuthType
           :> ReqBody '[JSON] AuthCode
-          :> Post '[JSON] (Response AuthToken)
+          :> Post '[JSON] (Response AuthToken),
+    _authApiLogout ::
+      route
+        :- "logout"
+          :> SA.Auth '[JWT] AuthenticatedUser
+          :> Post '[JSON] (Response ())
   }
   deriving stock (Generic)

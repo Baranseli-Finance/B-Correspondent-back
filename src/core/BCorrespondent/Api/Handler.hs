@@ -11,8 +11,7 @@
 
 module BCorrespondent.Api.Handler (handler) where
 
--- controllers
-
+-- << start handlers
 import BCorrespondent.Api
 import qualified BCorrespondent.Api.Handler.SendGrid.SendMail as SendGrid.Send
 import qualified BCorrespondent.Api.Handler.Auth.GenerateToken as Auth.GenerateToken
@@ -21,12 +20,14 @@ import qualified BCorrespondent.Api.Handler.Auth.Password.New as Auth.Password.N
 import qualified BCorrespondent.Api.Handler.Auth.SendAuthCode as Auth.SendAuthCode
 import qualified BCorrespondent.Api.Handler.Auth.ResendAuthCode as Auth.ResendAuthCode
 import qualified BCorrespondent.Api.Handler.Auth.Login as Auth.Login
+import qualified BCorrespondent.Api.Handler.Auth.Logout as Auth.Logout
 import qualified BCorrespondent.Api.Handler.Invoice.Register as Invoice.Register
 import qualified BCorrespondent.Api.Handler.Frontend.GetTimeline as Frontend.GetTimeline
 import qualified BCorrespondent.Api.Handler.Frontend.GetHistory as Frontend.GetHistory
 import qualified BCorrespondent.Api.Handler.Frontend.MakeProcuratory as Frontend.MakeProcuratory
 import qualified BCorrespondent.Api.Handler.Frontend.Init as Frontend.Init
 import qualified BCorrespondent.Api.Handler.Webhook.CatchElekse as Webhook.CatchElekse
+-- << end handlers
 import qualified BCorrespondent.Auth as Auth
 import Katip
 import Katip.Handler hiding (webhook)
@@ -58,10 +59,10 @@ auth =
             (Auth.GenerateToken.handle key),
      _authApiResetPasswordLink = \auth ->
       auth `Auth.withAuth` \user ->
-         flip logExceptionM ErrorS $
-           katipAddNamespace
-             (Namespace ["auth", "password", "link"])
-             (Auth.Password.MakeResetLink.handle user),
+        flip logExceptionM ErrorS $
+          katipAddNamespace
+            (Namespace ["auth", "password", "link"])
+            (Auth.Password.MakeResetLink.handle user),
      _authApiResetPasswordNew = 
       const $
         flip logExceptionM ErrorS
@@ -83,7 +84,13 @@ auth =
         flip logExceptionM ErrorS
           . katipAddNamespace
               (Namespace ["auth", "login"])
-          . Auth.Login.handle
+          . Auth.Login.handle,
+     _authApiLogout = \auth ->
+      auth `Auth.withAuth` \user ->
+        flip logExceptionM ErrorS $
+          katipAddNamespace
+            (Namespace ["auth", "logout"])
+            (Auth.Logout.handle user)
     }
 
 _foreign :: ForeignApi (AsServerT KatipHandlerM)
