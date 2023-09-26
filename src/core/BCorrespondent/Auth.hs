@@ -143,7 +143,7 @@ withAuth e _ = do
     mkError Indefinite = "an authentication procedure cannot be carried out"
 
 generateJWT :: Jose.JWK -> Int64 -> Maybe T.Text -> Int64 -> IO (Either Jose.JWTError (BSL.ByteString, UUID))
-generateJWT jwk ident email expiryIn = do
+generateJWT jwk ident login expiryIn = do
   t <- currentTime
   uuid <- randomIO @UUID
   let claims =
@@ -151,15 +151,22 @@ generateJWT jwk ident email expiryIn = do
           & Jose.claimExp ?~ 
             Jose.NumericDate (addUTCTime (fromIntegral expiryIn) t)
           & Jose.claimIat ?~ Jose.NumericDate t
-  let user = UserIdentClaims claims ident email uuid
+  let user = 
+       UserIdentClaims 
+       { userIdentClaimsJwtClaims = claims,
+         userIdentClaimsIdent = ident, 
+         userIdentClaimsLogin = login,
+         userIdentClaimsJwtUUID = uuid
+       }
   Jose.runJOSE $ do
     alg <- Jose.bestJWSAlg jwk
-    fmap ((,uuid) . encodeCompact) $ Jose.signJWT jwk (Jose.newJWSHeader ((), alg)) user
+    fmap ((,uuid) . encodeCompact) $ 
+      Jose.signJWT jwk (Jose.newJWSHeader ((), alg)) user
 
 data UserIdentClaims = UserIdentClaims
   { userIdentClaimsJwtClaims :: !Jose.ClaimsSet,
     userIdentClaimsIdent :: !Int64,
-    userIdentClaimsEmail :: !(Maybe T.Text),
+    userIdentClaimsLogin :: !(Maybe T.Text),
     userIdentClaimsJwtUUID :: !UUID
   }
   deriving stock (Generic)

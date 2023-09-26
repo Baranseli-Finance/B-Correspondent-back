@@ -149,7 +149,11 @@ insertPasswordResetLink =
          (select to_jsonb(email :: text) :: jsonb from link),
 		     to_jsonb('user404' :: text) :: jsonb) :: jsonb|]
 
-data UserCred = UserCred { userCredIdent :: Int64, userCredEmail :: T.Text }
+data UserCred = 
+     UserCred 
+     { userCredIdent :: Int64, 
+       userCredLogin :: T.Text 
+     }
      deriving stock (Generic)
      deriving
      (FromJSON)
@@ -166,7 +170,7 @@ getUserCredByCode =
     with cred as (
       select 
         u.id,
-        u.email,
+        u.login,
         (c.code = $1 :: int and 
          not c.is_expended and 
          (extract(epoch from c.expire_at) -
@@ -179,7 +183,7 @@ getUserCredByCode =
     select 
       jsonb_build_object(
         'ident', id :: int8, 
-        'email', email :: text) :: jsonb 
+        'login', login :: text) :: jsonb 
     from cred
     where is_code_valid|]
 

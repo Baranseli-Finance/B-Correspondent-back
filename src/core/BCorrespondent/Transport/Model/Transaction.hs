@@ -41,7 +41,10 @@ data TransactionFromServiceProvider =
      deriving stock (Generic, Show)
      deriving (ToJSON, FromJSON)
        via WithOptions
-          '[OmitNothingFields 'True, FieldLabelModifier '[UserDefined ToLower, UserDefined (StripConstructor TransactionFromServiceProvider)]]
+          '[OmitNothingFields 'True, 
+            FieldLabelModifier 
+            '[UserDefined ToLower, 
+              UserDefined (StripConstructor TransactionFromServiceProvider)]]
           TransactionFromServiceProvider
 
 deriveToSchemaFieldLabelModifier ''TransactionFromServiceProvider [|modify (Proxy @TransactionFromServiceProvider)|]
@@ -59,7 +62,10 @@ data TransactionToBank =
      deriving stock (Generic, Show)
      deriving (ToJSON, FromJSON)
        via WithOptions
-          '[OmitNothingFields 'True, FieldLabelModifier '[UserDefined ToLower, UserDefined (StripConstructor TransactionToBank)]]
+          '[OmitNothingFields 'True, 
+            FieldLabelModifier 
+            '[UserDefined ToLower, 
+              UserDefined (StripConstructor TransactionToBank)]]
           TransactionToBank
 
 deriveToSchemaFieldLabelModifier ''TransactionToBank [|modify (Proxy @TransactionToBank)|]
