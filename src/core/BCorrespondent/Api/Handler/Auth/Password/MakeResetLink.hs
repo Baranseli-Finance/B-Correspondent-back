@@ -41,7 +41,7 @@ import Katip.Handler
 import Control.Monad.IO.Class
 import Data.Int (Int64)
 
-handle :: Auth.AuthenticatedUser -> KatipHandlerM (Response (Maybe Int64))
+handle :: Auth.AuthenticatedUser 'Auth.Reader -> KatipHandlerM (Response (Maybe Int64))
 handle Auth.AuthenticatedUser {..} = do
   hasql <- fmap (^. katipEnv . hasqlDbPool) ask
   tm <- fmap (fromIntegral . systemSeconds) $ liftIO $ getSystemTime

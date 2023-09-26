@@ -11,7 +11,7 @@ module BCorrespondent.Api.Auth (AuthApi (..)) where
 import BCorrespondent.Transport.Model.Auth 
        (AuthToken, InstitutionKey, NewPassword, AuthType, Credentials, AuthCode, AuthCodeHash, ResendCode)
 import BCorrespondent.Transport.Response (Response)
-import BCorrespondent.Auth (AuthenticatedUser, JWT)
+import BCorrespondent.Auth (AuthenticatedUser, JWT, Role (..))
 import Servant.API.Extended
 import Servant.API.Generic (Generic)
 import RateLimit (RateLimit, FixedWindow, IPAddressPolicy)
@@ -32,13 +32,13 @@ data AuthApi route = AuthApi
         :- "password"
           :> "reset"
           :> "link"
-          :> SA.Auth '[JWT] AuthenticatedUser
+          :> SA.Auth '[JWT] (AuthenticatedUser 'Reader)
           :> Put '[JSON] (Response (Maybe Int64)),
     _authApiResetPasswordNew ::
       route
         :- "password"
           :> "reset"
-          :> SA.Auth '[JWT] AuthenticatedUser
+          :> SA.Auth '[JWT] (AuthenticatedUser 'Reader)
           :> ReqBody '[JSON] NewPassword
           :> Post '[JSON] (Response Bool),
     _authApiSendAuthCode ::
@@ -61,7 +61,7 @@ data AuthApi route = AuthApi
     _authApiLogout ::
       route
         :- "logout"
-          :> SA.Auth '[JWT] AuthenticatedUser
+          :> SA.Auth '[JWT] (AuthenticatedUser 'Reader)
           :> Post '[JSON] (Response ())
   }
   deriving stock (Generic)

@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE DataKinds #-}
 
 module BCorrespondent.Api.Handler.Auth.Logout (handle) where
 
@@ -14,7 +15,7 @@ import Database.Transaction
 import Data.Bool (bool)
 import Data.Text (Text) 
 
-handle :: Auth.AuthenticatedUser -> KatipHandlerM (Response ())
+handle :: Auth.AuthenticatedUser 'Auth.Reader -> KatipHandlerM (Response ())
 handle Auth.AuthenticatedUser {Auth.jwtIdent} = do 
   hasql <- fmap (^. katipEnv . hasqlDbPool) ask
   let msg = asError @Text "something went wrong during logout"

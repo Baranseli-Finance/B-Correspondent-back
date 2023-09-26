@@ -220,7 +220,12 @@ data AccountType = Institution | User
         '[ConstructorTagModifier '[UserDefined ToLower]]
         AccountType
 
-data CheckToken = CheckToken { checkTokenIsValid :: Bool, checkTokenAccountType :: AccountType } 
+data CheckToken = 
+     CheckToken 
+     { checkTokenIsValid :: Bool, 
+       checkTokenAccountType :: AccountType,
+       checkTokenRole :: T.Text
+     } 
      deriving stock (Generic)
      deriving
      (FromJSON)
@@ -238,7 +243,8 @@ checkToken =
      jsonb_build_object (
       'is_valid', is_valid :: bool,
       'account_type', 
-      coalesce(uj.ty, ij.ty)) :: jsonb
+      coalesce(uj.ty, ij.ty),
+      'role', r.value) :: jsonb
    from auth.jwt as j
    left join (
     select *, 'user' as ty 

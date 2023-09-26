@@ -10,7 +10,7 @@ module BCorrespondent.Api.Frontend (FrontendApi (..)) where
 
 import BCorrespondent.Transport.Response (Response)
 import BCorrespondent.Transport.Model.Frontend (ProcuratoryRequest, Init) 
-import BCorrespondent.Auth (AuthenticatedUser, JWT)
+import BCorrespondent.Auth (AuthenticatedUser, JWT, Role (..))
 import BCorrespondent.Transport.Model.Auth (AuthToken)
 import Servant.API.Extended
 import Servant.API.Generic (Generic)
@@ -20,17 +20,17 @@ data FrontendApi route = FrontendApi
   { _frontendApiGetHistory ::
       route
         :- "history"
-          :> SA.Auth '[JWT] AuthenticatedUser
+          :> SA.Auth '[JWT] (AuthenticatedUser 'Reader)
           :> Get '[JSON] (Response ()),
     _frontendApiGetDayTimeline ::
       route
         :- "timeline"
-          :> SA.Auth '[JWT] AuthenticatedUser
+          :> SA.Auth '[JWT] (AuthenticatedUser 'Reader)
           :> Get '[JSON] (Response ()),
     _frontendApiMakeProcuratory ::
       route
         :- "procuratory"
-          :> SA.Auth '[JWT] AuthenticatedUser
+          :> SA.Auth '[JWT] (AuthenticatedUser 'Writer)
           :> ReqBody '[JSON] ProcuratoryRequest
           :> Put '[JSON] (Response ()),
     _frontendApiInit ::

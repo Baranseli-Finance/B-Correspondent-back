@@ -2,6 +2,7 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE DataKinds #-}
 
 module BCorrespondent.Api.Handler.Auth.GenerateToken (handle) where
 
@@ -9,7 +10,7 @@ import BCorrespondent.Api.Handler.Utils (withError)
 import BCorrespondent.Statement.Auth (getInstitutionCreds, insertInstToken, InstitutionCreds (..), CheckToken (..), AccountType (Institution))
 import BCorrespondent.Transport.Model.Auth (AuthToken (..), InstitutionKey (..))
 import BCorrespondent.Transport.Response (Response)
-import BCorrespondent.Auth (generateJWT, validateJwt)
+import BCorrespondent.Auth (generateJWT, validateJwt, Role (None))
 import Katip.Handler
 import Control.Lens ((^.))
 import Data.Coerce (coerce)
@@ -48,7 +49,12 @@ handle instKey = do
             Nothing -> mkToken institutionCredsIdent
             Just value -> do
               let isValid = fromMaybe undefined institutionCredsIsValid
-              let checkToken = CheckToken { checkTokenIsValid = isValid, checkTokenAccountType = Institution }
+              let checkToken = 
+                    CheckToken 
+                    { checkTokenIsValid = isValid, 
+                      checkTokenAccountType = Institution,
+                      checkTokenRole = toS $ show None
+                    }
               res <- liftIO $ validateJwt (defaultJWTSettings key) (const $ pure (Just checkToken)) $ toS value
               case res of 
                 Right _ -> pure $ Right value

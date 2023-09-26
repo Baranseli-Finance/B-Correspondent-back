@@ -12,6 +12,7 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TupleSections #-}
+{-# OPTIONS_GHC -fno-warn-unused-top-binds #-}
 
 module BCorrespondent.Auth 
        (AuthenticatedUser (..), 
@@ -21,7 +22,8 @@ module BCorrespondent.Auth
         validateJwt,
         withAuth, 
         withWSAuth, 
-        Auth.AccountType (..)
+        Auth.AccountType (..),
+        Role (..)
        ) where
 
 import BCorrespondent.Transport.Model.Auth (AuthToken (..))
@@ -66,10 +68,30 @@ import Data.UUID (UUID)
 import System.Random (randomIO)
 import Database.Transaction (transaction, statement)
 import Data.Default.Class.Extended (def)
+import Data.Proxy (Proxy (..))
 
 data AuthError = NoAuthHeader | NoBearer | TokenInvalid
 
 data JWT
+
+data Role = Writer | Reader | Admin | None
+  deriving (Eq, Show, Read)
+
+newtype RRole (r :: Role) = UnsafeRRole Role
+
+class KnownRole (r :: Role) where
+  roleSing :: RRole r
+
+instance KnownRole 'Reader where
+  roleSing = UnsafeRRole Reader
+
+instance KnownRole 'Writer where
+  roleSing = UnsafeRRole Writer
+
+roleVal :: forall r proxy. KnownRole r => proxy r -> Role
+roleVal _ = 
+  case roleSing :: RRole r of
+    UnsafeRRole x -> x
 
 instance HasSecurity JWT where
   securityName _ = "JwtSecurity"
@@ -78,26 +100,27 @@ instance HasSecurity JWT where
       type_ = SecuritySchemeApiKey (ApiKeyParams "Authorization" ApiKeyHeader)
       desc = "JSON Web Token-based API key"
 
-data AuthenticatedUser = 
+data AuthenticatedUser (r :: Role) = 
      AuthenticatedUser 
      { ident :: !Int64, 
        account :: !Auth.AccountType,
-       jwtIdent :: !UUID
+       jwtIdent :: !UUID,
+       role :: !Role 
      } deriving (Show)
 
-instance FromJWT AuthenticatedUser where
-  decodeJWT _ = Right $ AuthenticatedUser 0 Auth.User def
+instance FromJWT (AuthenticatedUser r) where
+  decodeJWT _ = Right $ AuthenticatedUser 0 Auth.User def Reader
 
-instance ToJWT AuthenticatedUser where
+instance ToJWT (AuthenticatedUser r) where
   encodeJWT _ = emptyClaimsSet
 
-instance IsAuth JWT AuthenticatedUser where
+instance IsAuth JWT (AuthenticatedUser r) where
   type AuthArgs JWT = '[JWTSettings, (UUID, Int64) -> IO (Maybe Auth.CheckToken)]
   runAuth _ _ = \cfg checkToken -> do
     res <- ask >>= Except.runExceptT . go cfg checkToken
     fromEither res
     where
-      go :: JWTSettings -> ((UUID, Int64) -> IO (Maybe Auth.CheckToken)) -> Request -> Except.ExceptT AuthError AuthCheck AuthenticatedUser
+      go :: JWTSettings -> ((UUID, Int64) -> IO (Maybe Auth.CheckToken)) -> Request -> Except.ExceptT AuthError AuthCheck (AuthenticatedUser r)
       go cfg checkToken req = do
         header <- Except.except $ maybeToRight NoAuthHeader $ lookup "Authorization" (requestHeaders req)
         let bearer = "Token "
@@ -111,7 +134,7 @@ instance IsAuth JWT AuthenticatedUser where
       fromEither (Left TokenInvalid) = fail "TokenInvalid"
       fromEither (Right user) = pure user
 
-validateJwt :: JWTSettings -> ((UUID, Int64) -> IO (Maybe Auth.CheckToken)) -> BS.ByteString -> IO (Either AuthError AuthenticatedUser)
+validateJwt :: forall r. JWTSettings -> ((UUID, Int64) -> IO (Maybe Auth.CheckToken)) -> BS.ByteString -> IO (Either AuthError (AuthenticatedUser r))
 validateJwt cfg@JWTSettings {..} checkToken input = do
   keys <- validationKeys
   userClaimSet <- runJOSE @Jose.JWTError $ do
@@ -130,10 +153,14 @@ validateJwt cfg@JWTSettings {..} checkToken input = do
                 userIdentClaimsIdent 
                 checkTokenAccountType
                 userIdentClaimsJwtUUID
+                (read (toS checkTokenRole))
           else Left TokenInvalid
 
-withAuth :: AuthResult AuthenticatedUser -> (AuthenticatedUser -> KatipHandlerM (Response a)) -> KatipHandlerM (Response a)
-withAuth (Authenticated user) runApi = runApi user
+withAuth :: forall r a.  KnownRole r => AuthResult (AuthenticatedUser r) -> (AuthenticatedUser r -> KatipHandlerM (Response a)) -> KatipHandlerM (Response a)
+withAuth (Authenticated user) runApi = 
+  if role user == roleVal (Proxy @r) 
+  then runApi user 
+  else return $ Error (Just 403) $ asError @T.Text "you are not allowed to perform this action"
 withAuth e _ = do
   $(logTM) ErrorS $ logStr @T.Text $ $location <> " ---> auth error:  " <> mkError e
   return $ Error (Just 401) $ asError @T.Text $ "only for authorized personnel, error: " <> mkError e
@@ -183,7 +210,7 @@ instance Jose.HasClaimsSet UserIdentClaims where
   claimsSet f s = fmap (\a' -> s {userIdentClaimsJwtClaims = a'}) (f (userIdentClaimsJwtClaims s))
 
 
-withWSAuth :: WS.PendingConnection -> ((AuthenticatedUser, WS.Connection) -> KatipHandlerM ()) -> KatipHandlerM ()
+withWSAuth :: WS.PendingConnection -> ((AuthenticatedUser r, WS.Connection) -> KatipHandlerM ()) -> KatipHandlerM ()
 withWSAuth pend controller = do 
   conn <- liftIO $ WS.acceptRequest pend
   bs <- liftIO $ WS.receiveData @BSL.ByteString conn
