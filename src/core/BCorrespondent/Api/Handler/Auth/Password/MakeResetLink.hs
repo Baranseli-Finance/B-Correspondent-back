@@ -52,7 +52,7 @@ handle Auth.AuthenticatedUser {..} = do
       void $ fork $ do
         cfg <- fmap (^. katipEnv . sendGrid) ask
         for_ cfg $ \(Sendgrid {..}, sendgrid) -> do
-            let link = "https://host/#/auth/password/reset?key=" <> hash
+            let link = "https://b-correspondent.app/#/auth/password/reset?key=" <> hash
             let reqBody = 
                   mkPOSTMailSendRequestBody 
                   [mkPOSTMailSendRequestBodyContentsendgrid "text/plain" ("password reset link: " <> link)]
