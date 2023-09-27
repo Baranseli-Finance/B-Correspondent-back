@@ -54,9 +54,20 @@ create table auth.user_role (
     user_id bigint not null,
     role_id bigint not null,
     constraint auth_user_role__user_id__fk foreign key (user_id) references auth.user(id),
-    constraint auth_user_role__role_id__fk foreign key (role_id) references auth.role(id));
+    constraint auth_user_role__role_id__fk foreign key (role_id) references auth.role(id),
+    constraint auth_user_role__user_id_role_id__uk unique (user_id, role_id));
+
+create table auth.inst_role (
+    inst_id bigint not null,
+    role_id bigint not null,
+    constraint auth_inst_role__user_id__fk foreign key (inst_id) references auth.institution(id),
+    constraint auth_user_role__role_id__fk foreign key (role_id) references auth.role(id),
+    constraint auth_inst_role__inst_id_role_id__uk unique (inst_id, role_id));
 
 insert into auth.role (role) values ('Admin');
 insert into auth.role (role, parent_id) values ('Writer', 1);
-insert into auth.role (role) values ('Reader', 2);
-insert into auth.role (role) values ('None', 3);
+insert into auth.role (role, parent_id) values ('Reader', 2);
+insert into auth.role (role, parent_id) values ('None', 3);
+insert into auth.role (role, parent_id) values ('Bank', 1);
+
+
