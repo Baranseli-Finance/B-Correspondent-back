@@ -36,6 +36,7 @@ import GHC.Generics (Generic)
 import Data.Aeson (FromJSON, decode, encode, eitherDecode')
 import Control.Monad (join)
 import Data.Bifunctor (first)
+import Data.Vector (Vector)
 
 data InstitutionCreds = 
      InstitutionCreds 
@@ -224,9 +225,9 @@ data CheckToken =
      CheckToken 
      { checkTokenIsValid :: Bool, 
        checkTokenAccountType :: AccountType,
-       checkTokenRole :: T.Text
+       checkTokenRole :: Maybe (Vector T.Text)
      } 
-     deriving stock (Generic)
+     deriving stock (Generic, Show)
      deriving
      (FromJSON)
      via WithOptions
@@ -239,12 +240,38 @@ checkToken :: HS.Statement (UUID, Int64) (Maybe CheckToken)
 checkToken = 
   rmap (join . fmap (decode @CheckToken . encode))
   [maybeStatement|
+    with recursive tmp as (
+      select
+        role, 
+        id, 
+        parent_id, 
+        array[role] as roles
+      from auth.role
+      union all
+      select
+        r.role, 
+        r.id, 
+        r.parent_id, 
+        array_append(tmp.roles, r.role)
+      from auth.role as r
+      inner join tmp as tmp 
+      on r.id = tmp.parent_id)
    select
      jsonb_build_object (
       'is_valid', is_valid :: bool,
       'account_type', 
       coalesce(uj.ty, ij.ty),
-      'role', r.value) :: jsonb
+      'role', 
+        (select
+           t.roles :: text?[] 
+             as roles
+         from tmp as t
+         left join auth.user_role as ur
+         on ur.role_id = t.id
+         where ur.user_id = $2 :: int8
+         group by role, roles
+         order by max(array_length(roles, 1)) desc 
+         limit 1)) :: jsonb
    from auth.jwt as j
    left join (
     select *, 'user' as ty 

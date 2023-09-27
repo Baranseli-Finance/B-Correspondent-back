@@ -23,6 +23,7 @@ import Data.Bifunctor (first)
 import Data.String.Conv (toS)
 import Servant.Auth.Server (defaultJWTSettings)
 import Data.Maybe (fromMaybe)
+import qualified Data.Vector as V
 
 data Error = Inst404 | JWT
 
@@ -53,7 +54,7 @@ handle instKey = do
                     CheckToken 
                     { checkTokenIsValid = isValid, 
                       checkTokenAccountType = Institution,
-                      checkTokenRole = toS $ show None
+                      checkTokenRole = Just $ V.singleton $ toS $ show None
                     }
               res <- liftIO $ validateJwt (defaultJWTSettings key) (const $ pure (Just checkToken)) $ toS value
               case res of 

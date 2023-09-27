@@ -69,6 +69,8 @@ import System.Random (randomIO)
 import Database.Transaction (transaction, statement)
 import Data.Default.Class.Extended (def)
 import Data.Proxy (Proxy (..))
+import qualified Data.Vector as V
+import Data.Maybe (isJust, fromMaybe)
 
 data AuthError = NoAuthHeader | NoBearer | TokenInvalid
 
@@ -105,11 +107,11 @@ data AuthenticatedUser (r :: Role) =
      { ident :: !Int64, 
        account :: !Auth.AccountType,
        jwtIdent :: !UUID,
-       role :: !Role 
+       roles :: !(V.Vector Role) 
      } deriving (Show)
 
 instance FromJWT (AuthenticatedUser r) where
-  decodeJWT _ = Right $ AuthenticatedUser 0 Auth.User def Reader
+  decodeJWT _ = Right $ AuthenticatedUser 0 Auth.User def $ V.singleton BCorrespondent.Auth.None
 
 instance ToJWT (AuthenticatedUser r) where
   encodeJWT _ = emptyClaimsSet
@@ -153,17 +155,25 @@ validateJwt cfg@JWTSettings {..} checkToken input = do
                 userIdentClaimsIdent 
                 checkTokenAccountType
                 userIdentClaimsJwtUUID
-                (read (toS checkTokenRole))
+                (fromMaybe V.empty $ (fmap (V.map (read . toS)) checkTokenRole))
           else Left TokenInvalid
 
 withAuth :: forall r a.  KnownRole r => AuthResult (AuthenticatedUser r) -> (AuthenticatedUser r -> KatipHandlerM (Response a)) -> KatipHandlerM (Response a)
-withAuth (Authenticated user) runApi = 
-  if role user == roleVal (Proxy @r) 
-  then runApi user 
-  else return $ Error (Just 403) $ asError @T.Text "you are not allowed to perform this action"
+withAuth (Authenticated user) runApi =
+  let res = V.find ((==) (roleVal (Proxy @r))) (roles user)
+  in if isJust res 
+     then runApi user 
+     else return $ 
+            Error (Just 403) $ 
+              asError @T.Text 
+                "you are not allowed to perform this action"
 withAuth e _ = do
   $(logTM) ErrorS $ logStr @T.Text $ $location <> " ---> auth error:  " <> mkError e
-  return $ Error (Just 401) $ asError @T.Text $ "only for authorized personnel, error: " <> mkError e
+  return $ 
+    Error (Just 401) $ 
+      asError @T.Text $ 
+        "only for authorized personnel, error: " 
+        <> mkError e
   where
     mkError BadPassword = "wrong password"
     mkError NoSuchUser = "no user found"
