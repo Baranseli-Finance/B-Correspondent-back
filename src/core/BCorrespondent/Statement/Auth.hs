@@ -256,34 +256,50 @@ checkToken =
       from auth.role as r
       inner join tmp as tmp 
       on r.id = tmp.parent_id)
-   select
-     jsonb_build_object (
+    select
+      jsonb_build_object (
       'is_valid', is_valid :: bool,
       'account_type', 
       coalesce(uj.ty, ij.ty),
-      'role', 
-        (select
-           t.roles :: text?[] 
-             as roles
-         from tmp as t
-         left join auth.user_role as ur
-         on ur.role_id = t.id
-         where ur.user_id = $2 :: int8
-         group by role, roles
-         order by max(array_length(roles, 1)) desc 
-         limit 1)) :: jsonb
-   from auth.jwt as j
-   left join (
-    select *, 'user' as ty 
-    from auth.user_jwt) as uj
-   on j.id = uj.jwt_id 
-   and user_id = $2 :: int8
-   left join (
-    select *, 'institution' as ty 
-    from auth.institution_jwt) as ij
-   on j.id = ij.jwt_id 
-   and inst_id = $2 :: int8
-   where id = $1 :: uuid|]
+      'role', coalesce(uj.roles, ij.roles)) :: jsonb
+    from auth.jwt as j
+    left join (
+      select f.*, 'user' as ty, s.roles
+      from auth.user_jwt as f
+      left join
+      (select
+         t.roles :: text?[] 
+           as roles,
+         ur.user_id
+       from tmp as t
+       left join auth.user_role as ur
+       on ur.role_id = t.id
+       where user_id is not null
+       group by user_id, roles
+       order by max(array_length(roles, 1)) desc 
+       limit 1) as s
+       on f.user_id = s.user_id) as uj
+    on j.id = uj.jwt_id 
+    and user_id = $2 :: int8
+    left join (
+      select f.*, 'institution' as ty, s.roles
+      from auth.institution_jwt as f
+      left join
+      (select
+        t.roles :: text?[] 
+          as roles,
+          ir.inst_id
+       from tmp as t
+       left join auth.inst_role as ir
+       on ir.role_id = t.id
+       where inst_id is not null
+       group by inst_id, roles
+       order by max(array_length(roles, 1)) desc 
+       limit 1) as s
+    on f.inst_id = s.inst_id) as ij
+    on j.id = ij.jwt_id 
+    and inst_id = $2 :: int8
+    where id = $1 :: uuid|]
 
 data AuthCodeHash = 
      HashAndCode 

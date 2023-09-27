@@ -18,7 +18,7 @@ import Database.Transaction (statement, transactionM)
 import Data.String.Conv (toS)
 import Data.Bifunctor (first)
 
-handle :: Auth.AuthenticatedUser 'Auth.Writer -> [InvoiceRegisterRequest] -> KatipHandlerM (Response [InvoiceRegisterResponse])
+handle :: Auth.AuthenticatedUser 'Auth.Bank -> [InvoiceRegisterRequest] -> KatipHandlerM (Response [InvoiceRegisterResponse])
 handle Auth.AuthenticatedUser {..} _ 
   | account == User = 
     return $ Error (Just 401) $ asError @T.Text "users are forbidden to query this endpoint"

@@ -19,7 +19,7 @@ newtype InvoiceApi route =
         InvoiceApi
         { _invoiceApiRegister ::
             route
-              :- SA.Auth '[JWT] (AuthenticatedUser Writer)
+              :- SA.Auth '[JWT] (AuthenticatedUser Bank)
                 :> ReqBody '[JSON] [InvoiceRegisterRequest]
                 :> Put '[JSON] (Response [InvoiceRegisterResponse])
         }

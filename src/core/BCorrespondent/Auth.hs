@@ -76,7 +76,7 @@ data AuthError = NoAuthHeader | NoBearer | TokenInvalid
 
 data JWT
 
-data Role = Writer | Reader | Admin | None
+data Role = Writer | Reader | Admin | None | Bank
   deriving (Eq, Show, Read)
 
 newtype RRole (r :: Role) = UnsafeRRole Role
@@ -89,6 +89,9 @@ instance KnownRole 'Reader where
 
 instance KnownRole 'Writer where
   roleSing = UnsafeRRole Writer
+
+instance KnownRole 'Bank where
+  roleSing = UnsafeRRole Bank
 
 roleVal :: forall r proxy. KnownRole r => proxy r -> Role
 roleVal _ = 
@@ -168,8 +171,8 @@ withAuth (Authenticated user) runApi =
      else return $ 
             Error (Just 403) $ 
               asError @T.Text 
-                "you are not allowed to perform this action <> 
-                or there is no role assigned to you"
+                "you are not allowed to perform this action \
+                \ or there is no role assigned to you"
 withAuth e _ = do
   $(logTM) ErrorS $ logStr @T.Text $ $location <> " ---> auth error:  " <> mkError e
   return $ 
