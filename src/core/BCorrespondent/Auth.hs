@@ -149,13 +149,15 @@ validateJwt cfg@JWTSettings {..} checkToken input = do
         Nothing -> Left TokenInvalid
         Just (Auth.CheckToken {..}) ->
           if checkTokenIsValid
-          then 
+          then
             Right $ 
               AuthenticatedUser
                 userIdentClaimsIdent 
                 checkTokenAccountType
                 userIdentClaimsJwtUUID
-                (fromMaybe V.empty $ (fmap (V.map (read . toS)) checkTokenRole))
+                (fromMaybe V.empty $ 
+                 (fmap (V.map (read . toS)) 
+                  checkTokenRole))
           else Left TokenInvalid
 
 withAuth :: forall r a.  KnownRole r => AuthResult (AuthenticatedUser r) -> (AuthenticatedUser r -> KatipHandlerM (Response a)) -> KatipHandlerM (Response a)
@@ -166,7 +168,8 @@ withAuth (Authenticated user) runApi =
      else return $ 
             Error (Just 403) $ 
               asError @T.Text 
-                "you are not allowed to perform this action"
+                "you are not allowed to perform this action <> 
+                or there is no role assigned to you"
 withAuth e _ = do
   $(logTM) ErrorS $ logStr @T.Text $ $location <> " ---> auth error:  " <> mkError e
   return $ 
