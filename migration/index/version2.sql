@@ -43,3 +43,20 @@ create table auth.institution_jwt (
     jwt_id uuid not null,
     constraint auth_user_jwt__inst_id__fk foreign key (inst_id) references auth.institution(id),
     constraint auth_user_jwt__jwt_id__fk foreign key (jwt_id) references auth.jwt(id));
+
+create table auth.role (
+    id bigserial primary key,
+    role text not null,
+    parent_id bigint,
+    constraint auth_role__parent_id__fk foreign key (parent_id) references auth.role(id));
+
+create table auth.user_role (
+    user_id bigint not null,
+    role_id bigint not null,
+    constraint auth_user_role__user_id__fk foreign key (user_id) references auth.user(id),
+    constraint auth_user_role__role_id__fk foreign key (role_id) references auth.role(id));
+
+insert into auth.role (role) values ('Admin');
+insert into auth.role (role, parent_id) values ('Writer', 1);
+insert into auth.role (role) values ('Reader', 2);
+insert into auth.role (role) values ('None', 3);
