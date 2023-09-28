@@ -296,8 +296,8 @@ checkToken =
        group by inst_id, roles
        order by max(array_length(roles, 1)) desc 
        limit 1) as s
-    on f.inst_id = s.inst_id) as ij
-    on j.id = ij.jwt_id 
+       on f.inst_id = s.inst_id) as ij
+    on j.id = ij.jwt_id
     and inst_id = $2 :: int8
     where id = $1 :: uuid|]
 
