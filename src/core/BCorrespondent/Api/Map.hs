@@ -10,7 +10,8 @@ module BCorrespondent.Api.Map
     module Auth,
     module Foreign,
     module Frontend,
-    module Invoice
+    module Invoice,
+    module Fs
   )
 where
 
@@ -18,6 +19,7 @@ import BCorrespondent.Api.Foreign as Foreign
 import BCorrespondent.Api.Auth as Auth
 import BCorrespondent.Api.Frontend as Frontend
 import BCorrespondent.Api.Invoice as Invoice
+import  BCorrespondent.Api.Fs as Fs
 import Servant.API
 import Servant.API.Generic
 import Servant.Swagger.Tags
@@ -42,6 +44,11 @@ data HttpApi route = HttpApi
       route
         :- Tags "Invoice"
           :> "invoice"
-          :> ToServant InvoiceApi AsApi     
+          :> ToServant InvoiceApi AsApi,
+    _httpApiFile ::
+      route
+        :- Tags "File"
+          :> "file"
+          :> ToServant FileApi AsApi 
   }
   deriving stock (Generic)

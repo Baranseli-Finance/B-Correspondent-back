@@ -79,6 +79,7 @@ import Data.Int (Int64)
 import qualified Control.Monad.State.Class as ST
 import Data.String (fromString)
 import Pretty (mkPretty)
+import Servant.RawM.Server ()
 
 data Cfg = Cfg
   { cfgHost :: !String,

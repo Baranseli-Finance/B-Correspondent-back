@@ -18,6 +18,7 @@ module BCorrespondent.Api
     FrontendApi (..),
     InvoiceApi (..),
     WebhookApi (..),
+    FileApi (..),
     api,
     swaggerHttpApi,
   )

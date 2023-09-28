@@ -33,12 +33,15 @@ data File = File
 instance FromMultipart Tmp Files where
   fromMultipart x =
     Right $ Files $ flip map (files x) $ \FileData {..} ->
-      File fdFileName fdFileCType fdPayload $ fileNameExtensions fdFileName
+      File fdFileName fdFileCType fdPayload $ 
+        fileNameExtensions fdFileName
 
 instance FromMultipart Tmp File where
   fromMultipart x = mkFile <$> lookupFile "payloadFile" x
     where
-      mkFile FileData {..} = File fdFileName fdFileCType fdPayload $ fileNameExtensions fdFileName
+      mkFile FileData {..} = 
+        File fdFileName fdFileCType fdPayload $ 
+          fileNameExtensions fdFileName
 
 instance (Typeable a, HasSwagger sub) => HasSwagger (MultipartForm tag a :> sub) where
   toSwagger _ =

@@ -6,6 +6,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeApplications #-}
 
 module Servant.Swagger.Tags where
 
@@ -23,10 +24,11 @@ data Tags (sym :: Symbol)
 
 instance HasServer api ctx => HasServer (Tags tags :> api) ctx where
   type ServerT (Tags tags :> api) m = ServerT api m
-  route _ = route (Proxy :: Proxy api)
-  hoistServerWithContext _ = hoistServerWithContext (Proxy :: Proxy api)
+  route _ = route (Proxy @api)
+  hoistServerWithContext _ = hoistServerWithContext (Proxy @api)
 
 instance (KnownSymbol tags, HasSwagger api) => HasSwagger (Tags tags :> api) where
   toSwagger _ =
-    toSwagger (Proxy :: Proxy api)
-      & allOperations . tags %~ S.union (S.fromList [Text.pack (symbolVal (Proxy :: Proxy tags))])
+    toSwagger (Proxy @api)
+      & allOperations . tags %~ 
+        S.union (S.fromList [Text.pack (symbolVal (Proxy @tags))])

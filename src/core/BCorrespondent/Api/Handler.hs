@@ -27,6 +27,8 @@ import qualified BCorrespondent.Api.Handler.Frontend.GetHistory as Frontend.GetH
 import qualified BCorrespondent.Api.Handler.Frontend.MakeProcuratory as Frontend.MakeProcuratory
 import qualified BCorrespondent.Api.Handler.Frontend.Init as Frontend.Init
 import qualified BCorrespondent.Api.Handler.Webhook.CatchElekse as Webhook.CatchElekse
+import qualified BCorrespondent.Api.Handler.Fs.Upload as Fs.Upload
+import qualified BCorrespondent.Api.Handler.Fs.Download as Fs.Download
 -- << end handlers
 import qualified BCorrespondent.Auth as Auth
 import Katip
@@ -46,7 +48,9 @@ httpApi =
     { _httpApiAuth = toServant auth,
       _httpApiForeign = toServant _foreign,
       _httpApiFrontend = toServant frontend,
-      _httpApiInvoice = toServant invoice
+      _httpApiInvoice = toServant invoice,
+      _httpApiFile = toServant file
+
     }
 
 auth :: AuthApi (AsServerT KatipHandlerM)
@@ -55,14 +59,14 @@ auth =
     { _authApiGenerateToken = \key ->
         flip logExceptionM ErrorS $
           katipAddNamespace
-            (Namespace ["auth", "institution", "token", "generate"])
-            (Auth.GenerateToken.handle key),
+          (Namespace ["auth", "institution", "token", "generate"])
+          (Auth.GenerateToken.handle key),
      _authApiResetPasswordLink = \auth ->
       auth `Auth.withAuth` \user ->
         flip logExceptionM ErrorS $
           katipAddNamespace
-            (Namespace ["auth", "password", "link"])
-            (Auth.Password.MakeResetLink.handle user),
+          (Namespace ["auth", "password", "link"])
+          (Auth.Password.MakeResetLink.handle user),
      _authApiResetPasswordNew = 
       const $
         flip logExceptionM ErrorS
@@ -89,8 +93,8 @@ auth =
       auth `Auth.withAuth` \user ->
         flip logExceptionM ErrorS $
           katipAddNamespace
-            (Namespace ["auth", "logout"])
-            (Auth.Logout.handle user)
+          (Namespace ["auth", "logout"])
+          (Auth.Logout.handle user)
     }
 
 _foreign :: ForeignApi (AsServerT KatipHandlerM)
@@ -127,14 +131,14 @@ frontend =
        auth `Auth.withAuth` \user ->
          flip logExceptionM ErrorS $
            katipAddNamespace
-             (Namespace ["frontend", "timeline"])
-             (Frontend.GetTimeline.handle user),
+           (Namespace ["frontend", "timeline"])
+           (Frontend.GetTimeline.handle user),
       _frontendApiGetHistory = \auth ->
        auth `Auth.withAuth` \_ ->
          flip logExceptionM ErrorS $
            katipAddNamespace
-             (Namespace ["frontend", "history"])
-             Frontend.GetHistory.handle,
+           (Namespace ["frontend", "history"])
+           Frontend.GetHistory.handle,
       _frontendApiMakeProcuratory = \auth req ->
        auth `Auth.withAuth` \user ->
          flip logExceptionM ErrorS $
@@ -156,6 +160,22 @@ invoice =
        auth `Auth.withAuth` \user ->
          flip logExceptionM ErrorS $
            katipAddNamespace
-             (Namespace ["invoice", "new"])
-             (Invoice.Register.handle user req)
+           (Namespace ["invoice", "new"])
+           (Invoice.Register.handle user req)
     }
+
+file :: FileApi (AsServerT KatipHandlerM)
+file = 
+  FileApi 
+  { _fileApiUpload = \auth bucket files ->
+     auth `Auth.withAuth` \user ->
+      flip logExceptionM ErrorS $
+        katipAddNamespace
+        (Namespace ["file", "upload"])
+        (Fs.Upload.handle user bucket files),
+   _fileApiDownload = \userIdent fileIdent ->
+    flip logExceptionM ErrorS $
+      katipAddNamespace
+      (Namespace ["file", "download"])
+      (Fs.Download.handle userIdent fileIdent) 
+  }
