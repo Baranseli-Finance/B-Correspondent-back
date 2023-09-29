@@ -14,6 +14,7 @@ module BCorrespondent.Explain (spec_explain) where
 import qualified BCorrespondent.Statement.Auth
 import qualified BCorrespondent.Statement.Invoice
 import qualified BCorrespondent.Statement.Transaction
+import qualified BCorrespondent.Statement.Fs
 
 import Control.Lens
 import Control.Monad.IO.Class
@@ -85,4 +86,6 @@ explainTests =
         "insertSentTransactions" =>> BCorrespondent.Statement.Transaction.insertSentTransactions,
         "create" =>> BCorrespondent.Statement.Transaction.create
      ]
+  , "BCorrespondent.Statement.Fs" ==> 
+     [ "insertFiles" =>> BCorrespondent.Statement.Fs.insertFiles]   
   ]
