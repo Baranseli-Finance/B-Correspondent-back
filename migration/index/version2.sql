@@ -9,7 +9,7 @@ create table auth.user (
     constraint auth_user__email__uk unique (email));
 
 create table auth.code (
-    code int not null default cast((random()*1000000) as decimal(6)),
+    code int not null default cast(random()*(999999 - 100000) + 100000 as decimal(6)),
     expire_at timestamptz not null default now() + interval '5 min',
     user_id bigserial not null,
     created_at timestamptz not null default now(),
