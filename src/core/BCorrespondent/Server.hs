@@ -143,9 +143,11 @@ run Cfg {..} = katipAddNamespace (Namespace ["application"]) $ do
   let multipartOpts =
         (defaultMultipartOptions (Proxy @Tmp))
           { generalOptions = 
-              clearMaxRequestNumFiles $ 
-                setMaxRequestKeyLength 100 
-                  defaultParseRequestBodyOptions
+              setMaxRequestNumFiles 10 $
+                -- the file size is bounded by 100 mb
+                setMaxRequestFileSize 104_857_600 $
+                  setMaxRequestKeyLength 100 
+                    defaultParseRequestBodyOptions
           }
   
   let checkToken = transaction (katipEnvHasqlDbPool configKatipEnv) auth_logger . statement Auth.checkToken
