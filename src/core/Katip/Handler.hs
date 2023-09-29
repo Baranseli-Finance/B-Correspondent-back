@@ -20,7 +20,6 @@ module Katip.Handler
     KatipLoggerLocIO,
     State (..),
     Minio (..),
-    KatipState (..),
 
     -- * lens
     nm,
@@ -64,7 +63,6 @@ import Control.Monad.Reader.Class as R
 import Control.Monad.Time
 import Control.Monad.Trans.Control (MonadBaseControl)
 import qualified Crypto.JWT as Jose
-import Data.Default.Class
 import Data.Monoid.Colorful (Term)
 import qualified Data.Pool as Pool
 import qualified Data.Text as T
@@ -118,13 +116,6 @@ newtype State = State { getState :: [Int] }
 newtype KatipControllerWriter = KatipControllerWriter [String]
   deriving newtype (Monoid)
   deriving newtype (Semigroup)
-
-
-newtype KatipState = KatipState Int
-  deriving newtype Num
-
-instance Default KatipState where
-  def = KatipState 0
 
 -- ServerM
 newtype KatipHandlerM a = KatipHandlerM

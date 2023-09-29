@@ -159,7 +159,7 @@ run Cfg {..} = do
 
   rateBackend <- liftIO $ postgresBackend psqlpool "rate_limit"
 
-  let mkCtx =
+  let mkContext =
         multipartOpts :. 
         formatters :.
         defaultJWTSettings (configKatipEnv ^. jwk) :.
@@ -172,15 +172,22 @@ run Cfg {..} = do
 
   forever $ do
     threadDelay 1_000_000
-    serverAsync <- Async.Lifted.async $ liftIO $ Warp.runSettings settings $ do 
-      let toIO = runKatipContextT logEnv () ns
-      middleware cfgCors mware_logger $ 
-        Katip.Wai.runApplication toIO $ 
-          mkApplication $ 
-            serveWithContext (withSwagger api) mkCtx hoistedServer
+    serverAsync <- 
+      Async.Lifted.async $ 
+        liftIO $ 
+          Warp.runSettings settings $ do
+            let toIO = runKatipContextT logEnv () ns
+            middleware cfgCors mware_logger $ 
+              Katip.Wai.runApplication toIO $
+                let serve = 
+                     serveWithContext 
+                     (withSwagger api) 
+                     mkContext 
+                     hoistedServer
+                in mkApplication serve
     sendAsync <- Async.Lifted.async $ Job.Transaction.sendToTochkaBank jobFrequency
     forwardAsync <- Async.Lifted.async $ Job.Invoice.forwardToElekse jobFrequency
-    KatipState c <- get
+    ServerState c <- get
     when (c == 50) $ throwM RecoveryFailed
     end <- fmap snd $ flip logExceptionM ErrorS $ Async.Lifted.waitAnyCatchCancel [serverAsync, sendAsync, forwardAsync]
     whenLeft end $ \e -> do ST.modify' (+1); $(logTM) EmergencyS $ fromString $ mkPretty mempty $ "server has been terminated. error " <> show e
