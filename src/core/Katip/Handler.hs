@@ -39,7 +39,7 @@ module Katip.Handler
     frontEnvFilePath,
 
     -- * run
-    runKatipController,
+    runKatipHandler,
 
     -- * re-export
     module R,
@@ -78,6 +78,7 @@ import qualified Network.Minio as Minio
 import "sendgrid" OpenAPI.Common as SendGrid
 import Servant.Server (Handler)
 import Servant.Server.Internal.ServerError
+import Data.Tuple.Extended (del3)
 
 type KatipLoggerIO = Severity -> LogStr -> IO ()
 
@@ -167,7 +168,5 @@ instance KatipContext KatipHandlerM where
   getKatipNamespace = KatipHandlerM $ asks configNm
   localKatipNamespace f (KatipHandlerM m) = KatipHandlerM (local (over nm f) m)
 
-runKatipController :: Config -> State -> KatipHandlerM a -> Handler (a, State)
-runKatipController cfg st app = do 
-  (resp, st, _) <- RWS.runRWST (unwrap app) cfg st
-  pure (resp, st)
+runKatipHandler :: Config -> State -> KatipHandlerM a -> Handler (a, State)
+runKatipHandler cfg st app = fmap del3 $ RWS.runRWST (unwrap app) cfg st

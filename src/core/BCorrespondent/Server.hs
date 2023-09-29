@@ -125,7 +125,7 @@ run Cfg {..} = do
         hoistServerWithContext
           (withSwagger api)
           (Proxy @'[CookieSettings, JWTSettings, (UUID, Int64) -> IO (Maybe CheckToken), Backend ByteString])
-          (fmap fst . runKatipController cfg (State mempty))
+          (fmap fst . runKatipHandler cfg (State mempty))
           ( toServant Handler.handler
               :<|> swaggerSchemaUIServerT
                 (swaggerHttpApi 
