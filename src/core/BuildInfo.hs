@@ -2,11 +2,11 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module BuildInfo where
 
 import Data.Bifunctor
-import Data.Coerce
 import Data.Maybe
 import Data.String (fromString)
 import qualified Data.Text as T
@@ -20,6 +20,8 @@ import Language.Haskell.TH.Syntax
   )
 import System.IO.Unsafe (unsafePerformIO)
 import System.Process (readProcess)
+import System.Info
+import qualified Data.Version as V
 
 gitCommit :: ExpQ
 gitCommit = lift $ unsafePerformIO $ (head . lines) `fmap` readProcess "git" ["log", "-1", "--format=%h"] mempty
@@ -33,10 +35,24 @@ location = [|fromString $((LitE . StringL . loc_module) `fmap` qLocation)|]
 newtype Version = Version T.Text
 
 instance Show Version where
-  show (Version v) = "v" <> T.unpack v
+  show (Version v) = T.unpack v
 
-instance FromJSON Version where
-  parseJSON = withObject "Version" $ \o -> fmap (coerce @T.Text @Version . fromMaybe "-") $ o .:? "version"
+newtype Name = Name T.Text
 
-getVersion :: IO (Either String Version)
-getVersion = first prettyPrintParseException <$> decodeFileEither @Version "package.yaml"
+instance Show Name where
+  show (Name n) = T.unpack n
+
+data Package = Package { packageVersion :: !Version, packageName :: !Name }
+
+instance FromJSON Package where
+  parseJSON = 
+    withObject "Version" $ \o -> do
+      packageVersion <- fmap Version $ o .: "version"
+      packageName <- fmap Name $ o .: "name"
+      pure Package {..}
+
+getPackage :: IO (Either String Package)
+getPackage = first prettyPrintParseException <$> decodeFileEither @Package "package.yaml"
+
+getSystemInfo :: String
+getSystemInfo = "os: " <> os <> "-" <> arch <> ", compiler: " <> compilerName <> "-" <> V.showVersion fullCompilerVersion

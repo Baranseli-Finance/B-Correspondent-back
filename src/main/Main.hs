@@ -67,6 +67,7 @@ import Data.Either.Combinators (whenLeft)
 import Data.Aeson (eitherDecode')
 import Data.String.Conv (toS)
 import Database.PostgreSQL.Simple.Internal (ConnectInfo (..), connect, close)
+import BuildInfo (getSystemInfo)
 
 data PrintCfg = Y | N deriving stock (Generic)
 
@@ -241,7 +242,7 @@ main = do
 
   mapM_ (`hSetEncoding` utf8) [stdout, stderr, fileHdl]
 
-  let mkNm = Namespace [("<" ++ $(gitCommit) ++ ">") ^. stext]
+  let mkNm = Namespace [toS getSystemInfo, toS ("commit: <" ++ $(gitCommit) ++ ">")]
   init_env <- initLogEnv mkNm (cfg ^. katip . BCorrespondent.Config.env . isoEnv . stext . coerced)
 
   file <-

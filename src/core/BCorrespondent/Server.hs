@@ -103,9 +103,9 @@ run Cfg {..} = katipAddNamespace (Namespace ["application"]) $ do
 
   logger <- katipAddNamespace (Namespace ["application"]) askLoggerIO
 
-  version_e <- liftIO getVersion
-  whenLeft version_e $ \e -> throwM $ ErrorCall e
-  let Right ver = version_e
+  packageE <- liftIO getPackage
+  whenLeft packageE $ (throwM . ErrorCall)
+  let Right Package {..} = packageE
 
   $(logTM) DebugS $ fromString $ "server run on: " <> "http://127.0.0.1:" <> toS (show cfgServerPort)
 
@@ -126,7 +126,10 @@ run Cfg {..} = katipAddNamespace (Namespace ["application"]) $ do
           (fmap fst . runKatipController cfg (State mempty))
           ( toServant Handler.handler
               :<|> swaggerSchemaUIServerT
-                (swaggerHttpApi cfgHost cfgSwaggerPort ver)
+                (swaggerHttpApi 
+                 cfgHost 
+                 cfgSwaggerPort 
+                 packageVersion)
           )
   excep <- katipAddNamespace (Namespace ["exception"]) askLoggerIO
   ctx_logger <- katipAddNamespace (Namespace ["context"]) askLoggerIO
