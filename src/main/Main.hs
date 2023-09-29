@@ -340,7 +340,7 @@ main = do
           }
 
     let shutdownMsg = print "------ server is shut down --------"
-    let runServer le = runKatipContextT le (mempty @LogContexts) mempty $ Server.run serverCfg
+    let runServer le = runKatipContextT le (mempty @LogContexts) mempty $ flip Server.addServerNm "server" $ Server.run serverCfg
     bracket env (flip (>>) shutdownMsg . closeScribes) $ void . (\x -> evalRWST (Server.runServerM x) katipEnv def) . runServer
 
   whenLeft jwkRes $ print . ((<>) "jwk decode error")

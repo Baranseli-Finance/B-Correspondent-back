@@ -20,7 +20,7 @@
 {-# OPTIONS_GHC -fno-warn-unused-local-binds #-}
 {-# OPTIONS_GHC -fno-warn-unused-top-binds #-}
 
-module BCorrespondent.Server (Cfg (..), ServerM (..), run) where
+module BCorrespondent.Server (Cfg (..), ServerM (..), run, addServerNm) where
 
 import qualified BCorrespondent.Job.Transaction as Job.Transaction
 import qualified BCorrespondent.Job.Invoice as Job.Invoice
@@ -98,10 +98,12 @@ data Cfg = Cfg
     psqlpool :: !(Pool.Pool Connection)
   }
 
-run :: Cfg -> KatipContextT ServerM ()
-run Cfg {..} = katipAddNamespace (Namespace ["application"]) $ do
+addServerNm :: forall a . KatipContextT ServerM a -> T.Text -> KatipContextT ServerM a
+addServerNm ctx nm = katipAddNamespace (Namespace [nm]) ctx
 
-  logger <- katipAddNamespace (Namespace ["application"]) askLoggerIO
+run :: Cfg -> KatipContextT ServerM ()
+run Cfg {..} = do
+  logger <- askLoggerIO `addServerNm` "server"
 
   packageE <- liftIO getPackage
   whenLeft packageE $ (throwM . ErrorCall)
@@ -131,10 +133,10 @@ run Cfg {..} = katipAddNamespace (Namespace ["application"]) $ do
                  cfgSwaggerPort 
                  packageVersion)
           )
-  excep <- katipAddNamespace (Namespace ["exception"]) askLoggerIO
-  ctx_logger <- katipAddNamespace (Namespace ["context"]) askLoggerIO
-  req_logger <- katipAddNamespace (Namespace ["request"]) askLoggerIO
-  auth_logger <- katipAddNamespace (Namespace ["auth"]) askLoggerIO
+  excep <- askLoggerIO `addServerNm` "exception"
+  ctx_logger <- askLoggerIO `addServerNm` "context"
+  req_logger <- askLoggerIO `addServerNm` "request"
+  auth_logger <- askLoggerIO `addServerNm` "auth"
 
   let settings =
         Warp.defaultSettings
@@ -166,7 +168,7 @@ run Cfg {..} = katipAddNamespace (Namespace ["application"]) $ do
         defaultCookieSettings :.
         EmptyContext
 
-  mware_logger <- katipAddNamespace (Namespace ["middleware"]) askLoggerWithLocIO
+  mware_logger <- askLoggerWithLocIO `addServerNm` "middleware"
 
   forever $ do
     threadDelay 1_000_000
