@@ -19,6 +19,8 @@ module BCorrespondent.Api
     InvoiceApi (..),
     WebhookApi (..),
     FileApi (..),
+    InstitutionApi (..),
+    FiatApi (..),
     api,
     swaggerHttpApi,
   )
@@ -36,7 +38,8 @@ import Servant.Auth.Swagger ()
 import Servant.Swagger
 import Servant.Swagger.RawM ()
 
-newtype Api route = Api {_apiHttp :: route :- ToServant HttpWrapperApi AsApi} deriving stock (Generic)
+newtype Api route = Api {_apiHttp :: route :- ToServant HttpWrapperApi AsApi} 
+  deriving stock (Generic)
 
 newtype HttpWrapperApi route = HttpWrapperApi
   { _httpWrapperApiApi ::

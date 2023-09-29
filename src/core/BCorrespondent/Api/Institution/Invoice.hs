@@ -6,7 +6,7 @@
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE TypeOperators #-}
 
-module BCorrespondent.Api.Invoice (InvoiceApi (..)) where
+module BCorrespondent.Api.Institution.Invoice (InvoiceApi (..)) where
 
 import BCorrespondent.Transport.Model.Invoice (InvoiceRegisterRequest, InvoiceRegisterResponse)
 import BCorrespondent.Transport.Response (Response)
@@ -19,7 +19,8 @@ newtype InvoiceApi route =
         InvoiceApi
         { _invoiceApiRegister ::
             route
-              :- SA.Auth '[JWT] (AuthenticatedUser Bank)
+              :- "register"
+                :> SA.Auth '[JWT] (AuthenticatedUser Bank)
                 :> ReqBody '[JSON] [InvoiceRegisterRequest]
                 :> Put '[JSON] (Response [InvoiceRegisterResponse])
         }

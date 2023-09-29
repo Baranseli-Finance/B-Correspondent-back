@@ -48,7 +48,7 @@ httpApi =
     { _httpApiAuth = toServant auth,
       _httpApiForeign = toServant _foreign,
       _httpApiFrontend = toServant frontend,
-      _httpApiInvoice = toServant invoice,
+      _httpApiInstitution = toServant institution,
       _httpApiFile = toServant file
 
     }
@@ -153,6 +153,13 @@ frontend =
 
     }
 
+institution :: InstitutionApi (AsServerT KatipHandlerM)
+institution = 
+  InstitutionApi 
+  { _institutionApiInvoice = toServant invoice, 
+    _institutionApiFiat = toServant fiat 
+  }
+
 invoice :: InvoiceApi (AsServerT KatipHandlerM)
 invoice = 
   InvoiceApi 
@@ -163,6 +170,13 @@ invoice =
            (Namespace ["invoice", "new"])
            (Invoice.Register.handle user req)
     }
+
+fiat :: FiatApi (AsServerT KatipHandlerM)
+fiat = 
+  FiatApi 
+  { _fiatApiWithdraw = undefined, 
+    _fiatApiTransactionOrder = undefined 
+  }
 
 file :: FileApi (AsServerT KatipHandlerM)
 file = 

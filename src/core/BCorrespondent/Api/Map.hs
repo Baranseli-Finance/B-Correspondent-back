@@ -10,7 +10,7 @@ module BCorrespondent.Api.Map
     module Auth,
     module Foreign,
     module Frontend,
-    module Invoice,
+    module Institution,
     module Fs
   )
 where
@@ -18,7 +18,7 @@ where
 import BCorrespondent.Api.Foreign as Foreign
 import BCorrespondent.Api.Auth as Auth
 import BCorrespondent.Api.Frontend as Frontend
-import BCorrespondent.Api.Invoice as Invoice
+import BCorrespondent.Api.Institution as Institution  
 import  BCorrespondent.Api.Fs as Fs
 import Servant.API
 import Servant.API.Generic
@@ -40,11 +40,11 @@ data HttpApi route = HttpApi
         :- Tags "Frontend"
           :> "frontend"
           :> ToServant FrontendApi AsApi,
-    _httpApiInvoice ::
+    _httpApiInstitution ::
       route
-        :- Tags "Invoice"
-          :> "invoice"
-          :> ToServant InvoiceApi AsApi,
+        :- Tags "Institution"
+          :> "institution"
+          :> ToServant InstitutionApi AsApi,
     _httpApiFile ::
       route
         :- Tags "File"
