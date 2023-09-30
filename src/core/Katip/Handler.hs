@@ -36,6 +36,7 @@ module Katip.Handler
     webhook,
     github,
     frontEnvFilePath,
+    cache,
 
     -- * run
     runKatipHandler,

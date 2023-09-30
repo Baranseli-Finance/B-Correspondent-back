@@ -6,6 +6,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module BCorrespondent.Api.Handler.Frontend.Init (handle) where
 
@@ -33,15 +34,19 @@ import Control.Monad (join)
 import Data.Either.Combinators (maybeToRight)
 import Data.String (fromString)
 import Data.Bifunctor
-import Data.Aeson (eitherDecodeFileStrict, FromJSON)
+import Data.Aeson (eitherDecodeFileStrict, FromJSON, eitherDecode, encode, toJSON)
 import Data.Aeson.Generic.DerivingVia
 import GHC.Generics (Generic)
+import Cache (Cache (..))
+import Data.Foldable (for_)
+import Data.Functor (($>))
 
-data Error = Github GitHub.Error | Content404
+data Error = Github GitHub.Error | Content404 | Decode String
 
 instance Show Error where
   show (Github e) = "cannot find resource on github: " <> show e
   show Content404 = "content not found"
+  show (Decode e) = "decode error: " <> e
 
 data FrontEnvs = 
      FrontEnvs 
@@ -73,22 +78,38 @@ handle token = do
         analyse _ = Valid
     liftIO $ fmap analyse $ validateJwt (defaultJWTSettings key) checkToken $ toS @Text $ coerce tk
 
-  github <- fmap (^. katipEnv . github) ask
-  resp <- fmap (join . maybeToRight Content404) $
-    for github $ \val -> liftIO $ do
-      fmap (first Github . sequence) $
-        forConcurrently (val ^. repos) $ \repo -> do
-          let query =
-                GitHub.commitsForR
-                  "Baranseli-Finance"
-                  (fromString (toS repo))
-                  (GitHub.FetchAtLeast 1)
-          fmap (second ((Sha repo) . GitHub.untagName . V.head . fmap GitHub.commitSha)) $
-            GitHub.github (GitHub.OAuth (toS (val^.key))) query
+  Cache {..} <- fmap (^. katipEnv . cache) ask
+  shaXsM <- get "github"
+  resp <- 
+    case shaXsM of 
+      Just val -> 
+        pure $ 
+          first Decode $ 
+            eitherDecode $ 
+              encode val
+      Nothing -> do
+        github <- fmap (^. katipEnv . github) ask
+        resp <- fmap (join . maybeToRight Content404) $
+          for github $ \val -> liftIO $ do
+            fmap (first Github . sequence) $
+              forConcurrently (val ^. repos) $ \repo -> do
+                let query =
+                      GitHub.commitsForR
+                        "Baranseli-Finance"
+                        (fromString (toS repo))
+                        (GitHub.FetchAtLeast 1)
+                fmap (second ((Sha repo) . GitHub.untagName . V.head . fmap GitHub.commitSha)) $
+                  GitHub.github (GitHub.OAuth (toS (val^.key))) query
+        for_ resp (insert "github" . toJSON) $> resp 
 
-  return $ fromEither $ (first (toS @_ @Text . show)) $ resp <&> \xs -> 
-    defInit { 
-      shaXs = xs, 
-      isJwtValid = fromMaybe Skip tokenResp, 
-      level = frontEnvsLogLevel, 
-      toTelegram = frontEnvsToTelegram }
+  return $ 
+    fromEither $ 
+      (first (toS @_ @Text . show)) $ 
+        resp <&> \xs -> 
+          defInit 
+          { 
+            shaXs = xs, 
+            isJwtValid = fromMaybe Skip tokenResp, 
+            level = frontEnvsLogLevel, 
+            toTelegram = frontEnvsToTelegram 
+          }

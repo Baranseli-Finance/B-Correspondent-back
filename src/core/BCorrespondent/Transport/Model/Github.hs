@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 
-module BCorrespondent.Transport.Model.Github (Sha) where
+module BCorrespondent.Transport.Model.Github (Sha (..)) where
 
 import Data.Text (Text, stripPrefix)
 import Data.Aeson
