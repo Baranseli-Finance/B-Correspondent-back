@@ -81,6 +81,7 @@ import Data.String (fromString)
 import Pretty (mkPretty)
 import Servant.RawM.Server ()
 
+
 data Cfg = Cfg
   { cfgHost :: !String,
     cfgSwaggerPort :: !(Maybe Int),
@@ -128,7 +129,7 @@ run Cfg {..} = do
           (fmap fst . runKatipHandler cfg (State mempty))
           ( toServant Handler.handler
               :<|> swaggerSchemaUIServerT
-                (swaggerHttpApi 
+                (swaggerHttpApi
                  cfgHost 
                  cfgSwaggerPort 
                  packageVersion)
@@ -141,9 +142,12 @@ run Cfg {..} = do
   let settings =
         Warp.defaultSettings
           & Warp.setPort cfgServerPort
-          & Warp.setOnException (logUncaughtException excep)
-          & Warp.setOnExceptionResponse (\e -> mk500Response e (coerce cfgServerError) mute500)
-          & Warp.setServerName ("BCorrespondent api server, revision " <> $gitCommit)
+          & Warp.setOnException 
+            (logUncaughtException excep)
+          & Warp.setOnExceptionResponse 
+            (mk500Response (coerce cfgServerError) mute500)
+          & Warp.setServerName 
+            ("BCorrespondent api server, revision " <> $gitCommit)
           & Warp.setLogger (logRequest req_logger)
   let multipartOpts =
         (defaultMultipartOptions (Proxy @Tmp))
@@ -172,19 +176,15 @@ run Cfg {..} = do
 
   forever $ do
     threadDelay 1_000_000
-    serverAsync <- 
-      Async.Lifted.async $ 
-        liftIO $ 
-          Warp.runSettings settings $ do
-            let toIO = runKatipContextT logEnv () ns
+    serverAsync <-
+      Async.Lifted.async $
+        liftIO $
+          Warp.runSettings settings $
             middleware cfgCors mware_logger $ 
-              Katip.Wai.runApplication toIO $
-                let serve = 
-                     serveWithContext 
-                     (withSwagger api) 
-                     mkContext 
-                     hoistedServer
-                in mkApplication serve
+              Katip.Wai.runApplication
+              (runKatipContextT logEnv () ns) $ do
+                let app = serveWithContext (withSwagger api) mkContext hoistedServer
+                mkApplication app
     sendAsync <- Async.Lifted.async $ Job.Transaction.sendToTochkaBank jobFrequency
     forwardAsync <- Async.Lifted.async $ Job.Invoice.forwardToElekse jobFrequency
     ServerState c <- get
@@ -208,8 +208,8 @@ logUncaughtException log reqm e =
               "500 - " <> show e
     maybe (log CriticalS (logStr ("before request being handled" <> show e))) withReq reqm
 
-mk500Response :: SomeException -> Bool -> Maybe Bool -> Response
-mk500Response error False _ = 
+mk500Response :: Bool -> Maybe Bool -> SomeException -> Response
+mk500Response False _ error = 
   responseLBS status200 hs $ 
     encode @(Response.Response ()) $ 
       Response.Error (Just 500) $ 
@@ -217,12 +217,12 @@ mk500Response error False _ =
   where hs = [ (H.hContentType, "application/json; charset=utf-8"), 
                (hAccessControlAllowOrigin, "*")
              ]
-mk500Response error True (Just True) = 
+mk500Response True (Just True) error = 
   responseLBS status500 hs $ toS (show error)
   where hs = [ (H.hContentType, "text/plain; charset=utf-8"), 
                (hAccessControlAllowOrigin, "*") 
              ]
-mk500Response error True _ = 
+mk500Response True _  error = 
   responseLBS status200 hs $ 
     encode @(Response.Response ()) $ 
       Response.Error (Just 500) $ 
@@ -261,6 +261,6 @@ askLoggerWithLocIO = do
       logItem ctx ns loc sev msg
 
 mkApplication :: Application -> Katip.Wai.ApplicationT (KatipContextT IO)
-mkApplication hoistedApp = 
+mkApplication hoistedApp =
   Katip.Wai.middleware DebugS $ \request send ->
     withRunInIO $ \toIO -> hoistedApp request (toIO . send)

@@ -15,13 +15,19 @@ import Servant.API.Generic (Generic, GenericMode (type (:-)))
 import RateLimit (RateLimit, FixedWindow, IPAddressPolicy)
 import Data.Time.TypeLevel (TimePeriod (Second))
 
-newtype WebhookApi route = 
-    WebhookApi
-    { _webhookApidApiCatchElekse ::
+data WebhookApi route = 
+     WebhookApi
+     { _webhookApiCatchElekse ::
         route
             :- "elekse"
             :> RateLimit (FixedWindow (Second 1) 10) (IPAddressPolicy "fixed")
             :> ReqBody '[JSON] Payload
+            :> Post '[JSON] (Response ()),
+       _webhookApiCatchGithub ::
+        route
+            :- "github"
+            :> RateLimit (FixedWindow (Second 1) 10) (IPAddressPolicy "fixed")
+            :> ReqBody '[JSON] Payload
             :> Post '[JSON] (Response ())
-    }
-    deriving stock (Generic)
+     }
+     deriving stock (Generic)

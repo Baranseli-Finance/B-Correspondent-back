@@ -27,6 +27,7 @@ import qualified BCorrespondent.Api.Handler.Frontend.GetHistory as Frontend.GetH
 import qualified BCorrespondent.Api.Handler.Frontend.MakeProcuratory as Frontend.MakeProcuratory
 import qualified BCorrespondent.Api.Handler.Frontend.Init as Frontend.Init
 import qualified BCorrespondent.Api.Handler.Webhook.CatchElekse as Webhook.CatchElekse
+import qualified BCorrespondent.Api.Handler.Webhook.CatchGithub as Webhook.CatchGithub
 import qualified BCorrespondent.Api.Handler.Fs.Upload as Fs.Upload
 import qualified BCorrespondent.Api.Handler.Fs.Download as Fs.Download
 -- << end handlers
@@ -117,11 +118,16 @@ sendgrid =
 webhook :: WebhookApi (AsServerT KatipHandlerM)
 webhook =
   WebhookApi
-  { _webhookApidApiCatchElekse =
+  { _webhookApiCatchElekse =
       flip logExceptionM ErrorS
         . katipAddNamespace
           (Namespace ["webhook", "Elekse"])
-        . Webhook.CatchElekse.catch
+        . Webhook.CatchElekse.catch,
+    _webhookApiCatchGithub =
+      flip logExceptionM ErrorS
+        . katipAddNamespace
+          (Namespace ["webhook", "Github"])
+        . Webhook.CatchGithub.catch
   }
 
 frontend :: FrontendApi (AsServerT KatipHandlerM)

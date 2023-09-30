@@ -78,7 +78,7 @@ data Sha = Sha { shaKey :: !Text, shaValue :: !Text }
      deriving stock (Generic, Show)
      deriving (FromJSON, ToJSON)
        via WithOptions
-          '[OmitNothingFields 'True, 
+          '[OmitNothingFields 'True,
             FieldLabelModifier 
             '[UserDefined FirstLetterToLower, 
               UserDefined (StripConstructor Sha)]]

@@ -13,18 +13,22 @@ import BCorrespondent.Auth (AuthenticatedUser, JWT, Role (..))
 import Servant.API.Extended
 import Servant.API.Generic (Generic)
 import qualified Servant.Auth.Server as SA
+import RateLimit (RateLimit, FixedWindow, KeyPolicy)
+import Data.Time.TypeLevel (TimePeriod (Second))
 
 data FiatApi route = 
      FiatApi
      { _fiatApiWithdraw ::
         route
           :- "withdraw"
+          :> RateLimit (FixedWindow (Second 1) 1) (KeyPolicy "Token")
           :> SA.Auth '[JWT] (AuthenticatedUser 'Writer)
           :> Post '[JSON] (Response ()),
        _fiatApiTransactionOrder ::
         route
           :- "transaction"
           :> "order"
+          :> RateLimit (FixedWindow (Second 1) 1) (KeyPolicy "Token")
           :> SA.Auth '[JWT] (AuthenticatedUser 'Writer)
           :> Post '[JSON] (Response ())
      }
