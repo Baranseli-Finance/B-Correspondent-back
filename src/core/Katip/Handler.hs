@@ -77,6 +77,7 @@ import "sendgrid" OpenAPI.Common as SendGrid
 import Servant.Server (Handler)
 import Servant.Server.Internal.ServerError
 import Data.Tuple.Extended (del3)
+import Cache (Cache)
 
 type KatipLoggerIO = Severity -> LogStr -> IO ()
 
@@ -91,7 +92,8 @@ data KatipEnv = KatipEnv
     katipEnvJwk :: !Jose.JWK,
     katipEnvWebhook :: !T.Text,
     katipEnvGithub :: !(Maybe Github),
-    katipEnvFrontEnvFilePath :: !FilePath
+    katipEnvFrontEnvFilePath :: !FilePath,
+    katipEnvCache :: !(Cache KatipHandlerM)
   }
 
 data Minio = Minio {minioConn :: !Minio.MinioConn, minioBucketPrefix :: !T.Text}

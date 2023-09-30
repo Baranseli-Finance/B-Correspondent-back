@@ -68,6 +68,7 @@ import Data.Aeson (eitherDecode')
 import Data.String.Conv (toS)
 import Database.PostgreSQL.Simple.Internal (ConnectInfo (..), connect, close)
 import BuildInfo (getSystemInfo)
+import qualified Cache.MVar as Cache
 
 data PrintCfg = Y | N deriving stock (Generic)
 
@@ -316,6 +317,8 @@ main = do
           psqlpool = psqlpool
         }
 
+  cache <- Cache.init  
+
   jwke <- liftIO $ fmap (eitherDecode' @JWK) $ B.readFile pathToJwk
 
   jwkRes <- for jwke $ \jwk -> do
@@ -336,7 +339,8 @@ main = do
               katipEnvJwk = jwk,
               katipEnvWebhook = cfg^.webhook,
               katipEnvGithub = envKeys >>= envKeysGithub,
-              katipEnvFrontEnvFilePath = frontEnvFilePath
+              katipEnvFrontEnvFilePath = frontEnvFilePath,
+              katipEnvCache = cache
           }
 
     let shutdownMsg = print "------ server is shut down --------"
