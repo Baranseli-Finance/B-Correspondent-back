@@ -15,7 +15,7 @@ import Cache
 import qualified Data.Map.Strict as Map
 import Control.Monad.Trans.Control
 
-init :: forall m . (MonadIO m, MonadBaseControl IO m) => IO (Cache m)
+init :: forall m k v . (Ord k, MonadIO m, MonadBaseControl IO m) => IO (Cache m k v)
 init = do
   var <- newMVar Map.empty
   let insert key val = MVar.modifyMVar_ @m var (return . Map.insert key val)

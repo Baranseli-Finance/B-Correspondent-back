@@ -79,6 +79,7 @@ import Servant.Server (Handler)
 import Servant.Server.Internal.ServerError
 import Data.Tuple.Extended (del3)
 import Cache (Cache)
+import Data.Aeson (Value)
 
 type KatipLoggerIO = Severity -> LogStr -> IO ()
 
@@ -94,7 +95,7 @@ data KatipEnv = KatipEnv
     katipEnvWebhook :: !T.Text,
     katipEnvGithub :: !(Maybe Github),
     katipEnvFrontEnvFilePath :: !FilePath,
-    katipEnvCache :: !(Cache KatipHandlerM)
+    katipEnvCache :: !(Cache KatipHandlerM T.Text Value)
   }
 
 data Minio = Minio {minioConn :: !Minio.MinioConn, minioBucketPrefix :: !T.Text}
