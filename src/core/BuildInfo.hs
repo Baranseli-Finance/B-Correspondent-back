@@ -24,7 +24,7 @@ import System.Info
 import qualified Data.Version as V
 
 gitCommit :: ExpQ
-gitCommit = lift $ unsafePerformIO $ (head . lines) `fmap` readProcess "git" ["log", "-1", "--format=%h"] mempty
+gitCommit = lift $ unsafePerformIO $ (head . lines) `fmap` readProcess "git" ["rev-parse", "--short", "HEAD"] mempty
 
 gitTag :: ExpQ
 gitTag = lift $ unsafePerformIO $ fromMaybe "-" . listToMaybe . lines <$> readProcess "git" ["tag", "--list", "--sort=-creatordate"] mempty
