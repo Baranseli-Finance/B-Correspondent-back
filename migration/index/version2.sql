@@ -30,6 +30,7 @@ create table auth.jwt (
     id uuid primary key,
     value text not null,
     created_at timestamptz not null default now(),
+    browser_fp text,
     is_valid boolean not null default true);
 
 create table auth.user_jwt (

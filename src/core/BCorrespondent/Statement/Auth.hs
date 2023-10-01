@@ -153,7 +153,8 @@ insertPasswordResetLink =
 data UserCred = 
      UserCred 
      { userCredIdent :: Int64, 
-       userCredLogin :: T.Text 
+       userCredLogin :: T.Text,
+       userCredFp :: T.Text
      }
      deriving stock (Generic)
      deriving
@@ -176,7 +177,8 @@ getUserCredByCode =
          not c.is_expended and 
          (extract(epoch from c.expire_at) -
           extract(epoch from now()) > 0))
-          as is_code_valid
+          as is_code_valid,
+        c.browser_fp as fp
       from auth.user as u
       inner join auth.code as c
       on u.id = c.user_id
@@ -184,11 +186,12 @@ getUserCredByCode =
     select 
       jsonb_build_object(
         'ident', id :: int8, 
-        'login', login :: text) :: jsonb 
+        'login', login :: text,
+        'fp', fp) :: jsonb 
     from cred
     where is_code_valid|]
 
-insertToken :: HS.Statement (Int64, T.Text, UUID, T.Text) Bool
+insertToken :: HS.Statement (Int64, T.Text, UUID, T.Text, T.Text) Bool
 insertToken =
   rmap (> 0)
     [rowsAffectedStatement|
@@ -198,17 +201,14 @@ insertToken =
            set is_valid = false
            where 
              is_valid and
-             id in (
-              select jwt_id 
-              from auth.user_jwt 
-              where user_id = $1 :: int8)),
+             browser_fp = $5 :: text),
          jwt as (
           insert into auth.jwt
-          (value, id)
-          select $2 :: text, $3 :: uuid),
+          (value, id, browser_fp)
+          select $2 :: text, $3 :: uuid, $5 :: text),
          code as (
           update auth.code
-          set is_expended = true 
+          set is_expended = true
           where uuid = $4 :: text)
        insert into auth.user_jwt
        (user_id, jwt_id)
@@ -335,8 +335,8 @@ insertCode =
       left join auth.code as c
       on u.id = c.user_id and 
       coalesce(c.browser_fp = $3 :: text, true)
-      where u.login = $1 :: text and
-      not coalesce(c.is_expended, false)
+      and not coalesce(c.is_expended, false)
+      where u.login = $1 :: text
       order by c.created_at desc limit 1),
     new_code as (
       insert into auth.code 

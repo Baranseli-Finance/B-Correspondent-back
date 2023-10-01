@@ -38,5 +38,5 @@ handle (AuthCode code hash) = do
         fmap (first (const JWT)) $
           for tokene $ \(tokenbs, uuid) -> do
             let token = tokenbs ^. bytesLazy . from textbs
-            statement Auth.insertToken (userCredIdent, token, uuid, hash) $> token
+            statement Auth.insertToken (userCredIdent, token, uuid, hash, userCredFp) $> token
   return $ withError res AuthToken
