@@ -12,7 +12,17 @@ module BCorrespondent.Api.Handler.Frontend.Init (handle) where
 
 import qualified BCorrespondent.Statement.Auth as Auth (checkToken)
 import BCorrespondent.Transport.Response (Response, fromEither)
-import BCorrespondent.Transport.Model.Frontend (Init, Sha (..), isJwtValid, level, toTelegram, defInit, shaXs, JWTStatus (..), LogLevel)
+import BCorrespondent.Transport.Model.Frontend 
+       (Init, Sha (..), 
+        isJwtValid, 
+        telegramBot, 
+        telegramChat, 
+        level, 
+        toTelegram, 
+        defInit, 
+        shaXs, 
+        JWTStatus (..), 
+        LogLevel)
 import BCorrespondent.Transport.Model.Auth (AuthToken (..))
 import BCorrespondent.EnvKeys (key, repos)
 import BCorrespondent.Auth (validateJwt, AuthenticatedUser (..), account, AccountType (Institution))
@@ -51,7 +61,9 @@ instance Show Error where
 data FrontEnvs = 
      FrontEnvs 
      { frontEnvsLogLevel :: !LogLevel, 
-       frontEnvsToTelegram :: !Bool 
+       frontEnvsToTelegram :: !Bool,
+       frontEnvsTelegramBot :: !Text,
+       frontEnvsTelegramChat :: !Text
      }
     deriving stock (Generic)
     deriving
@@ -66,7 +78,7 @@ handle :: Maybe AuthToken -> KatipHandlerM (Response Init)
 handle token = do
   
   path <- fmap (^. katipEnv . frontEnvFilePath) ask
-  Right FrontEnvs {frontEnvsLogLevel, frontEnvsToTelegram} <- liftIO $ eitherDecodeFileStrict @FrontEnvs path 
+  Right FrontEnvs {..} <- liftIO $ eitherDecodeFileStrict @FrontEnvs path 
 
   tokenResp <- for token $ \tk -> do
     key <- fmap (^. katipEnv . jwk) ask
@@ -108,8 +120,10 @@ handle token = do
         resp <&> \xs -> 
           defInit 
           { 
-            shaXs = xs, 
+            shaXs = xs,
             isJwtValid = fromMaybe Skip tokenResp, 
             level = frontEnvsLogLevel, 
-            toTelegram = frontEnvsToTelegram 
+            toTelegram = frontEnvsToTelegram,
+            telegramBot = frontEnvsTelegramBot,
+            telegramChat = frontEnvsTelegramChat
           }

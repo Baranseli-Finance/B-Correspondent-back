@@ -25,6 +25,8 @@ module BCorrespondent.Transport.Model.Frontend
         isJwtValid,
         shaXs,
         toTelegram,
+        telegramBot,
+        telegramChat,
         level,
         Sha (..),
         JWTStatus (..),
@@ -106,7 +108,9 @@ data Init =
     { shaXs :: ![Sha],
       isJwtValid :: !JWTStatus,
       level :: !LogLevel,
-      toTelegram :: !Bool
+      toTelegram :: !Bool,
+      telegramBot :: !Text,
+      telegramChat :: !Text
     }
     deriving stock (Generic, Show)
     deriving
@@ -120,4 +124,4 @@ instance Default Init
 
 deriveToSchemaFieldLabelModifier ''Init [| map toLower |]
 
-defInit = Init def def def def
+defInit = Init def def def def def def
