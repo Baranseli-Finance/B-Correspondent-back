@@ -12,6 +12,6 @@ import Servant.API
 
 
 newtype Bucket = Bucket Text
- deriving stock Generic
+ deriving stock (Generic, Show)
  deriving anyclass (ToParamSchema)
  deriving newtype (FromHttpApiData)
