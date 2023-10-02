@@ -27,7 +27,7 @@ import BCorrespondent.Transport.Model.Frontend
 import BCorrespondent.Transport.Model.Auth (AuthToken (..))
 import BCorrespondent.EnvKeys (key, repos)
 import BCorrespondent.Auth (validateJwt, AuthenticatedUser (..), account, AccountType (Institution))
-import Database.Transaction (transaction, statement)
+import Database.Transaction (transactionIO, statement)
 import Data.String.Conv (toS)
 import Data.Coerce (coerce)
 import Servant.Auth.Server (defaultJWTSettings)
@@ -86,7 +86,7 @@ handle token = do
     key <- fmap (^. katipEnv . jwk) ask
     hasql <- fmap (^. katipEnv . hasqlDbPool) ask
     auth_logger <- katipAddNamespace (Namespace ["auth"]) askLoggerIO
-    let checkToken = transaction hasql auth_logger . statement Auth.checkToken
+    let checkToken = transactionIO hasql auth_logger . statement Auth.checkToken
     let analyse (Left _) = Invalid
         analyse (Right AuthenticatedUser {account = Institution}) = Invalid
         analyse _ = Valid

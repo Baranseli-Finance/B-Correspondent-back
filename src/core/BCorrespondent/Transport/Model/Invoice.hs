@@ -90,7 +90,12 @@ invoice:
     payment description text required,
     currency text required,
     amount double required,
-    vat double required
+    vat double required,
+    fee enum Fee 
+    where Fee is one of
+       OUR <-- for charges to be paid by the ordering customer 
+       | SHA <-- for charges to be shared by the ordering customer and the final beneficiary)
+
 -}
 data InvoiceRegisterRequest =
      InvoiceRegisterRequest 

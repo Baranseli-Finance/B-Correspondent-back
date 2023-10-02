@@ -11,9 +11,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 
 module Database.Transaction
-  ( transactionViolationError,
-    transactionMViolationError,
-    transaction,
+  ( transactionIO,
     transactionM,
     statement,
     SessionR,
@@ -98,24 +96,22 @@ instance Exception ViolationError
 -- This method may throw 'SQLException' in case if SQL exception
 -- happens during operations that commit or rollback transaction,
 -- in this case connection may not be in a clean state.
-transactionViolationError :: Pool Hasql.Connection -> KatipLoggerIO -> ReaderT KatipLoggerIO Session a -> IO (Either ViolationError a)
-transactionViolationError pool logger session =
+runSessionIO :: Pool Hasql.Connection -> KatipLoggerIO -> ReaderT KatipLoggerIO Session a -> IO (Either ViolationError a)
+runSessionIO pool logger session =
   run >>= either (throwIO . QueryErrorWrapper) pure . join
   where
     run = withResource pool $ \conn ->
       mask $ \release -> do
         bg <- Hasql.run (Hasql.sql [uncheckedSql|begin|]) conn
-        let action = do
-              db_res <- Hasql.run (runReaderT session logger) conn
-              handleDBResult db_res
+        let action =
+              Hasql.run (runReaderT session logger) conn >>=
+                handleDBResult
         let withBegin = do
               result <-
                 onException
                   (release action)
-                  ( do
-                      logger CriticalS "error while performing sql"
-                      Hasql.run (Hasql.sql [uncheckedSql|rollback|]) conn
-                  )
+                  (logger CriticalS "error while performing sql" >>
+                     Hasql.run (Hasql.sql [uncheckedSql|rollback|]) conn)
               cm <- Hasql.run (Hasql.sql [uncheckedSql|commit|]) conn
               traverse (const (pure result)) cm
         traverse (const withBegin) bg
@@ -134,9 +130,6 @@ handleDBResult (Left e) =
   where
     codem = e ^? position @3 . _Ctor @"ResultError" . _Ctor @"ServerError" . _1
 handleDBResult (Right val) = return $ Right val
-
-transaction :: Pool Hasql.Connection -> KatipLoggerIO -> ReaderT KatipLoggerIO Session a -> IO a
-transaction pool logger session = transactionViolationError pool logger session >>= either throwIO pure
 
 class ParamsShow a where
   render :: a -> String
@@ -213,8 +206,8 @@ statement s@(Hasql.Statement sql _ _ _) a = do
   liftIO $ logger DebugS (ls (sql <> " { params: [" <> (render a ^. stext . textbs)) <> "] }")
   lift $ Hasql.statement a s
 
-transactionM :: forall m a . KatipContext m => Pool Hasql.Connection -> ReaderT KatipLoggerIO Session a -> m a
-transactionM pool session = katipAddNamespace (Namespace ["db", "hasql"]) askLoggerIO >>= (liftIO . flip (transaction pool) session)
+transactionIO :: Pool Hasql.Connection -> KatipLoggerIO -> ReaderT KatipLoggerIO Session a -> IO a
+transactionIO pool logger session = runSessionIO pool logger session >>= either throwIO pure
 
-transactionMViolationError :: Pool Hasql.Connection -> ReaderT KatipLoggerIO Session a -> KatipHandlerM (Either ViolationError a)
-transactionMViolationError pool session = katipAddNamespace (Namespace ["db", "hasql"]) askLoggerIO >>= (liftIO . flip (transactionViolationError pool) session)
+transactionM :: forall m a . KatipContext m => Pool Hasql.Connection -> ReaderT KatipLoggerIO Session a -> m a
+transactionM pool session = katipAddNamespace (Namespace ["db", "hasql"]) askLoggerIO >>= (liftIO . flip (transactionIO pool) session)

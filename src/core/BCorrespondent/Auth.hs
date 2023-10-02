@@ -66,7 +66,7 @@ import Control.Lens.Iso.Extended (textbs)
 import BuildInfo (location)
 import Data.UUID (UUID)
 import System.Random (randomIO)
-import Database.Transaction (transaction, statement)
+import Database.Transaction (transactionIO, statement)
 import Data.Default.Class.Extended (def)
 import Data.Proxy (Proxy (..))
 import qualified Data.Vector as V
@@ -236,7 +236,7 @@ withWSAuth pend controller = do
     key <- fmap (^. katipEnv . Katip.Handler.jwk) ask
     hasql <- fmap (^. katipEnv . hasqlDbPool) ask
     auth_logger <- katipAddNamespace (Namespace ["auth"]) askLoggerIO
-    let checkToken = transaction hasql auth_logger . statement Auth.checkToken
+    let checkToken = transactionIO hasql auth_logger . statement Auth.checkToken
     authRes <- liftIO $ validateJwt (defaultJWTSettings key) checkToken $ token^.textbs
     fmap (first (const "auth error")) $ for authRes $ \auth -> do
       liftIO $ WS.sendDataMessage conn (WS.Text (encode (Ok ())) Nothing)

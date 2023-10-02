@@ -68,7 +68,7 @@ import Servant.Swagger.UI
 import qualified Katip.Wai as Katip.Wai
 import Control.Monad.IO.Unlift (MonadUnliftIO (withRunInIO))
 import qualified Network.Minio as Minio
-import Database.Transaction (transaction, statement)
+import Database.Transaction (transactionIO, statement)
 import Data.UUID (UUID)
 import Network.Wai.RateLimit.Backend
 import Data.ByteString (ByteString)
@@ -159,7 +159,7 @@ run Cfg {..} = do
                     defaultParseRequestBodyOptions
           }
   
-  let checkToken = transaction (katipEnvHasqlDbPool configKatipEnv) auth_logger . statement Auth.checkToken
+  let checkToken = transactionIO (katipEnvHasqlDbPool configKatipEnv) auth_logger . statement Auth.checkToken
 
   rateBackend <- liftIO $ postgresBackend psqlpool "rate_limit"
 
