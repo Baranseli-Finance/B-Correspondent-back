@@ -20,7 +20,8 @@ import BCorrespondent.Transport.Model.Frontend
         level, 
         toTelegram, 
         defInit, 
-        shaXs, 
+        shaXs,
+        loadCssLocally,
         JWTStatus (..), 
         LogLevel)
 import BCorrespondent.Transport.Model.Auth (AuthToken (..))
@@ -63,7 +64,8 @@ data FrontEnvs =
      { frontEnvsLogLevel :: !LogLevel, 
        frontEnvsToTelegram :: !Bool,
        frontEnvsTelegramBot :: !Text,
-       frontEnvsTelegramChat :: !Text
+       frontEnvsTelegramChat :: !Text,
+       frontEnvsLoadCssLocally :: !Bool
      }
     deriving stock (Generic)
     deriving
@@ -125,5 +127,6 @@ handle token = do
             level = frontEnvsLogLevel, 
             toTelegram = frontEnvsToTelegram,
             telegramBot = frontEnvsTelegramBot,
-            telegramChat = frontEnvsTelegramChat
+            telegramChat = frontEnvsTelegramChat,
+            loadCssLocally = frontEnvsLoadCssLocally
           }

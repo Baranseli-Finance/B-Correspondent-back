@@ -28,6 +28,7 @@ module BCorrespondent.Transport.Model.Frontend
         telegramBot,
         telegramChat,
         level,
+        loadCssLocally,
         Sha (..),
         JWTStatus (..),
         LogLevel,
@@ -110,7 +111,8 @@ data Init =
       level :: !LogLevel,
       toTelegram :: !Bool,
       telegramBot :: !Text,
-      telegramChat :: !Text
+      telegramChat :: !Text,
+      loadCssLocally :: !Bool
     }
     deriving stock (Generic, Show)
     deriving
@@ -124,4 +126,4 @@ instance Default Init
 
 deriveToSchemaFieldLabelModifier ''Init [| map toLower |]
 
-defInit = Init def def def def def def
+defInit = Init def def def def def def def
