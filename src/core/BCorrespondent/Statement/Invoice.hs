@@ -33,7 +33,7 @@ import Control.Lens
 import Data.Coerce (coerce)
 import Data.String.Conv (toS)
 import qualified Data.Vector.Extended as V
-import Data.Tuple.Extended (app1, app2, app3, snocT)
+import Data.Tuple.Extended (app1, app2, app3, snocT, app16)
 import Database.Transaction (ParamsShow (..))
 import Data.Aeson (encode, eitherDecode)
 import Data.Bifunctor (second)
@@ -72,9 +72,10 @@ register =
           payment_description,
           amount,
           vat,
+          fee,
           status)
         select
-          $17 :: int8, 
+          $18 :: int8, 
           invoice_id, 
           customer_id,
           currency, 
@@ -90,7 +91,8 @@ register =
           payment_description, 
           amount,
           vat,
-          $16 :: text
+          fee,
+          $17 :: text
         from unnest(
           $1 :: text[], 
           $2 :: text[], 
@@ -106,7 +108,8 @@ register =
           $12 :: text?[],
           $13 :: text[],
           $14 :: float8[],
-          $15 :: float8[])
+          $15 :: float8[],
+          $16 :: text[])
         as x(
             invoice_id,
             customer_id, 
@@ -122,13 +125,14 @@ register =
             buyer_phone_number, 
             payment_description,
             amount, 
-            vat)
+            vat,
+            fee)
         on conflict (customer_id, invoice_id, institution_id) do nothing
         returning id :: int8 as invoice_id, invoice_id as external_id),
       delivery as (
         insert into institution.invoice_to_institution_delivery
         (invoice_id, institution_id)
-        select invoice_id, $17 :: int8 from xs),
+        select invoice_id, $18 :: int8 from xs),
       external_ident as (  
         insert into institution.invoice_external_ident
         (invoice_id)
@@ -143,12 +147,13 @@ register =
     mkEncoder (instId, xs) = 
       snocT instId $
         snocT (toS (show Registered)) $
-          app3 (V.map (toS . show)) $ 
-            app2 (V.map coerce) $ 
-              app1 (V.map coerce) $
-                V.unzip15 $ 
-                  V.fromList $ 
-                    map encodeInvoice xs
+          app3 (V.map (toS . show)) $
+            app16 (V.map (toS . show)) $
+              app2 (V.map coerce) $ 
+                app1 (V.map coerce) $
+                  V.unzip16 $ 
+                    V.fromList $ 
+                      map encodeInvoice xs
 
 updateStatus :: HS.Statement [(Int64, Status)] ()
 updateStatus = 

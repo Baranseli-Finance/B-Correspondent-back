@@ -26,6 +26,7 @@ module BCorrespondent.Transport.Model.Invoice
         ExternalCustomerId (..),
         InvoiceToElekse (..),
         InvoiceRegisterResponse (..),
+        Fee (..),
         encodeInvoice
        ) where
 
@@ -53,7 +54,8 @@ data Currency = USD | EUR
      deriving stock (Generic, Show)
      deriving (FromJSON, ToJSON)
       via WithOptions
-          '[ConstructorTagModifier '[UserDefined ToLower]]
+          '[ConstructorTagModifier 
+            '[UserDefined ToLower]]
           Currency
 
 mkArbitrary ''Currency
@@ -74,6 +76,23 @@ newtype ExternalCustomerId = ExternalCustomerId T.Text
 
 instance ToSchema ExternalCustomerId
 
+
+-- :71A::Details of charges
+-- Use this three-letter field to specify the party that will pay the transaction charges. The possible values are:
+-- OUR for charges to be paid by the ordering customer; or
+-- SHA for charges to be shared by the ordering customer and the final beneficiary.
+data Fee = OUR | SHA
+     deriving stock (Generic, Show)
+     deriving (FromJSON, ToJSON)
+      via WithOptions
+          '[ConstructorTagModifier 
+            '[UserDefined ToLower]]
+          Fee
+
+mkArbitrary ''Fee
+
+deriveToSchemaConstructorTag ''Fee [| map toLower |]
+
 {-
 invoice:   
     customer id text required,
@@ -91,11 +110,7 @@ invoice:
     currency text required,
     amount double required,
     vat double required,
-    fee enum Fee 
-    where Fee is one of
-       OUR <-- for charges to be paid by the ordering customer 
-       | SHA <-- for charges to be shared by the ordering customer and the final beneficiary)
-
+    fee enum Fee required
 -}
 data InvoiceRegisterRequest =
      InvoiceRegisterRequest 
@@ -113,7 +128,8 @@ data InvoiceRegisterRequest =
        invoiceRegisterRequestBuyerPhoneNumber :: !(Maybe T.Text),
        invoiceRegisterRequestPaymentDescription :: !T.Text,
        invoiceRegisterRequestAmount :: !Double,
-       invoiceRegisterRequestVat :: !Double
+       invoiceRegisterRequestVat :: !Double,
+       invoiceRegisterRequestFee :: !Fee
      }
      deriving stock (Generic, Show)
      deriving (FromJSON, ToJSON)
@@ -131,11 +147,11 @@ encodeInvoice
   :: InvoiceRegisterRequest
   -> (ExternalInvoiceId, ExternalCustomerId, Currency, UTCTime, T.Text,
       T.Text, Maybe T.Text, Maybe T.Text, T.Text, T.Text,
-      Maybe T.Text, Maybe T.Text, T.Text, Double, Double)
+      Maybe T.Text, Maybe T.Text, T.Text, Double, Double, Fee)
 encodeInvoice = fromMaybe undefined . mkEncoderInvoiceRegisterRequest
 
 instance ParamsShow InvoiceRegisterRequest where
-  render = show . fromMaybe undefined . mkEncoderInvoiceRegisterRequest
+  render = undefined . fromMaybe undefined . mkEncoderInvoiceRegisterRequest
 
 deriveToSchemaFieldLabelModifier ''InvoiceRegisterRequest [|firstLetterModify (Proxy @InvoiceRegisterRequest)|]
 
