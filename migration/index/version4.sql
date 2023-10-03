@@ -19,6 +19,7 @@ create table institution.invoice (
     amount decimal(16, 2) not null,
     vat decimal(16, 2) not null,
     status text not null,
+    fee text not null,
     constraint institution_transaction__institution_id__fk foreign key (institution_id) references auth.institution(id),
     constraint institution_transaction__invoice_id_institution_id_customer_id__unique unique (customer_id, invoice_id, institution_id));
 
