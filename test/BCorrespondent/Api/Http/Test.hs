@@ -1,13 +1,14 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE TypeApplications #-}
 {-# OPTIONS_GHC -fconstraint-solver-iterations=16 #-}
 
 module BCorrespondent.Api.Http.Test (spec_api) where
 
 import Data.Proxy
 import BCorrespondent.Api.Auth (AuthApi)
-import BCorrespondent.Api.Invoice (InvoiceApi)
+import BCorrespondent.Api.Institution (InstitutionApi)
 import BCorrespondent.Api.Frontend (FrontendApi)
 import BCorrespondent.Transport.Model.Auth (Credentials, AuthToken, NewPassword, AuthCodeHash, ResendCode, AuthCode)
 import BCorrespondent.Api.Handler.SendGrid.SendMail (SendGridSendMailRequest)
@@ -40,10 +41,10 @@ spec_api :: Spec
 spec_api =
   describe "Swagger spec for API" $ do
     context "ToJSON matches ToSchema (AuthApi)" $
-      validateEveryToJSON (genericApi (Proxy :: Proxy AuthApi))
+      validateEveryToJSON (genericApi (Proxy @AuthApi))
     context "ToJSON matches ToSchema (SendGridApi)" $
-      validateEveryToJSON (genericApi (Proxy :: Proxy SendGridApi))
+      validateEveryToJSON (genericApi (Proxy @SendGridApi))
     context "ToJSON matches ToSchema (InvoiceApi)" $
-      validateEveryToJSON (genericApi (Proxy :: Proxy InvoiceApi))
+      validateEveryToJSON (genericApi (Proxy @InstitutionApi))
     context "ToJSON matches ToSchema (FrontendApi)" $
-      validateEveryToJSON (genericApi (Proxy :: Proxy FrontendApi))
+      validateEveryToJSON (genericApi (Proxy @FrontendApi))
