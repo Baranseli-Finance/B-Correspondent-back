@@ -3,13 +3,13 @@
 {-#LANGUAGE NumericUnderscores #-}
 {-#LANGUAGE TypeApplications #-}
 
-module BCorrespondent.Job.Invoice (forwardToElekse) where
+module BCorrespondent.Job.Invoice (forwardToPaymentProvider) where
 
 import BCorrespondent.Statement.Invoice 
-       (getInvoicesToBeSent, insertFailedInvoices, updateStatus, Status (ForwardedToElekse))
+       (getInvoicesToBeSent, insertFailedInvoices, updateStatus, Status (ForwardedToPaymentProvider))
 import BCorrespondent.Job.Utils (withElapsedTime)
 import BCorrespondent.ServerM
-import BCorrespondent.Transport.Model.Invoice (InvoiceToElekse)
+import BCorrespondent.Transport.Model.Invoice (InvoiceToPaymentProvider)
 import Katip
 import BuildInfo (location)
 import Control.Monad (forever)
@@ -25,11 +25,11 @@ import qualified Control.Concurrent.Async.Lifted as Async
 import Data.Aeson.WithField (WithField (..))
 import qualified Request as Request 
 
-forwardToElekse :: Int -> KatipContextT ServerM ()
-forwardToElekse freq =
+forwardToPaymentProvider :: Int -> KatipContextT ServerM ()
+forwardToPaymentProvider freq =
   forever $ do 
     threadDelay $ freq * 1_000_000
-    withElapsedTime ($location <> ":forwardToElekse") $ do
+    withElapsedTime ($location <> ":forwardToPaymentProvider") $ do
       hasql <- fmap (^. hasqlDbPool) ask
       res <- transactionM hasql $ statement getInvoicesToBeSent ()
       case res of
@@ -38,7 +38,7 @@ forwardToElekse freq =
           ys <- Async.forConcurrently xs $
             \(WithField _ invoice) -> do
               let req = Left $ Just $ invoice
-              _ <- Request.make @InvoiceToElekse undefined manager [] Request.methodPost req
+              _ <- Request.make @InvoiceToPaymentProvider undefined manager [] Request.methodPost req
               undefined
           let (es, os) = partitionEithers ys
           for_ es $ \ident ->
@@ -50,5 +50,5 @@ forwardToElekse freq =
               toS (show ident)
           transactionM hasql $ do 
             statement insertFailedInvoices es
-            statement updateStatus $ os <&> \x -> (x, ForwardedToElekse)
-        Left err -> $(logTM) CriticalS $ logStr @T.Text $ $location <> ":forwardToElekse: decode error ---> " <> toS err
+            statement updateStatus $ os <&> \x -> (x, ForwardedToPaymentProvider)
+        Left err -> $(logTM) CriticalS $ logStr @T.Text $ $location <> ":forwardToPaymentProvider: decode error ---> " <> toS err

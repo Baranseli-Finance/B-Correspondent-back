@@ -174,6 +174,7 @@ run Cfg {..} = do
 
   mware_logger <- askLoggerWithLocIO `addServerNm` "middleware"
 
+  -- main loop
   forever $ do
     threadDelay 1_000_000
     serverAsync <-
@@ -185,12 +186,30 @@ run Cfg {..} = do
               (runKatipContextT logEnv () ns) $ do
                 let app = serveWithContext (withSwagger api) mkContext hoistedServer
                 mkApplication app
-    sendAsync <- Async.Lifted.async $ Job.Transaction.sendToTochkaBank jobFrequency
-    forwardAsync <- Async.Lifted.async $ Job.Invoice.forwardToElekse jobFrequency
+    forwardToInitiatorAsync <- 
+      Async.Lifted.async $ 
+        Job.Transaction.forwardToInitiator
+          jobFrequency
+    forwardToProviderAsync <- 
+      Async.Lifted.async $ 
+        Job.Invoice.forwardToPaymentProvider 
+          jobFrequency
     ServerState c <- get
     when (c == 50) $ throwM RecoveryFailed
-    end <- fmap snd $ flip logExceptionM ErrorS $ Async.Lifted.waitAnyCatchCancel [serverAsync, sendAsync, forwardAsync]
-    whenLeft end $ \e -> do ST.modify' (+1); $(logTM) EmergencyS $ fromString $ mkPretty mempty $ "server has been terminated. error " <> show e
+    end <- fmap snd $ 
+      flip logExceptionM ErrorS $ 
+        Async.Lifted.waitAnyCatchCancel 
+          [ serverAsync, 
+           forwardToInitiatorAsync, 
+           forwardToProviderAsync
+          ]
+    whenLeft end $ \e -> do
+      ST.modify' (+1)
+      let msg = 
+            "server has been \
+            \ terminated with error "
+      $(logTM) EmergencyS $ 
+        fromString $ mkPretty mempty $ msg <> show e
 
 middleware :: Cfg.Cors -> KatipLoggerLocIO -> Application -> Application
 middleware cors log app = mkCors cors app

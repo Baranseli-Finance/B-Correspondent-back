@@ -18,9 +18,9 @@
 {-# OPTIONS_GHC -fno-warn-unused-top-binds #-}
 
 module BCorrespondent.Transport.Model.Transaction 
-       ( TransactionFromServiceProvider, 
+       ( TransactionFromPaymentProvider, 
          TransactionId (..),
-         TransactionToBank
+         TransactionToInitiator
        ) where
 
 import Data.UUID (UUID)
@@ -34,20 +34,19 @@ import Test.QuickCheck.Extended (Arbitrary)
 import Database.Transaction (ParamsShow)
 import qualified Data.Text as T
 
--- transaction received from Elekse
-data TransactionFromServiceProvider =
-     TransactionFromServiceProvider 
-     { transactionFromServiceProviderSwiftSepa :: T.Text }
+data TransactionFromPaymentProvider =
+     TransactionFromPaymentProvider 
+     { transactionFromPaymentProviderSwiftSepa :: T.Text }
      deriving stock (Generic, Show)
      deriving (ToJSON, FromJSON)
        via WithOptions
           '[OmitNothingFields 'True, 
             FieldLabelModifier 
             '[UserDefined ToLower, 
-              UserDefined (StripConstructor TransactionFromServiceProvider)]]
-          TransactionFromServiceProvider
+              UserDefined (StripConstructor TransactionFromPaymentProvider)]]
+          TransactionFromPaymentProvider
 
-deriveToSchemaFieldLabelModifier ''TransactionFromServiceProvider [|modify (Proxy @TransactionFromServiceProvider)|]
+deriveToSchemaFieldLabelModifier ''TransactionFromPaymentProvider [|modify (Proxy @TransactionFromPaymentProvider)|]
 
 newtype TransactionId = TransactionId UUID
   deriving stock (Generic, Show)
@@ -55,17 +54,16 @@ newtype TransactionId = TransactionId UUID
  
 instance ToSchema TransactionId
 
-data TransactionToBank =
-     TransactionToBank 
-     { transactionToBankSenderName :: T.Text
-     }
+data TransactionToInitiator =
+     TransactionToInitiator 
+     { transactionToInitiatorSenderName :: T.Text }
      deriving stock (Generic, Show)
      deriving (ToJSON, FromJSON)
        via WithOptions
           '[OmitNothingFields 'True, 
             FieldLabelModifier 
             '[UserDefined ToLower, 
-              UserDefined (StripConstructor TransactionToBank)]]
-          TransactionToBank
+              UserDefined (StripConstructor TransactionToInitiator)]]
+          TransactionToInitiator
 
-deriveToSchemaFieldLabelModifier ''TransactionToBank [|modify (Proxy @TransactionToBank)|]
+deriveToSchemaFieldLabelModifier ''TransactionToInitiator [|modify (Proxy @TransactionToInitiator)|]

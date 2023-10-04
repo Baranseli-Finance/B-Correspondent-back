@@ -68,6 +68,7 @@ import Data.Yaml
 import GHC.Generics
 import TH.Mk
 import Control.Monad.Catch (throwM)
+import BuildInfo (location)
 
 data Db = Db
   { dbHost :: !String,
@@ -92,13 +93,15 @@ data Env = Prod | Dev deriving (Show, Eq)
 
 mkEnumConvertor ''Env
 
-instance FromJSON Env where parseJSON = withText "Scaffold.Config:Env" (pure . toEnv . toS)
+instance FromJSON Env where 
+  parseJSON = withText $location (pure . toEnv . toS)
 
 data StdoutFormat = Json | Bracket deriving (Show, Eq)
 
 mkEnumConvertor ''StdoutFormat
 
-instance FromJSON StdoutFormat where parseJSON = withText "Scaffold.Config:StdoutFormat" (pure . toStdoutFormat . toS)
+instance FromJSON StdoutFormat where
+    parseJSON = withText $location (pure . toStdoutFormat . toS)
 
 data Katip = Katip
   { katipPath :: !FilePath,

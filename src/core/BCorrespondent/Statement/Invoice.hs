@@ -8,6 +8,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# OPTIONS_GHC -fno-warn-unused-top-binds #-}
+{-# OPTIONS_GHC -fconstraint-solver-iterations=16 #-}
 
 module BCorrespondent.Statement.Invoice 
        ( register, 
@@ -23,7 +24,7 @@ import BCorrespondent.Transport.Model.Invoice
         InvoiceRegisterResponse, 
         ExternalInvoiceId (..), 
         ExternalCustomerId (..),
-        InvoiceToElekse,
+        InvoiceToPaymentProvider,
         encodeInvoice
        )
 import qualified Hasql.Statement as HS
@@ -42,7 +43,12 @@ import GHC.Generics
 import Data.Aeson.WithField (WithField)
 import qualified Data.Text as T
 
-data Status = Registered | ForwardedToElekse | Confirmed | Declined
+data Status = 
+       Registered 
+     | ForwardedToPaymentProvider 
+     | Confirmed 
+     | Declined 
+     | ForwardedToinitiator
   deriving stock (Generic, Show)
 
 instance ParamsShow Status where
@@ -165,9 +171,9 @@ updateStatus =
      as x(ident, status)
      where id = x.ident|]
   
-getInvoicesToBeSent :: HS.Statement () (Either String [WithField "ident" Int64 InvoiceToElekse])
+getInvoicesToBeSent :: HS.Statement () (Either String [WithField "ident" Int64 InvoiceToPaymentProvider])
 getInvoicesToBeSent =
-  rmap (sequence . map (eitherDecode @(WithField "ident" Int64 InvoiceToElekse) . encode) .  V.toList)
+  rmap (sequence . map (eitherDecode @(WithField "ident" Int64 InvoiceToPaymentProvider) . encode) .  V.toList)
   [vectorStatement|
     select
       jsonb_build_object(

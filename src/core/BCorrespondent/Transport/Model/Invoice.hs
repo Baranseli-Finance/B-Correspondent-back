@@ -24,7 +24,7 @@ module BCorrespondent.Transport.Model.Invoice
         InvoiceRegisterRequest (..), 
         InvoiceId (..),
         ExternalCustomerId (..),
-        InvoiceToElekse (..),
+        InvoiceToPaymentProvider (..),
         InvoiceRegisterResponse (..),
         Fee (..),
         encodeInvoice
@@ -162,7 +162,7 @@ newtype InvoiceId = InvoiceId Int64
 
 instance ToSchema InvoiceId
 
-data InvoiceRegisterResponse = 
+data InvoiceRegisterResponse =
      InvoiceRegisterResponse 
      { invoiceRegisterResponseExternalIdent :: !ExternalInvoiceId,
        invoiceRegisterResponseInternalIdent :: !InvoiceId
@@ -178,12 +178,14 @@ data InvoiceRegisterResponse =
 
 deriveToSchemaFieldLabelModifier ''InvoiceRegisterResponse [|firstLetterModify (Proxy @InvoiceRegisterResponse)|]
 
-data InvoiceToElekse = InvoiceToElekse { invoiceToElekseExternalId :: UUID }
+data InvoiceToPaymentProvider = 
+     InvoiceToPaymentProvider 
+     { invoiceToPaymentProviderExternalId :: UUID }
      deriving stock (Generic, Show)
      deriving (FromJSON, ToJSON)
        via WithOptions
           '[OmitNothingFields 'True, 
             FieldLabelModifier 
             '[UserDefined FirstLetterToLower, 
-              UserDefined (StripConstructor InvoiceToElekse)]]
-          InvoiceToElekse
+              UserDefined (StripConstructor InvoiceToPaymentProvider)]]
+          InvoiceToPaymentProvider

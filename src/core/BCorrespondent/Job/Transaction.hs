@@ -3,13 +3,13 @@
 {-#LANGUAGE NumericUnderscores #-}
 {-#LANGUAGE TypeApplications #-}
 
-module BCorrespondent.Job.Transaction (sendToTochkaBank) where
+module BCorrespondent.Job.Transaction (forwardToInitiator) where
 
 import BCorrespondent.Statement.Transaction 
        (getTransactionsToBeSent, insertSentTransactions, insertFailedTransactions)
 import BCorrespondent.Job.Utils (withElapsedTime)
 import BCorrespondent.ServerM
-import BCorrespondent.Transport.Model.Transaction (TransactionToBank)
+import BCorrespondent.Transport.Model.Transaction (TransactionToInitiator)
 import Katip
 import BuildInfo (location)
 import Control.Monad (forever)
@@ -25,11 +25,11 @@ import Data.Aeson.WithField (WithField (..))
 import qualified Control.Concurrent.Async.Lifted as Async
 import qualified Request as Request
 
-sendToTochkaBank :: Int -> KatipContextT ServerM ()
-sendToTochkaBank freq = 
+forwardToInitiator :: Int -> KatipContextT ServerM ()
+forwardToInitiator freq = 
   forever $ do 
     threadDelay $ freq * 1_000_000   
-    withElapsedTime ($location <> ":sendToTochkaBank") $ do
+    withElapsedTime ($location <> ":forwardToInitiator") $ do
       hasql <- fmap (^. hasqlDbPool) ask
       res <- transactionM hasql $ statement getTransactionsToBeSent ()
       case res of 
@@ -38,17 +38,17 @@ sendToTochkaBank freq =
           ys <- Async.forConcurrently xs $ 
             \(WithField _ transaction) -> do  
                 let req = Left $ Just $ transaction
-                _ <- Request.make @TransactionToBank undefined manager [] Request.methodPost req
+                _ <- Request.make @TransactionToInitiator undefined manager [] Request.methodPost req
                 undefined
           let (es, os) = partitionEithers ys
           for_ es $ \ident ->
             $(logTM) ErrorS $
               logStr @T.Text $
                 $location <>
-                ":sendToTochkaBank: --> \ 
+                ":forwardToInitiator: --> \ 
                 \ transaction details failed to be sent, " <>
                 toS (show ident)
           transactionM hasql $ do 
             statement insertFailedTransactions es
             statement insertSentTransactions os
-        Left err -> $(logTM) CriticalS $ logStr @T.Text $ $location <> ":sendToTochkaBank: decode error ---> " <> toS err
+        Left err -> $(logTM) CriticalS $ logStr @T.Text $ $location <> ":forwardToInitiator: decode error ---> " <> toS err

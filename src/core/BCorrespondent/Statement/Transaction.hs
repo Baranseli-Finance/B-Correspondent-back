@@ -18,7 +18,7 @@ module BCorrespondent.Statement.Transaction
        ) 
        where
 
-import BCorrespondent.Transport.Model.Transaction (TransactionToBank, TransactionId (..))
+import BCorrespondent.Transport.Model.Transaction (TransactionToInitiator, TransactionId (..))
 
 import qualified Hasql.Statement as HS
 import Hasql.TH
@@ -36,9 +36,9 @@ import GHC.Generics
 import TH.Mk (mkArbitrary, mkEncoder)
 import Data.Maybe (fromMaybe)
 
-getTransactionsToBeSent :: HS.Statement () (Either String [WithField "id" UUID TransactionToBank])
+getTransactionsToBeSent :: HS.Statement () (Either String [WithField "id" UUID TransactionToInitiator])
 getTransactionsToBeSent =
-  rmap (sequence . map (eitherDecode @(WithField "id" UUID TransactionToBank) . encode) .  V.toList)
+  rmap (sequence . map (eitherDecode @(WithField "id" UUID TransactionToInitiator) . encode) .  V.toList)
   [vectorStatement|
     select
       jsonb_build_object(
