@@ -42,6 +42,8 @@ import TH.Mk (mkArbitrary)
 import GHC.Generics
 import Data.Aeson.WithField (WithField)
 import qualified Data.Text as T
+import Data.Bifunctor (first)
+import Data.Tuple (swap)
 
 data Status = 
        Registered
@@ -56,11 +58,12 @@ instance ParamsShow Status where
 
 mkArbitrary ''Status
 
-register :: HS.Statement (Int64, [InvoiceRegisterRequest]) (Either String [InvoiceRegisterResponse])
+register :: HS.Statement (Int64, [(InvoiceRegisterRequest, T.Text)]) (Either String [InvoiceRegisterResponse])
 register = 
   dimap mkEncoder (sequence . map (eitherDecode @InvoiceRegisterResponse . encode) . V.toList) $ 
   [vectorStatement|
-    with xs as (
+    with
+       xs as (
         insert into institution.invoice
         ( institution_id,
           invoice_id,
@@ -79,9 +82,10 @@ register =
           amount,
           vat,
           fee,
+          textual_view,
           status)
         select
-          $18 :: int8, 
+          $19 :: int8, 
           invoice_id, 
           customer_id,
           currency, 
@@ -98,7 +102,12 @@ register =
           amount,
           vat,
           fee,
-          $17 :: text
+          country_code || 
+          currency || 
+          ( repeat('0', 9 - length(cast((select nextval('institution.invoice_id_seq')) as text))) 
+            || cast((select nextval('institution.invoice_id_seq')) as text))
+            as textual_view,
+          $18 :: text
         from unnest(
           $1 :: text[], 
           $2 :: text[], 
@@ -115,7 +124,8 @@ register =
           $13 :: text[],
           $14 :: float8[],
           $15 :: float8[],
-          $16 :: text[])
+          $16 :: text[],
+          $17 :: text[])
         as x(
             invoice_id,
             customer_id, 
@@ -132,13 +142,14 @@ register =
             payment_description,
             amount,
             vat,
-            fee)
+            fee,
+            country_code)
         on conflict (customer_id, invoice_id, institution_id) do nothing
         returning id :: int8 as invoice_id, invoice_id as external_id),
       delivery as (
         insert into institution.invoice_to_institution_delivery
         (invoice_id, institution_id)
-        select invoice_id, $18 :: int8 from xs),
+        select invoice_id, $19 :: int8 from xs),
       external_ident as (  
         insert into institution.invoice_external_ident
         (invoice_id)
@@ -157,9 +168,9 @@ register =
             app16 (V.map (toS . show)) $
               app2 (V.map coerce) $ 
                 app1 (V.map coerce) $
-                  V.unzip16 $ 
+                  V.unzip17 $ 
                     V.fromList $ 
-                      map encodeInvoice xs
+                      map ((uncurry snocT . swap) . first encodeInvoice) xs
 
 updateStatus :: HS.Statement [(Int64, Status)] ()
 updateStatus = 

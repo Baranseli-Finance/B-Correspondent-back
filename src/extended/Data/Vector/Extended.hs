@@ -9,7 +9,8 @@ module Data.Vector.Extended
     unzip13,
     unzip14,
     unzip15,
-    unzip16
+    unzip16,
+    unzip17
   )
 where
 
@@ -172,4 +173,24 @@ unzip16 xs =
     Data.Vector.Generic.map (\(_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, f1) -> f1) xs
   )
 
+unzip17 :: Vector (a, b, c, d, e, f, g, h, k, l, a1, b1, c1, d1, e1, f1, g1) -> (Vector a, Vector b, Vector c, Vector d, Vector e, Vector f, Vector g, Vector h, Vector k, Vector l, Vector a1, Vector b1, Vector c1, Vector d1, Vector e1, Vector f1, Vector g1)
+unzip17 xs =
+  ( Data.Vector.Generic.map (\(a, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _) -> a) xs,
+    Data.Vector.Generic.map (\(_, b, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _) -> b) xs,
+    Data.Vector.Generic.map (\(_, _, c, _, _, _, _, _, _, _, _, _, _, _, _, _, _) -> c) xs,
+    Data.Vector.Generic.map (\(_, _, _, d, _, _, _, _, _, _, _, _, _, _, _, _, _) -> d) xs,
+    Data.Vector.Generic.map (\(_, _, _, _, e, _, _, _, _, _, _, _, _, _, _, _, _) -> e) xs,
+    Data.Vector.Generic.map (\(_, _, _, _, _, f, _, _, _, _, _, _, _, _, _, _, _) -> f) xs,
+    Data.Vector.Generic.map (\(_, _, _, _, _, _, g, _, _, _, _, _, _, _, _, _, _) -> g) xs,
+    Data.Vector.Generic.map (\(_, _, _, _, _, _, _, h, _, _, _, _, _, _, _, _, _) -> h) xs,
+    Data.Vector.Generic.map (\(_, _, _, _, _, _, _, _, k, _, _, _, _, _, _, _, _) -> k) xs,
+    Data.Vector.Generic.map (\(_, _, _, _, _, _, _, _, _, l, _, _, _, _, _, _, _) -> l) xs,
+    Data.Vector.Generic.map (\(_, _, _, _, _, _, _, _, _, _, a1, _, _, _, _, _, _) -> a1) xs,
+    Data.Vector.Generic.map (\(_, _, _, _, _, _, _, _, _, _, _, b1, _, _, _, _, _) -> b1) xs,
+    Data.Vector.Generic.map (\(_, _, _, _, _, _, _, _, _, _, _, _, c1, _, _, _, _) -> c1) xs,
+    Data.Vector.Generic.map (\(_, _, _, _, _, _, _, _, _, _, _, _, _, d1, _, _, _) -> d1) xs,
+    Data.Vector.Generic.map (\(_, _, _, _, _, _, _, _, _, _, _, _, _, _, e1, _, _) -> e1) xs,
+    Data.Vector.Generic.map (\(_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, f1, _) -> f1) xs,
+    Data.Vector.Generic.map (\(_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, g1) -> g1) xs
+  )
 

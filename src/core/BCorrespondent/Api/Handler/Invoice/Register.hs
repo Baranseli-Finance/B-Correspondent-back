@@ -4,6 +4,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module BCorrespondent.Api.Handler.Invoice.Register (handle) where
 
@@ -24,8 +25,9 @@ import GHC.Generics (Generic)
 import qualified Data.ByteString.Lazy as B
 import Control.Monad.IO.Class (liftIO) 
 import qualified Data.Vector as V
-import Data.Maybe (isJust)
+import Data.Maybe (isJust, fromMaybe)
 import Data.List ((\\))
+import BuildInfo (location)
 
 data CountryCode = 
      CountryCode
@@ -48,18 +50,21 @@ handle Auth.AuthenticatedUser {..} xs = do
   countryXsE <- fmap decode $ liftIO $ B.readFile path
   withEither countryXsE $ \countryXs -> do 
     let xs' = 
-           [ x |
-             x <- xs, 
-             isJust $ 
-               flip V.find countryXs $ 
-                 \CountryCode {..} -> 
-                   countryCodeCountryCode == 
-                   invoiceRegisterRequestCountryISOCode x
+           [ (x, code) |
+             x <- xs,
+             let val = 
+                   flip V.find countryXs $ 
+                     \CountryCode {..} -> 
+                       countryCodeCountryCode == 
+                       invoiceRegisterRequestCountryISOCode x,
+             isJust val,
+             let msg = error $ $location <> " nothing while resolving CountryCode",
+             let code = countryCodeAlpha2 $ fromMaybe msg val   
            ]
     let cmpRes = 
-                if length (xs \\ xs') == 0 
+                if length (xs \\ map fst xs') == 0 
                 then Right () 
-                else Left $ "the following invoices contain invalid country code: " <> show (xs \\ xs')
+                else Left $ "the following invoices contain invalid country code: " <> show (xs \\ map fst xs')
     withEither cmpRes $ const $ do 
       hasql <- fmap (^. katipEnv . hasqlDbPool) ask
-      fmap (fromEither @T.Text . first toS) $ transactionM hasql $ statement Invoice.register (ident, xs)
+      fmap (fromEither @T.Text . first toS) $ transactionM hasql $ statement Invoice.register (ident, xs')
