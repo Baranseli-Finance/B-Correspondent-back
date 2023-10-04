@@ -93,7 +93,7 @@ register =
           buyer, 
           buyer_address, 
           buyer_tax_id, 
-          buyer_phone_number, 
+          buyer_phone_number,
           payment_description, 
           amount,
           vat,
@@ -130,7 +130,7 @@ register =
             buyer_tax_id, 
             buyer_phone_number, 
             payment_description,
-            amount, 
+            amount,
             vat,
             fee)
         on conflict (customer_id, invoice_id, institution_id) do nothing
@@ -150,8 +150,8 @@ register =
           'internalIdent', invoice_id) :: jsonb
       from external_ident|]
   where 
-    mkEncoder (instId, xs) = 
-      snocT instId $
+    mkEncoder (instIdent, xs) =
+      snocT instIdent $
         snocT (toS (show Registered)) $
           app3 (V.map (toS . show)) $
             app16 (V.map (toS . show)) $

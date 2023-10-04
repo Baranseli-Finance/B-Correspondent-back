@@ -124,6 +124,8 @@ module Data.Tuple.Extended
     del13,
     del14,
     del15,
+    del16,
+    del17,
 
     -- * Folding
     foldlT,
@@ -634,6 +636,12 @@ del14 s = delN s (Proxy :: Proxy 13)
 del15 :: DeleteN s 14 t => s -> t
 del15 s = delN s (Proxy :: Proxy 14)
 
+del16 :: DeleteN s 15 t => s -> t
+del16 s = delN s (Proxy :: Proxy 15)
+
+del17 :: DeleteN s 16 t => s -> t
+del17 s = delN s (Proxy :: Proxy 16)
+
 class FoldLeft f s t | f s -> t where
   -- | Fold left for n-ary tuples
   --
@@ -914,3 +922,4 @@ type family ToTuple s where
   ToTuple (NP I '[a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p]) = (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p)
   ToTuple (NP I '[a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q]) = (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q)
   ToTuple (NP I '[a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r]) = (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r)
+  ToTuple (NP I '[a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s]) = (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s)

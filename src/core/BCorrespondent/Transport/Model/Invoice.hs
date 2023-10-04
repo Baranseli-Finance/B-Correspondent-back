@@ -49,9 +49,10 @@ import Data.Maybe (fromMaybe)
 import Data.Time.Clock (UTCTime)
 import Data.Int (Int64)
 import Data.UUID (UUID)
+import Data.Tuple.Extended (del17)
 
 data Currency = USD | EUR
-     deriving stock (Generic, Show)
+     deriving stock (Generic, Show, Eq)
      deriving (FromJSON, ToJSON)
       via WithOptions
           '[ConstructorTagModifier 
@@ -63,14 +64,14 @@ mkArbitrary ''Currency
 deriveToSchemaConstructorTag ''Currency [| map toLower |]
 
 newtype ExternalInvoiceId = ExternalInvoiceId T.Text
-  deriving stock (Generic, Show)
+  deriving stock (Generic, Show, Eq)
   deriving newtype (FromJSON, ToJSON)
   deriving newtype (Arbitrary)
 
 instance ToSchema ExternalInvoiceId
 
 newtype ExternalCustomerId = ExternalCustomerId T.Text
-  deriving stock (Generic, Show)
+  deriving stock (Generic, Show, Eq)
   deriving newtype (FromJSON, ToJSON)
   deriving newtype (Arbitrary)
 
@@ -82,7 +83,7 @@ instance ToSchema ExternalCustomerId
 -- OUR for charges to be paid by the ordering customer; or
 -- SHA for charges to be shared by the ordering customer and the final beneficiary.
 data Fee = OUR | SHA
-     deriving stock (Generic, Show)
+     deriving stock (Generic, Show, Eq)
      deriving (FromJSON, ToJSON)
       via WithOptions
           '[ConstructorTagModifier 
@@ -129,9 +130,10 @@ data InvoiceRegisterRequest =
        invoiceRegisterRequestPaymentDescription :: !T.Text,
        invoiceRegisterRequestAmount :: !Double,
        invoiceRegisterRequestVat :: !Double,
-       invoiceRegisterRequestFee :: !Fee
+       invoiceRegisterRequestFee :: !Fee,
+       invoiceRegisterRequestCountryISOCode :: !T.Text
      }
-     deriving stock (Generic, Show)
+     deriving stock (Generic, Show, Eq)
      deriving (FromJSON, ToJSON)
        via WithOptions
           '[OmitNothingFields 'True, 
@@ -148,10 +150,10 @@ encodeInvoice
   -> (ExternalInvoiceId, ExternalCustomerId, Currency, UTCTime, T.Text,
       T.Text, Maybe T.Text, Maybe T.Text, T.Text, T.Text,
       Maybe T.Text, Maybe T.Text, T.Text, Double, Double, Fee)
-encodeInvoice = fromMaybe undefined . mkEncoderInvoiceRegisterRequest
+encodeInvoice = fromMaybe undefined . fmap del17 . mkEncoderInvoiceRegisterRequest
 
 instance ParamsShow InvoiceRegisterRequest where
-  render = undefined . fromMaybe undefined . mkEncoderInvoiceRegisterRequest
+  render = undefined . encodeInvoice
 
 deriveToSchemaFieldLabelModifier ''InvoiceRegisterRequest [|firstLetterModify (Proxy @InvoiceRegisterRequest)|]
 

@@ -3,8 +3,14 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TupleSections #-}
 
-module BCorrespondent.Api.Handler.Utils (withError, withErrorExt, extractMIMEandExts) where
+module BCorrespondent.Api.Handler.Utils 
+       ( withError, 
+         withErrorExt, 
+         extractMIMEandExts, 
+         withEither
+       ) where
 
+import Katip.Handler (KatipHandlerM)
 import BCorrespondent.Transport.Response
 import qualified BCorrespondent.Transport.Error as E
 import Control.Lens
@@ -24,3 +30,7 @@ withError res = withErrorExt (second (,mempty) res)
 
 extractMIMEandExts :: T.Text -> (B.ByteString, [T.Text])
 extractMIMEandExts uri = let path = extractPath (uri^.textbs)^.from textbs in (defaultMimeLookup path, fileNameExtensions path)
+
+withEither :: Show e => Either e a -> (a -> KatipHandlerM (Response b)) -> KatipHandlerM (Response b)
+withEither (Left e) _ = pure $ Error Nothing $ asError (show e ^. stext)
+withEither (Right val) handler = handler val
