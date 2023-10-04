@@ -37,6 +37,7 @@ module Katip.Handler
     github,
     frontEnvFilePath,
     cache,
+    countryCode,
 
     -- * run
     runKatipHandler,
@@ -95,7 +96,8 @@ data KatipEnv = KatipEnv
     katipEnvWebhook :: !T.Text,
     katipEnvGithub :: !(Maybe Github),
     katipEnvFrontEnvFilePath :: !FilePath,
-    katipEnvCache :: !(Cache KatipHandlerM T.Text Value)
+    katipEnvCache :: !(Cache KatipHandlerM T.Text Value),
+    katipEnvCountryCode :: !T.Text
   }
 
 data Minio = Minio {minioConn :: !Minio.MinioConn, minioBucketPrefix :: !T.Text}

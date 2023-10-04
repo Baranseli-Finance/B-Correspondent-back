@@ -22,7 +22,7 @@ import qualified BCorrespondent.Api.Handler.Auth.ResendAuthCode as Auth.ResendAu
 import qualified BCorrespondent.Api.Handler.Auth.Login as Auth.Login
 import qualified BCorrespondent.Api.Handler.Auth.Logout as Auth.Logout
 import qualified BCorrespondent.Api.Handler.Invoice.Register as Invoice.Register
-import qualified BCorrespondent.Api.Handler.Frontend.Dashboard.GetTimeline as Frontend.Dashboard.GetTimeline
+import qualified BCorrespondent.Api.Handler.Frontend.Dashboard.GetDailyBalanceSheet as Frontend.Dashboard.GetDailyBalanceSheet
 import qualified BCorrespondent.Api.Handler.Frontend.Dashboard.GetHistory as Frontend.Dashboard.GetHistory
 import qualified BCorrespondent.Api.Handler.Frontend.Dashboard.MakeProcuratory as Frontend.Dashboard.MakeProcuratory
 import qualified BCorrespondent.Api.Handler.Frontend.Init as Frontend.Init
@@ -147,12 +147,12 @@ frontend =
 dashboard :: Text -> DashboardApi (AsServerT KatipHandlerM)
 dashboard nm =
   DashboardApi
-  { _dashboardApiGetDayTimeline = \auth ->
+  { _dashboardApiGetDailyBalanceSheet = \auth ->
        auth `Auth.withAuth` \user ->
          flip logExceptionM ErrorS $
            katipAddNamespace
            (Namespace [nm, "timeline"])
-           (Frontend.Dashboard.GetTimeline.handle user),
+           (Frontend.Dashboard.GetDailyBalanceSheet.handle user),
     _dashboardApiGetHistory = \auth ->
        auth `Auth.withAuth` \_ ->
          flip logExceptionM ErrorS $

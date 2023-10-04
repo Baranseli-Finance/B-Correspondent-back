@@ -340,7 +340,8 @@ main = do
               katipEnvWebhook = cfg^.webhook,
               katipEnvGithub = envKeys >>= envKeysGithub,
               katipEnvFrontEnvFilePath = frontEnvFilePath,
-              katipEnvCache = cache
+              katipEnvCache = cache,
+              katipEnvCountryCode = cfg^.countryCodeFilePath
           }
 
     let shutdownMsg = print "------ server is shut down --------"

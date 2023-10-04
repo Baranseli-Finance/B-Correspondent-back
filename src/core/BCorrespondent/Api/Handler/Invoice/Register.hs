@@ -3,6 +3,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module BCorrespondent.Api.Handler.Invoice.Register (handle) where
 
@@ -14,7 +15,7 @@ import qualified BCorrespondent.Auth as Auth
 import BCorrespondent.Api.Handler.Utils (withEither)
 import Katip.Handler
 import qualified Data.Text as T
-import Control.Lens ((^.))
+import Control.Lens ((^.), to)
 import Database.Transaction (statement, transactionM)
 import Data.String.Conv (toS)
 import Data.Bifunctor (first)
@@ -43,7 +44,8 @@ handle
   -> KatipHandlerM (Response [InvoiceRegisterResponse])
 handle Auth.AuthenticatedUser {..} xs = do
   let decode = decodeWith @CountryCode defaultDecodeOptions NoHeader
-  countryXsE <- fmap decode $ liftIO $ B.readFile "country-code.csv"
+  path <- fmap (^. katipEnv . countryCode . to toS) ask
+  countryXsE <- fmap decode $ liftIO $ B.readFile path
   withEither countryXsE $ \countryXs -> do 
     let xs' = 
            [ x |

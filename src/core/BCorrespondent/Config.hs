@@ -51,6 +51,7 @@ module BCorrespondent.Config
     serverError,
     webhook,
     jobFrequency,
+    countryCodeFilePath,
 
     -- * Iso
     isoEnv,
@@ -148,7 +149,8 @@ data Config = Config
     configCors :: !Cors,
     configServerError :: !ServerError,
     configJobFrequency :: !Int,
-    configWebhook :: !T.Text
+    configWebhook :: !T.Text,
+    configCountryCodeFilePath :: !T.Text
   }
   deriving (Show)
 
