@@ -44,10 +44,10 @@ import Data.Aeson.WithField (WithField)
 import qualified Data.Text as T
 
 data Status = 
-       Registered 
+       Registered
      | ForwardedToPaymentProvider 
-     | Confirmed 
-     | Declined 
+     | Confirmed
+     | Declined
      | ForwardedToinitiator
   deriving stock (Generic, Show)
 

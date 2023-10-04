@@ -22,11 +22,11 @@ import qualified BCorrespondent.Api.Handler.Auth.ResendAuthCode as Auth.ResendAu
 import qualified BCorrespondent.Api.Handler.Auth.Login as Auth.Login
 import qualified BCorrespondent.Api.Handler.Auth.Logout as Auth.Logout
 import qualified BCorrespondent.Api.Handler.Invoice.Register as Invoice.Register
-import qualified BCorrespondent.Api.Handler.Frontend.GetTimeline as Frontend.GetTimeline
-import qualified BCorrespondent.Api.Handler.Frontend.GetHistory as Frontend.GetHistory
-import qualified BCorrespondent.Api.Handler.Frontend.MakeProcuratory as Frontend.MakeProcuratory
+import qualified BCorrespondent.Api.Handler.Frontend.Dashboard.GetTimeline as Frontend.Dashboard.GetTimeline
+import qualified BCorrespondent.Api.Handler.Frontend.Dashboard.GetHistory as Frontend.Dashboard.GetHistory
+import qualified BCorrespondent.Api.Handler.Frontend.Dashboard.MakeProcuratory as Frontend.Dashboard.MakeProcuratory
 import qualified BCorrespondent.Api.Handler.Frontend.Init as Frontend.Init
-import qualified BCorrespondent.Api.Handler.Webhook.CatchElekse as Webhook.CatchElekse
+import qualified BCorrespondent.Api.Handler.Webhook.CatchPaymentProvider as Webhook.CatchPaymentProvider
 import qualified BCorrespondent.Api.Handler.Webhook.CatchGithub as Webhook.CatchGithub
 import qualified BCorrespondent.Api.Handler.Fs.Upload as Fs.Upload
 import qualified BCorrespondent.Api.Handler.Fs.Download as Fs.Download
@@ -39,6 +39,7 @@ import Servant.RawM.Server ()
 import Servant.Server.Generic
 -- import qualified Network.WebSockets.Connection as WS
 import Servant.RateLimit.Server ()
+import Data.Text (Text)
 
 handler :: Api (AsServerT KatipHandlerM)
 handler = Api {_apiHttp = toServant httpApi}
@@ -118,11 +119,11 @@ sendgrid =
 webhook :: WebhookApi (AsServerT KatipHandlerM)
 webhook =
   WebhookApi
-  { _webhookApiCatchElekse =
+  { _webhookApiCatchPaymentProvider = \kind ->
       flip logExceptionM ErrorS
         . katipAddNamespace
-          (Namespace ["webhook", "Elekse"])
-        . Webhook.CatchElekse.catch,
+          (Namespace ["webhook", "payment_provider"])
+        . (Webhook.CatchPaymentProvider.catch kind),
     _webhookApiCatchGithub =
       flip logExceptionM ErrorS
         . katipAddNamespace
@@ -133,31 +134,38 @@ webhook =
 frontend :: FrontendApi (AsServerT KatipHandlerM)
 frontend =
   FrontendApi
-    { _frontendApiGetDayTimeline = \auth ->
-       auth `Auth.withAuth` \user ->
-         flip logExceptionM ErrorS $
-           katipAddNamespace
-           (Namespace ["frontend", "timeline"])
-           (Frontend.GetTimeline.handle user),
-      _frontendApiGetHistory = \auth ->
-       auth `Auth.withAuth` \_ ->
-         flip logExceptionM ErrorS $
-           katipAddNamespace
-           (Namespace ["frontend", "history"])
-           Frontend.GetHistory.handle,
-      _frontendApiMakeProcuratory = \auth req ->
-       auth `Auth.withAuth` \user ->
-         flip logExceptionM ErrorS $
-           katipAddNamespace
-             (Namespace ["frontend", "procuratory"])
-             (Frontend.MakeProcuratory.handle user req),
+    { _frontendApiDashboard =
+        let nm = "dasboard"
+        in toServant (dashboard nm),
       _frontendApiInit =
         flip logExceptionM ErrorS
            . katipAddNamespace
              (Namespace ["frontend", "init"])
            . Frontend.Init.handle
-
     }
+
+dashboard :: Text -> DashboardApi (AsServerT KatipHandlerM)
+dashboard nm =
+  DashboardApi
+  { _dashboardApiGetDayTimeline = \auth ->
+       auth `Auth.withAuth` \user ->
+         flip logExceptionM ErrorS $
+           katipAddNamespace
+           (Namespace [nm, "timeline"])
+           (Frontend.Dashboard.GetTimeline.handle user),
+    _dashboardApiGetHistory = \auth ->
+       auth `Auth.withAuth` \_ ->
+         flip logExceptionM ErrorS $
+           katipAddNamespace
+           (Namespace [nm, "history"])
+           Frontend.Dashboard.GetHistory.handle,
+    _dashboardApiMakeProcuratory = \auth req ->
+       auth `Auth.withAuth` \user ->
+         flip logExceptionM ErrorS $
+           katipAddNamespace
+             (Namespace [nm, "procuratory"])
+             (Frontend.Dashboard.MakeProcuratory.handle user req)
+  }
 
 institution :: InstitutionApi (AsServerT KatipHandlerM)
 institution = 

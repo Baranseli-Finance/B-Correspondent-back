@@ -10,16 +10,17 @@ module BCorrespondent.Api.Foreign.Webhook (WebhookApi (..)) where
 
 import BCorrespondent.Transport.Response (Response)
 import BCorrespondent.Transport.Payload (Payload)
-import Servant.API.Extended (JSON, Post, ReqBody, type (:>))
+import BCorrespondent.Transport.Model.Webhook (PaymentProvider)
+import Servant.API.Extended (JSON, Post, ReqBody, type (:>), Capture)
 import Servant.API.Generic (Generic, GenericMode (type (:-)))
 import RateLimit (RateLimit, FixedWindow, IPAddressPolicy)
 import Data.Time.TypeLevel (TimePeriod (Second))
 
 data WebhookApi route = 
      WebhookApi
-     { _webhookApiCatchElekse ::
+     { _webhookApiCatchPaymentProvider ::
         route
-            :- "elekse"
+            :- Capture "provider" PaymentProvider
             :> RateLimit (FixedWindow (Second 1) 10) (IPAddressPolicy "fixed")
             :> ReqBody '[JSON] Payload
             :> Post '[JSON] (Response ()),

@@ -6,33 +6,20 @@
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE TypeOperators #-}
 
-module BCorrespondent.Api.Frontend (FrontendApi (..)) where
+module BCorrespondent.Api.Frontend (FrontendApi (..), module Dashboard) where
 
+import BCorrespondent.Api.Frontend.Dashboard as Dashboard (DashboardApi (..)) 
 import BCorrespondent.Transport.Response (Response)
-import BCorrespondent.Transport.Model.Frontend (ProcuratoryRequest, Init) 
-import BCorrespondent.Auth (AuthenticatedUser, JWT, Role (..))
+import BCorrespondent.Transport.Model.Frontend (Init) 
 import BCorrespondent.Transport.Model.Auth (AuthToken)
 import Servant.API.Extended
 import Servant.API.Generic (Generic)
-import qualified Servant.Auth.Server as SA
 
 data FrontendApi route = FrontendApi
-  { _frontendApiGetHistory ::
+  { _frontendApiDashboard :: 
       route
-        :- "history"
-          :> SA.Auth '[JWT] (AuthenticatedUser 'Reader)
-          :> Get '[JSON] (Response ()),
-    _frontendApiGetDayTimeline ::
-      route
-        :- "timeline"
-          :> SA.Auth '[JWT] (AuthenticatedUser 'Reader)
-          :> Get '[JSON] (Response ()),
-    _frontendApiMakeProcuratory ::
-      route
-        :- "procuratory"
-          :> SA.Auth '[JWT] (AuthenticatedUser 'Writer)
-          :> ReqBody '[JSON] ProcuratoryRequest
-          :> Put '[JSON] (Response ()),
+        :- "dashboard"
+          :> ToServant DashboardApi AsApi,
     _frontendApiInit ::
       route
         :- "init"
