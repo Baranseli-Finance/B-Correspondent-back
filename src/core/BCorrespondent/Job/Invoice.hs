@@ -3,10 +3,16 @@
 {-#LANGUAGE NumericUnderscores #-}
 {-#LANGUAGE TypeApplications #-}
 
-module BCorrespondent.Job.Invoice (forwardToPaymentProvider) where
+module BCorrespondent.Job.Invoice (forwardToPaymentProvider, validateAgainstTransaction) where
 
 import BCorrespondent.Statement.Invoice 
-       (getInvoicesToBeSent, insertFailedInvoices, updateStatus, Status (ForwardedToPaymentProvider))
+       (getInvoicesToBeSent, 
+        insertFailedInvoices, 
+        updateStatus,
+        getValidation,
+        Status (ForwardedToPaymentProvider),
+        Validation
+       )
 import BCorrespondent.Job.Utils (withElapsedTime)
 import BCorrespondent.ServerM
 import BCorrespondent.Transport.Model.Invoice (InvoiceToPaymentProvider)
@@ -23,7 +29,8 @@ import qualified Data.Text as T
 import Data.String.Conv (toS)
 import qualified Control.Concurrent.Async.Lifted as Async
 import Data.Aeson.WithField (WithField (..))
-import qualified Request as Request 
+import qualified Request as Request
+import Data.Int (Int64)
 
 forwardToPaymentProvider :: Int -> KatipContextT ServerM ()
 forwardToPaymentProvider freq =
@@ -52,3 +59,19 @@ forwardToPaymentProvider freq =
             statement insertFailedInvoices es
             statement updateStatus $ os <&> \x -> (x, ForwardedToPaymentProvider)
         Left err -> $(logTM) CriticalS $ logStr @T.Text $ $location <> ":forwardToPaymentProvider: decode error ---> " <> toS err
+
+validateAgainstTransaction :: Int -> KatipContextT ServerM ()
+validateAgainstTransaction freq = 
+  forever $ do 
+    threadDelay $ freq * 1_000_000
+    withElapsedTime ($location <> ":validateAgainstTransaction") $ do
+      hasql <- fmap (^. hasqlDbPool) ask
+      res <- transactionM hasql $ statement getValidation ()
+      case res of
+        Right xs -> do
+          hasql <- fmap (^. hasqlDbPool) ask
+          transactionM hasql $ statement updateStatus $ map validate xs
+        Left err -> $(logTM) CriticalS $ logStr @T.Text $ $location <> ":validateAgainstTransaction: decode error ---> " <> toS err
+
+validate :: Validation -> (Int64, Status)
+validate _ = undefined

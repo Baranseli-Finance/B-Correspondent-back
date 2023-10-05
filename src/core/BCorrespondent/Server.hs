@@ -186,22 +186,20 @@ run Cfg {..} = do
               (runKatipContextT logEnv () ns) $ do
                 let app = serveWithContext (withSwagger api) mkContext hoistedServer
                 mkApplication app
-    forwardToInitiatorAsync <- 
-      Async.Lifted.async $ 
-        Job.Transaction.forwardToInitiator
-          jobFrequency
-    forwardToProviderAsync <- 
-      Async.Lifted.async $ 
-        Job.Invoice.forwardToPaymentProvider 
-          jobFrequency
+
+    forwardToInitiatorAsync <- Async.Lifted.async $ Job.Transaction.forwardToInitiator jobFrequency
+    forwardToProviderAsync <- Async.Lifted.async $ Job.Invoice.forwardToPaymentProvider jobFrequency
+    validateAsync <- Async.Lifted.async $ Job.Invoice.validateAgainstTransaction jobFrequency
+
     ServerState c <- get
     when (c == 50) $ throwM RecoveryFailed
     end <- fmap snd $ 
       flip logExceptionM ErrorS $ 
         Async.Lifted.waitAnyCatchCancel 
           [ serverAsync, 
-           forwardToInitiatorAsync, 
-           forwardToProviderAsync
+            forwardToInitiatorAsync, 
+            forwardToProviderAsync,
+            validateAsync
           ]
     whenLeft end $ \e -> do
       ST.modify' (+1)

@@ -9,7 +9,4 @@ import BCorrespondent.ServerM
 
 withElapsedTime :: String -> KatipContextT ServerM () -> KatipContextT ServerM ()
 withElapsedTime loc job = recordTime ": ---> starts at " >> job >> recordTime ": ---> ends at "
-  where 
-    recordTime msg = do
-      tm <- currentTime
-      $(logTM) InfoS $ logStr $ loc <> msg <> show tm
+  where recordTime msg = currentTime >>= ($(logTM) InfoS . logStr . ((loc <> msg) <>) . show)

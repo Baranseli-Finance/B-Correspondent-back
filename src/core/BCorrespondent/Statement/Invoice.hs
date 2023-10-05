@@ -15,7 +15,9 @@ module BCorrespondent.Statement.Invoice
          getInvoicesToBeSent, 
          insertFailedInvoices, 
          updateStatus,
-         Status (..)
+         getValidation,
+         Status (..),
+         Validation
        )
        where
 
@@ -36,7 +38,7 @@ import Data.String.Conv (toS)
 import qualified Data.Vector.Extended as V
 import Data.Tuple.Extended (app1, app2, app3, snocT, app16)
 import Database.Transaction (ParamsShow (..))
-import Data.Aeson (encode, eitherDecode)
+import Data.Aeson (encode, eitherDecode, FromJSON, Value)
 import Data.Bifunctor (second)
 import TH.Mk (mkArbitrary)
 import GHC.Generics
@@ -44,6 +46,7 @@ import Data.Aeson.WithField (WithField)
 import qualified Data.Text as T
 import Data.Bifunctor (first)
 import Data.Tuple (swap)
+import Data.Aeson.Generic.DerivingVia
 
 data Status = 
        Registered
@@ -236,3 +239,18 @@ insertFailedInvoices =
     attempts = invoice_to_institution_delivery.attempts + 1,
     last_attempt_sent_at = now(),
     error = excluded.error|]
+
+data Validation = 
+     Validation { validationTest :: String }
+    deriving stock (Generic)
+     deriving
+     (FromJSON)
+     via WithOptions
+          '[FieldLabelModifier 
+            '[CamelTo2 "_", 
+              UserDefined 
+              (StripConstructor Validation)]]
+          Validation
+
+getValidation :: HS.Statement () (Either String [Validation])
+getValidation = rmap (sequence . V.toList . V.map (eitherDecode @Validation . encode @Value)) undefined
