@@ -50,7 +50,6 @@ data Status =
      | ForwardedToPaymentProvider 
      | Confirmed
      | Declined
-     | ForwardedToinitiator
   deriving stock (Generic, Show)
 
 instance ParamsShow Status where
