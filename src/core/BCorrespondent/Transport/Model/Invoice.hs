@@ -156,21 +156,21 @@ encodeInvoice = fromMaybe undefined . fmap del17 . mkEncoderInvoiceRegisterReque
 
 instance ParamsShow InvoiceRegisterRequest where
   render InvoiceRegisterRequest {..} = 
-    render @T.Text (coerce invoiceRegisterRequestInvoiceIdent) <> ", "
-    render @T.Text (coerce invoiceRegisterRequestCustomerIdent) <> ", "
-    render @T.Text (toS (show invoiceRegisterRequestCurrency)) <> ", "
-    render invoiceRegisterRequestCreatedAt <> ", "
-    render invoiceRegisterRequestSeller <> ", "
-    render invoiceRegisterRequestSellerAddress <> ", " 
-    render invoiceRegisterRequestSellerTaxId <> ", "
-    render invoiceRegisterRequestSellerPhoneNumber <> ", " 
-    render invoiceRegisterRequestBuyer <> ", "
-    render invoiceRegisterRequestBuyerAddress <> ", " 
-    render invoiceRegisterRequestBuyerTaxId <> ", "
-    render invoiceRegisterRequestBuyerPhoneNumber <> ", " 
-    render invoiceRegisterRequestPaymentDescription <> ", "
-    render invoiceRegisterRequestAmount <> ", "
-    render invoiceRegisterRequestVat <> ", "
+    render @T.Text (coerce invoiceRegisterRequestInvoiceIdent) <> ", " <>
+    render @T.Text (coerce invoiceRegisterRequestCustomerIdent) <> ", " <>
+    render @T.Text (toS (show invoiceRegisterRequestCurrency)) <> ", " <>
+    render invoiceRegisterRequestCreatedAt <> ", " <>
+    render invoiceRegisterRequestSeller <> ", " <>
+    render invoiceRegisterRequestSellerAddress <> ", " <>
+    render invoiceRegisterRequestSellerTaxId <> ", " <>
+    render invoiceRegisterRequestSellerPhoneNumber <> ", " <> 
+    render invoiceRegisterRequestBuyer <> ", " <>
+    render invoiceRegisterRequestBuyerAddress <> ", " <> 
+    render invoiceRegisterRequestBuyerTaxId <> ", " <>
+    render invoiceRegisterRequestBuyerPhoneNumber <> ", " <>
+    render invoiceRegisterRequestPaymentDescription <> ", " <>
+    render invoiceRegisterRequestAmount <> ", " <>
+    render invoiceRegisterRequestVat <> ", " <>
     render @T.Text (toS (show invoiceRegisterRequestFee))
 
 deriveToSchemaFieldLabelModifier ''InvoiceRegisterRequest [|firstLetterModify (Proxy @InvoiceRegisterRequest)|]

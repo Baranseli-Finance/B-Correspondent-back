@@ -127,3 +127,52 @@ instance Default Init
 deriveToSchemaFieldLabelModifier ''Init [| map toLower |]
 
 defInit = Init def def def def def def def
+
+-- daily balance sheet
+
+data GapItemTime = 
+      GapItemTime 
+      { gapItemTimeHour :: Int, 
+        gapItemTimeMin :: Int 
+      }
+    deriving stock (Generic, Show)
+    deriving
+      (ToJSON, FromJSON)
+      via WithOptions 
+          '[FieldLabelModifier
+            '[UserDefined 
+              (StripConstructor 
+               GapItemTime),
+              UserDefined ToLower]]
+      GapItemTime
+
+data GapItem =
+     GapItem
+     { gapItemStart :: !GapItemTime,
+       gapItemEnd :: !GapItemTime,
+       gapItemElements :: ![Int]
+     }
+    deriving stock (Generic, Show)
+    deriving
+      (ToJSON, FromJSON)
+      via WithOptions 
+          '[FieldLabelModifier
+            '[UserDefined 
+              (StripConstructor 
+               GapItem),
+              UserDefined ToLower]]
+      GapItem
+
+data DailyBalanceSheet = 
+     DailyBalanceSheet
+     { dailyBalanceSheetGaps :: ![GapItem] }
+    deriving stock (Generic, Show)
+    deriving
+      (ToJSON, FromJSON)
+      via WithOptions 
+          '[FieldLabelModifier
+            '[UserDefined 
+              (StripConstructor 
+               DailyBalanceSheet),
+              UserDefined ToLower]]
+      DailyBalanceSheet
