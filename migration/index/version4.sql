@@ -39,16 +39,19 @@ create table institution.invoice_to_institution_delivery (
 create table institution.transaction (
     id uuid primary key default uuid_generate_v4(),
     invoice_id bigserial not null,
-    swift_sepa jsonb null,
-    sender_name text null,
-    sender_address text null,
-    sender_phone_number text null,
-    sender_bank text null,
-    swift_sepa_code text null,
-    sender_bank_account text null,
+    swift_sepa_message_id bigserial not null,
+    sender_name text not null,
+    sender_address text not null,
+    sender_phone_number text not null,
+    sender_bank text not null,
+    swift_sepa_code text not null,
+    sender_bank_account text not null,
+    amount decimal(16, 2) not null,
+    currency text not null,
     correspondent_bank text null,
     correspondent_bank_swift_sepa_code text null,
-    constraint institution_transaction__invoice_id__fk foreign key (invoice_id) references institution.invoice(id));
+    constraint institution_transaction__invoice_id__fk foreign key (invoice_id) references institution.invoice(id),
+    constraint institution_transaction__swift_sepa_message_id__fk foreign key (swift_sepa_message_id) references storage.file(id));
 
 create table institution.transaction_to_institution_delivery (
     transaction_id uuid not null,

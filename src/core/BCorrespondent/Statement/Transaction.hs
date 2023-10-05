@@ -14,12 +14,14 @@ module BCorrespondent.Statement.Transaction
         insertFailedTransactions,
         insertSentTransactions,
         create,
-        Transaction (..)
        ) 
        where
 
-import BCorrespondent.Transport.Model.Transaction (TransactionToInitiator, TransactionId (..))
-
+import BCorrespondent.Transport.Model.Transaction 
+       (TransactionToInitiator, 
+        TransactionId (..), 
+        TransactionFromPaymentProvider,
+        encodeTransactionFromPaymentProvider)
 import qualified Hasql.Statement as HS
 import Hasql.TH
 import qualified Data.Text as T
@@ -30,11 +32,8 @@ import Data.Coerce (coerce)
 import Data.Aeson (encode, eitherDecode)
 import Data.Aeson.WithField (WithField)
 import Data.UUID (UUID)
-import Data.Aeson (ToJSON, FromJSON)
-import Data.Aeson.Generic.DerivingVia
-import GHC.Generics
-import TH.Mk (mkArbitrary, mkEncoder)
-import Data.Maybe (fromMaybe)
+import Data.Int (Int64)
+import Data.Tuple.Extended (snocT)
 
 getTransactionsToBeSent :: HS.Statement () (Either String [WithField "id" UUID TransactionToInitiator])
 getTransactionsToBeSent =
@@ -85,36 +84,48 @@ insertSentTransactions =
     set is_delivered = true
     where transaction_id = any($1 :: uuid[])|]
 
-data Transaction = 
-     Transaction 
-     { transactionExternalId :: UUID,
-       transactionsSenderName :: T.Text
-     }
-     deriving stock (Generic, Show)
-     deriving (ToJSON, FromJSON)
-     via WithOptions
-        '[OmitNothingFields 'True, FieldLabelModifier '[CamelTo2 "_", UserDefined (StripConstructor Transaction)]]
-        Transaction
-
-mkEncoder ''Transaction
-mkArbitrary ''Transaction
-
-create :: HS.Statement Transaction ()
-create =
-  lmap (fromMaybe undefined . mkEncoderTransaction)
-  [resultlessStatement|
-    with transaction as (
-      insert into institution.transaction
-      (invoice_id, sender_name)
-      select
-        invoice_id,
-        $2 :: text
-      from institution.invoice_to_institution_delivery
-      where external_id = $1 :: uuid
-      returning id :: uuid, invoice_id :: int8)
-    insert into institution.transaction_to_institution_delivery
-    (transaction_id, institution_id)
-    select t.id, i.institution_id 
-    from transaction as t
-    inner join institution.invoice as i
-    on t.invoice_id = i.id|]
+-- { "ident": "579b254b-dd5d-40a6-9377-beb6d3af98a3"
+--   "sender": "...",
+--   "address": "...",
+--   "phoneNumber": "...",
+--   "bank": "...",
+--   "swfitSepaCode": "...",
+--   "bankAccount": "...",
+--   "amount": "...",
+--   "currency": "usd",
+--   "correspondentBank": "...",
+--   "swfitSepaCodeCorrespondentBank": "...",
+--   "swiftMessage": "..."
+-- }
+create :: HS.Statement (Int64, TransactionFromPaymentProvider) Bool
+create = 
+  dimap (\(x, y) -> snocT x $ encodeTransactionFromPaymentProvider y) (>0)
+  [rowsAffectedStatement|
+    insert into institution.transaction
+    ( invoice_id,
+      sender_name,
+      sender_address,
+      sender_phone_number,
+      sender_bank,
+      swift_sepa_code,
+      sender_bank_account,
+      amount,
+      currency,
+      correspondent_bank,
+     correspondent_bank_swift_sepa_code,
+     swift_sepa_message_id)
+    select
+      invoice_id,
+      $2 :: text,
+      $3 :: text,
+      $4 :: text,
+      $5 :: text,
+      $6 :: text,
+      $7 :: text,
+      $8 :: float8,
+      $9 :: text,
+      $10 :: text,
+      $11 :: text,
+      $12 :: int8
+    from institution.invoice_to_institution_delivery
+    where external_id = $1 :: uuid|]

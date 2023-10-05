@@ -2,12 +2,15 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TupleSections #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeApplications #-}
 
 module BCorrespondent.Api.Handler.Utils 
        ( withError, 
          withErrorExt, 
          extractMIMEandExts, 
-         withEither
+         withEither,
+         withLogEither
        ) where
 
 import Katip.Handler (KatipHandlerM)
@@ -20,6 +23,9 @@ import Network.HTTP.Types.URI (extractPath)
 import Network.Mime (defaultMimeLookup, fileNameExtensions)
 import qualified Data.ByteString as B
 import Data.Bifunctor (second)
+import BuildInfo (location)
+import Katip (logTM, logStr, Severity(ErrorS))
+import Data.Functor (($>))
 
 withErrorExt :: Show e => Either e (a, [E.Error]) -> (a -> r) -> Response r
 withErrorExt (Left e) _ = Error Nothing $ asError (show e ^. stext)
@@ -34,3 +40,7 @@ extractMIMEandExts uri = let path = extractPath (uri^.textbs)^.from textbs in (d
 withEither :: Show e => Either e a -> (a -> KatipHandlerM (Response b)) -> KatipHandlerM (Response b)
 withEither (Left e) _ = pure $ Error Nothing $ asError (show e ^. stext)
 withEither (Right val) handler = handler val
+
+withLogEither :: Show e => Either e a -> (a -> KatipHandlerM (Response b)) -> KatipHandlerM (Response b)
+withLogEither (Right val) handler = handler val
+withLogEither (Left e) _ = ($(logTM) ErrorS $ logStr @T.Text $ $location <> "error ---> " <> T.pack (show e)) $> Error Nothing (asError @T.Text (T.pack (show e)))

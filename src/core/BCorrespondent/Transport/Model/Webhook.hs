@@ -13,7 +13,7 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
-module BCorrespondent.Transport.Model.Webhook (PaymentProvider) where
+module BCorrespondent.Transport.Model.Webhook (PaymentProvider (..)) where
 
 import Control.Lens
 import Control.Lens.Iso.Extended (jsonb, stext)

@@ -52,6 +52,7 @@ import PostgreSQL.ErrorCodes
 import Data.Tuple (Solo (..))
 import Data.UUID (UUID)
 
+
 newtype QueryErrorWrapper = QueryErrorWrapper Hasql.QueryError
   deriving (Show)
 
@@ -178,7 +179,75 @@ instance {-# OVERLAPS #-} (ParamsShow a, ParamsShow b, ParamsShow c, ParamsShow 
   render x = render (x ^. _1) <> ", " <> render (x ^. _2) <> ", " <> render (x ^. _3) <> ", " <> render (x ^. _4) <> ", " <> render (x ^. _5) <> ", " <> render (x ^. _6) <> ", " <> render (x ^. _7)
 
 instance {-# OVERLAPS #-} (ParamsShow a, ParamsShow b, ParamsShow c, ParamsShow d, ParamsShow e, ParamsShow f, ParamsShow g, ParamsShow j) => ParamsShow (a, b, c, d, e, f, g, j) where
-  render x = render (x ^. _1) <> ", " <> render (x ^. _2) <> ", " <> render (x ^. _3) <> ", " <> render (x ^. _4) <> ", " <> render (x ^. _5) <> ", " <> render (x ^. _6) <> ", " <> render (x ^. _7) <> ", " <> render (x ^. _8)
+  render x = 
+    render (x ^. _1) <> ", " <> 
+    render (x ^. _2) <> ", " <> 
+    render (x ^. _3) <> ", " <> 
+    render (x ^. _4) <> ", " <> 
+    render (x ^. _5) <> ", " <> 
+    render (x ^. _6) <> ", " <> 
+    render (x ^. _7) <> ", " <> 
+    render (x ^. _8)
+
+instance {-# OVERLAPS #-} 
+  (ParamsShow a, ParamsShow b, ParamsShow c, ParamsShow d, ParamsShow e, ParamsShow f, 
+   ParamsShow g, ParamsShow j, ParamsShow k)
+  => ParamsShow (a, b, c, d, e, f, g, j, k) where
+  render x = 
+    render (x ^. _1) <> ", " <> 
+    render (x ^. _2) <> ", " <> 
+    render (x ^. _3) <> ", " <> 
+    render (x ^. _4) <> ", " <> 
+    render (x ^. _5) <> ", " <> 
+    render (x ^. _6) <> ", " <> 
+    render (x ^. _7) <> ", " <> 
+    render (x ^. _8) <> ", " <> 
+    render (x ^. _9)
+
+
+instance {-# OVERLAPS #-} 
+  (ParamsShow a, ParamsShow b, ParamsShow c, ParamsShow d, ParamsShow e, ParamsShow f, 
+   ParamsShow g, ParamsShow j, ParamsShow k, ParamsShow l) 
+  => ParamsShow (a, b, c, d, e, f, g, j, k, l) where
+  render x = 
+    render (x ^. _1) <> ", " <> 
+    render (x ^. _2) <> ", " <> 
+    render (x ^. _3) <> ", " <> 
+    render (x ^. _4) <> ", " <> 
+    render (x ^. _5) <> ", " <> 
+    render (x ^. _6) <> ", " <> 
+    render (x ^. _7) <> ", " <> 
+    render (x ^. _8) <> ", " <> 
+    render (x ^. _9) <> ", " <> 
+    render (x ^. _10)
+
+
+instance {-# OVERLAPS #-} 
+  (ParamsShow a, 
+   ParamsShow b, 
+   ParamsShow c, 
+   ParamsShow d, 
+   ParamsShow e, 
+   ParamsShow f, 
+   ParamsShow g, 
+   ParamsShow j, 
+   ParamsShow k, 
+   ParamsShow l, 
+   ParamsShow m)
+  => ParamsShow (a, b, c, d, e, f, g, j, k, l, m) where
+  render x = 
+    render (x ^. _1) <> ", " <> 
+    render (x ^. _2) <> ", " <> 
+    render (x ^. _3) <> ", " <> 
+    render (x ^. _4) <> ", " <> 
+    render (x ^. _5) <> ", " <> 
+    render (x ^. _6) <> ", " <> 
+    render (x ^. _7) <> ", " <> 
+    render (x ^. _8) <> ", " <> 
+    render (x ^. _9) <> ", " <> 
+    render (x ^. _10) <> ", " <> 
+    render (x ^. _11)
+
 
 instance ParamsShow a => ParamsShow [a] where
   render xs = intercalate ", " $ map render xs

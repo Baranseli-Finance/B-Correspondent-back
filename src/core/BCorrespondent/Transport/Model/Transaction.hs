@@ -18,11 +18,13 @@
 {-# OPTIONS_GHC -fno-warn-unused-top-binds #-}
 
 module BCorrespondent.Transport.Model.Transaction 
-       ( TransactionFromPaymentProvider, 
+       ( TransactionFromPaymentProvider (..),
          TransactionId (..),
-         TransactionToInitiator
+         TransactionToInitiator,
+         encodeTransactionFromPaymentProvider
        ) where
 
+import BCorrespondent.Transport.Model.Invoice (Currency)
 import Data.UUID (UUID)
 import Data.Aeson (ToJSON, FromJSON)
 import Data.Aeson.Generic.DerivingVia
@@ -33,20 +35,67 @@ import Data.Swagger (ToSchema)
 import Test.QuickCheck.Extended (Arbitrary)
 import Database.Transaction (ParamsShow)
 import qualified Data.Text as T
+import TH.Mk (mkEncoder, mkArbitrary)
+import Data.Tuple.Extended (del12, app9)
+import Data.Maybe (fromMaybe)
+import Database.Transaction (ParamsShow (..))
+import Data.String.Conv (toS)
 
+-- { "ident": "579b254b-dd5d-40a6-9377-beb6d3af98a3"
+--   "sender": "...",
+--   "address": "...",
+--   "phoneNumber": "...",
+--   "bank": "...",
+--   "swfitSepaCode": "...",
+--   "bankAccount": "...",
+--   "amount": "...",
+--   "currency": "usd",
+--   "correspondentBank": "...",
+--   "swfitSepaCodeCorrespondentBank": "...",
+--   "swiftMessage": "..."
+-- }
 data TransactionFromPaymentProvider =
      TransactionFromPaymentProvider 
-     { transactionFromPaymentProviderSwiftSepa :: T.Text }
+     { transactionFromPaymentProviderIdent :: !UUID,
+       transactionFromPaymentProviderSender :: !T.Text,
+       transactionFromPaymentProviderAddress :: !T.Text,
+       transactionFromPaymentProviderPhoneNumber :: !T.Text,
+       transactionFromPaymentProviderBank :: !T.Text,
+       transactionFromPaymentProviderSwfitSepaCode :: !T.Text,
+       transactionFromPaymentProviderBankAccount :: !T.Text,
+       transactionFromPaymentProviderAmount :: !Double,
+       transactionFromPaymentProviderCurrency :: !Currency,
+       transactionFromPaymentProviderCorrespondentBank :: !T.Text,
+       transactionFromPaymentProviderSwfitSepaCodeCorrespondentBank :: !T.Text,
+       -- base64 encoded full Swift message
+       transactionFromPaymentProviderSwiftMessage :: !T.Text
+     }
      deriving stock (Generic, Show)
      deriving (ToJSON, FromJSON)
        via WithOptions
           '[OmitNothingFields 'True, 
             FieldLabelModifier 
-            '[UserDefined ToLower, 
+            '[UserDefined FirstLetterToLower, 
               UserDefined (StripConstructor TransactionFromPaymentProvider)]]
           TransactionFromPaymentProvider
 
 deriveToSchemaFieldLabelModifier ''TransactionFromPaymentProvider [|modify (Proxy @TransactionFromPaymentProvider)|]
+
+mkEncoder ''TransactionFromPaymentProvider
+mkArbitrary ''TransactionFromPaymentProvider
+
+encodeTransactionFromPaymentProvider 
+  :: TransactionFromPaymentProvider
+  -> (UUID, T.Text, T.Text, T.Text, 
+      T.Text, T.Text, T.Text, 
+      Double, T.Text, T.Text, T.Text)
+encodeTransactionFromPaymentProvider = 
+    fromMaybe undefined 
+  . fmap (app9 (toS @_ @T.Text . show) . del12)
+  . mkEncoderTransactionFromPaymentProvider
+
+instance ParamsShow TransactionFromPaymentProvider where
+  render = render . encodeTransactionFromPaymentProvider
 
 newtype TransactionId = TransactionId UUID
   deriving stock (Generic, Show)
