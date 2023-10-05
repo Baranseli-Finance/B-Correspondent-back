@@ -64,13 +64,13 @@ register =
     with
        max_ident as (
         select 
-          max(id) as ident
+          count(id) as ident
         from institution.invoice 
         where institution_id = $19 :: int8),
        series as (
          select
           array_agg(number)
-         from 
+         from
          generate_series(
           (select ident + 1 from max_ident), 
           (select ident + array_length($1 :: text[], 1)
@@ -101,7 +101,7 @@ register =
           $19 :: int8, 
           invoice_id, 
           customer_id,
-          currency, 
+          currency,
           invoice_time, 
           seller, 
           seller_address, 
@@ -171,8 +171,8 @@ register =
         returning invoice_id, external_id)
       select  
         jsonb_build_object(
-          'externalIdent', external_id, 
-          'internalIdent', invoice_id) :: jsonb
+          'externalIdent', external_id) 
+        :: jsonb
       from external_ident|]
   where 
     mkEncoder (instIdent, xs) =

@@ -166,9 +166,7 @@ instance ToSchema InvoiceId
 
 data InvoiceRegisterResponse =
      InvoiceRegisterResponse 
-     { invoiceRegisterResponseExternalIdent :: !ExternalInvoiceId,
-       invoiceRegisterResponseInternalIdent :: !InvoiceId
-     }
+     { invoiceRegisterResponseExternalIdent :: !ExternalInvoiceId }
      deriving stock (Generic, Show)
      deriving (FromJSON, ToJSON)
        via WithOptions
