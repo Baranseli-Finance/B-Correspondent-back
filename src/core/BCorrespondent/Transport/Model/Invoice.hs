@@ -50,6 +50,8 @@ import Data.Time.Clock (UTCTime)
 import Data.Int (Int64)
 import Data.UUID (UUID)
 import Data.Tuple.Extended (del17)
+import Data.Coerce (coerce)
+import Data.String.Conv (toS)
 
 data Currency = USD | EUR
      deriving stock (Generic, Show, Eq)
@@ -153,7 +155,23 @@ encodeInvoice
 encodeInvoice = fromMaybe undefined . fmap del17 . mkEncoderInvoiceRegisterRequest
 
 instance ParamsShow InvoiceRegisterRequest where
-  render = undefined . encodeInvoice
+  render InvoiceRegisterRequest {..} = 
+    render @T.Text (coerce invoiceRegisterRequestInvoiceIdent) <> ", "
+    render @T.Text (coerce invoiceRegisterRequestCustomerIdent) <> ", "
+    render @T.Text (toS (show invoiceRegisterRequestCurrency)) <> ", "
+    render invoiceRegisterRequestCreatedAt <> ", "
+    render invoiceRegisterRequestSeller <> ", "
+    render invoiceRegisterRequestSellerAddress <> ", " 
+    render invoiceRegisterRequestSellerTaxId <> ", "
+    render invoiceRegisterRequestSellerPhoneNumber <> ", " 
+    render invoiceRegisterRequestBuyer <> ", "
+    render invoiceRegisterRequestBuyerAddress <> ", " 
+    render invoiceRegisterRequestBuyerTaxId <> ", "
+    render invoiceRegisterRequestBuyerPhoneNumber <> ", " 
+    render invoiceRegisterRequestPaymentDescription <> ", "
+    render invoiceRegisterRequestAmount <> ", "
+    render invoiceRegisterRequestVat <> ", "
+    render @T.Text (toS (show invoiceRegisterRequestFee))
 
 deriveToSchemaFieldLabelModifier ''InvoiceRegisterRequest [|firstLetterModify (Proxy @InvoiceRegisterRequest)|]
 
@@ -176,7 +194,9 @@ data InvoiceRegisterResponse =
               UserDefined (StripConstructor InvoiceRegisterResponse)]]
           InvoiceRegisterResponse
 
-deriveToSchemaFieldLabelModifier ''InvoiceRegisterResponse [|firstLetterModify (Proxy @InvoiceRegisterResponse)|]
+deriveToSchemaFieldLabelModifier 
+  ''InvoiceRegisterResponse 
+  [|firstLetterModify (Proxy @InvoiceRegisterResponse)|]
 
 data InvoiceToPaymentProvider = 
      InvoiceToPaymentProvider 

@@ -62,20 +62,22 @@ register =
   dimap mkEncoder (sequence . map (eitherDecode @InvoiceRegisterResponse . encode) . V.toList) $ 
   [vectorStatement|
     with
-       max_ident as (
-        select 
-          count(id) as ident
-        from institution.invoice 
-        where institution_id = $19 :: int8),
        series as (
-         select
-          array_agg(number)
-         from
-         generate_series(
-          (select ident + 1 from max_ident), 
-          (select ident + array_length($1 :: text[], 1)
-           from max_ident), 
-          1) as number),
+        select 
+          array_agg(cast(row_to_json((sub_query))->>'el' as int))
+        from (
+          select
+            generate_series(
+            cast(row_to_json((sub_query))->>'v' as int) + 1, 
+            (cast(row_to_json((sub_query))->>'v' as int) + 
+             array_length($1 :: text[], 1)),
+            1) as el
+          from (
+            select count(id) as v
+            from institution.invoice 
+            where institution_id = $19 :: int8)
+          as sub_query) 
+        as sub_query),
        xs as (
         insert into institution.invoice
         ( institution_id,
@@ -139,7 +141,7 @@ register =
           $16 :: text[],
           $17 :: text[],
           (select * from series) :: int[])
-        as x(
+        as _(
             invoice_id,
             customer_id, 
             currency,
