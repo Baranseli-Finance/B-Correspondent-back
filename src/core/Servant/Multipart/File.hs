@@ -6,6 +6,7 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE DataKinds #-}
 
 module Servant.Multipart.File (Files (..), File (..)) where
 
@@ -19,6 +20,7 @@ import Servant.Multipart
 import Servant.Swagger
 import qualified Servant.Swagger.Internal
 import Network.Mime (fileNameExtensions)
+import Servant.API.Modifiers (FoldRequired)
 
 newtype Files = Files {filesXs :: [File]} deriving (Show)
 
@@ -44,21 +46,35 @@ instance FromMultipart Tmp File where
           fileNameExtensions fdFileName
 
 instance (Typeable a, HasSwagger sub) => HasSwagger (MultipartForm tag a :> sub) where
-  toSwagger _ =
-    toSwagger (Proxy :: Proxy sub)
-      & Servant.Swagger.Internal.addParam paramFile
+  toSwagger _ =toSwagger (Proxy @sub) & Servant.Swagger.Internal.addParam paramFile
     where
       paramFile =
         mempty
-          & Swagger.name .~ ("payload" <> T.pack (show (typeRep (Proxy @a))))
+          & Swagger.name .~ 
+            ("payload" <> T.pack (show (typeRep (Proxy @a))))
           & Swagger.required ?~ True
-          & Swagger.schema
-            .~ Swagger.ParamOther
-              ( mempty
-                  & Swagger.in_ .~ Swagger.ParamFormData
-                  & Swagger.paramSchema
-                    .~ ( mempty
-                           & Swagger.type_
-                             ?~ Swagger.SwaggerFile
-                       )
-              )
+          & Swagger.schema .~ 
+            Swagger.ParamOther schema
+      schema = 
+        mempty
+          & Swagger.in_ 
+            .~ Swagger.ParamFormData
+          & Swagger.paramSchema 
+            .~ (mempty & Swagger.type_ ?~ Swagger.SwaggerFile)
+
+instance {-# OVERLAPS #-} (Typeable a, HasSwagger sub, FoldRequired xs ~ 'False) => HasSwagger (MultipartForm' xs tag a :> sub) where
+  toSwagger _ =toSwagger (Proxy @sub) & Servant.Swagger.Internal.addParam paramFile
+    where
+      paramFile =
+        mempty
+          & Swagger.name .~ 
+            ("payload" <> T.pack (show (typeRep (Proxy @a))))
+          & Swagger.required ?~ False
+          & Swagger.schema .~ 
+            Swagger.ParamOther schema
+      schema = 
+        mempty
+          & Swagger.in_ 
+            .~ Swagger.ParamFormData
+          & Swagger.paramSchema 
+            .~ (mempty & Swagger.type_ ?~ Swagger.SwaggerFile)
