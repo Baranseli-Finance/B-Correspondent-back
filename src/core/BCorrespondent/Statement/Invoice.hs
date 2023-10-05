@@ -15,7 +15,6 @@ module BCorrespondent.Statement.Invoice
          getInvoicesToBeSent, 
          insertFailedInvoices, 
          updateStatus,
-         assignTextualIdent,
          Status (..)
        )
        where
@@ -64,6 +63,20 @@ register =
   dimap mkEncoder (sequence . map (eitherDecode @InvoiceRegisterResponse . encode) . V.toList) $ 
   [vectorStatement|
     with
+       max_ident as (
+        select 
+          max(id) as ident
+        from institution.invoice 
+        where institution_id = $19 :: int8),
+       series as (
+         select
+          array_agg(number)
+         from 
+         generate_series(
+          (select ident + 1 from max_ident), 
+          (select ident + array_length($1 :: text[], 1)
+           from max_ident), 
+          1) as number),
        xs as (
         insert into institution.invoice
         ( institution_id,
@@ -103,7 +116,10 @@ register =
           amount,
           vat,
           fee,
-          country_code || currency,
+          country_code
+          || currency 
+          || repeat('0', 9 - length(cast(current_ident as text)))
+          || cast(current_ident as text),
           $18 :: text
         from unnest(
           $1 :: text[], 
@@ -122,7 +138,8 @@ register =
           $14 :: float8[],
           $15 :: float8[],
           $16 :: text[],
-          $17 :: text[])
+          $17 :: text[],
+          (select * from series) :: int[])
         as x(
             invoice_id,
             customer_id, 
@@ -140,7 +157,8 @@ register =
             amount,
             vat,
             fee,
-            country_code)
+            country_code,
+            current_ident)
         on conflict (customer_id, invoice_id, institution_id) do nothing
         returning id :: int8 as invoice_id, invoice_id as external_id),
       delivery as (
@@ -169,41 +187,6 @@ register =
                     V.fromList $ 
                       map ((uncurry snocT . swap) . first encodeInvoice) xs
 
-assignTextualIdent :: HS.Statement (Int64, [Int64]) ()
-assignTextualIdent =
-  lmap (second V.fromList)
-  [resultlessStatement|
-     with 
-       max_ident as (
-        select 
-          max(id) as max_ident
-        from institution.invoice 
-        where institution_id = $1 :: int8)
-     update institution.invoice
-     set textual_view = 
-           textual_view || 
-            (repeat('0', 9 - length(cast(sub.number as text)))
-              || cast(sub.number as text))
-     from (
-       select
-        s.number, 
-        f.invoice_id
-       from
-       (select 
-          invoice_id,
-          rank() over (order by invoice_id asc) as rank
-        from unnest($2 :: int8[]) as invoice_id) as f
-       inner join
-       (select
-          number,
-          rank() over ( order by number asc) as rank
-        from generate_series(
-          ((select max_ident from max_ident) - 
-           (select count(*) from unnest($2 :: int8[])) + 1),
-          (select max_ident from max_ident), 
-          1) as number) as s
-       on f.rank = s.rank) as sub
-       where invoice.id = sub.invoice_id|]
 
 updateStatus :: HS.Statement [(Int64, Status)] ()
 updateStatus = 

@@ -8,13 +8,12 @@
 
 module BCorrespondent.Api.Handler.Invoice.Register (handle) where
 
-import qualified BCorrespondent.Statement.Invoice as Invoice (register, assignTextualIdent)
+import qualified BCorrespondent.Statement.Invoice as Invoice (register)
 import BCorrespondent.Transport.Response (Response, fromEither)
 import BCorrespondent.Transport.Model.Invoice
        (InvoiceRegisterRequest, 
-        InvoiceRegisterResponse (invoiceRegisterResponseInternalIdent), 
-        invoiceRegisterRequestCountryISOCode, 
-        InvoiceId (..)
+        InvoiceRegisterResponse, 
+        invoiceRegisterRequestCountryISOCode
        )
 import qualified BCorrespondent.Auth as Auth
 import BCorrespondent.Api.Handler.Utils (withEither)
@@ -32,8 +31,8 @@ import qualified Data.Vector as V
 import Data.Maybe (isJust, fromMaybe)
 import Data.List ((\\))
 import BuildInfo (location)
-import Data.Foldable (for_)
-import Data.Coerce
+-- import Data.Foldable (for_)
+-- import Data.Coerce
 
 data CountryCode = 
      CountryCode
@@ -70,11 +69,10 @@ handle Auth.AuthenticatedUser {..} xs = do
     let cmpRes = 
                 if length (xs \\ map fst xs') == 0 
                 then Right () 
-                else Left $ "the following invoices contain invalid country codes: " <> show (xs \\ map fst xs')
+                else let msg = "the following invoices contain invalid country codes: " 
+                     in Left $ msg <> show (xs \\ map fst xs')
     withEither cmpRes $ const $ do 
       hasql <- fmap (^. katipEnv . hasqlDbPool) ask
-      fmap (fromEither @T.Text . first toS) $ transactionM hasql $ do 
-        resp <- statement Invoice.register (ident, xs')
-        fmap (const resp) $ for_ resp $ \xs -> do
-          let ys = map (coerce . invoiceRegisterResponseInternalIdent) xs
-          statement Invoice.assignTextualIdent (ident, ys)
+      fmap (fromEither @T.Text . first toS) $ 
+        transactionM hasql $
+          statement Invoice.register (ident, xs')
