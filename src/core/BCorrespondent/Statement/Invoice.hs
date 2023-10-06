@@ -17,7 +17,7 @@ module BCorrespondent.Statement.Invoice
          updateStatus,
          getValidation,
          Status (..),
-         Validation
+         Validation (..)
        )
        where
 
@@ -27,6 +27,8 @@ import BCorrespondent.Transport.Model.Invoice
         ExternalInvoiceId (..), 
         ExternalCustomerId (..),
         InvoiceToPaymentProvider,
+        Fee,
+        Currency,
         encodeInvoice
        )
 import qualified Hasql.Statement as HS
@@ -51,6 +53,7 @@ import Data.Aeson.Generic.DerivingVia
 data Status = 
        Registered
      | ForwardedToPaymentProvider 
+     | ProcessedByPaymentProvider
      | Confirmed
      | Declined
   deriving stock (Generic, Show)
@@ -241,16 +244,40 @@ insertFailedInvoices =
     error = excluded.error|]
 
 data Validation = 
-     Validation { validationTest :: String }
+     Validation 
+     { validationInvoiceIdent :: Int64,
+       validationInvoiceAmount :: Double,
+       validationInvoiceCurrency :: Currency,
+       validationInvoiceFee :: Fee,
+       validationTransactionAmount :: Double,
+       validationTransactionCurrency :: Currency 
+     }
     deriving stock (Generic)
      deriving
      (FromJSON)
      via WithOptions
-          '[FieldLabelModifier 
+          '[FieldLabelModifier
             '[CamelTo2 "_", 
               UserDefined 
               (StripConstructor Validation)]]
           Validation
 
 getValidation :: HS.Statement () (Either String [Validation])
-getValidation = rmap (sequence . V.toList . V.map (eitherDecode @Validation . encode @Value)) undefined
+getValidation =
+  dimap
+  (const (toS (show ProcessedByPaymentProvider))) 
+  (sequence . V.toList . V.map (eitherDecode @Validation . encode @Value))
+  [vectorStatement|
+    select
+      jsonb_build_object(
+        'invoice_ident', i.id,
+        'invoice_amount', i.amount,
+        'invoice_currency', i.currency,
+        'invoice_fee', i.fee,
+        'transaction_amount', t.amount,
+        'transaction_currency', t.currency
+      ) :: jsonb
+    from institution.invoice as i
+    inner join institution.transaction as t
+    on i.id = t.invoice
+    where i.status = $1 :: text|]

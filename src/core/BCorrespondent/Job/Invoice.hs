@@ -2,6 +2,7 @@
 {-#LANGUAGE OverloadedStrings #-}
 {-#LANGUAGE NumericUnderscores #-}
 {-#LANGUAGE TypeApplications #-}
+{-#LANGUAGE RecordWildCards #-}
 
 module BCorrespondent.Job.Invoice (forwardToPaymentProvider, validateAgainstTransaction) where
 
@@ -10,12 +11,12 @@ import BCorrespondent.Statement.Invoice
         insertFailedInvoices, 
         updateStatus,
         getValidation,
-        Status (ForwardedToPaymentProvider),
-        Validation
+        Status (ForwardedToPaymentProvider, Confirmed, Declined),
+        Validation (..)
        )
 import BCorrespondent.Job.Utils (withElapsedTime)
 import BCorrespondent.ServerM
-import BCorrespondent.Transport.Model.Invoice (InvoiceToPaymentProvider)
+import BCorrespondent.Transport.Model.Invoice (InvoiceToPaymentProvider, Fee (..))
 import Katip
 import BuildInfo (location)
 import Control.Monad (forever)
@@ -74,4 +75,13 @@ validateAgainstTransaction freq =
         Left err -> $(logTM) CriticalS $ logStr @T.Text $ $location <> ":validateAgainstTransaction: decode error ---> " <> toS err
 
 validate :: Validation -> (Int64, Status)
-validate _ = undefined
+validate Validation {..} 
+  | validationInvoiceAmount == validationTransactionAmount
+    && validationInvoiceCurrency == validationTransactionCurrency
+    && validationInvoiceFee == OUR
+    = (validationInvoiceIdent, Confirmed)
+  | validationInvoiceAmount /= validationTransactionAmount
+    && validationInvoiceCurrency == validationTransactionCurrency
+    && validationInvoiceFee == SHA 
+    = (validationInvoiceIdent, Confirmed)
+  | otherwise = (validationInvoiceIdent, Declined)

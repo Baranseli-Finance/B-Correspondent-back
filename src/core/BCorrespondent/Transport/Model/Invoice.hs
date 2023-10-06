@@ -54,7 +54,7 @@ import Data.Coerce (coerce)
 import Data.String.Conv (toS)
 
 data Currency = USD | EUR
-     deriving stock (Generic, Show, Eq)
+     deriving stock (Generic, Show, Eq, Read)
      deriving (FromJSON, ToJSON)
       via WithOptions
           '[ConstructorTagModifier 
@@ -85,7 +85,7 @@ instance ToSchema ExternalCustomerId
 -- OUR for charges to be paid by the ordering customer; or
 -- SHA for charges to be shared by the ordering customer and the final beneficiary.
 data Fee = OUR | SHA
-     deriving stock (Generic, Show, Eq)
+     deriving stock (Generic, Show, Eq, Read)
      deriving (FromJSON, ToJSON)
       via WithOptions
           '[ConstructorTagModifier 

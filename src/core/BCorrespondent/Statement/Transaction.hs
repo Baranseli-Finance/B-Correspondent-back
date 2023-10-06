@@ -22,6 +22,7 @@ import BCorrespondent.Transport.Model.Transaction
         TransactionId (..), 
         TransactionFromPaymentProvider,
         encodeTransactionFromPaymentProvider)
+import BCorrespondent.Statement.Invoice (Status (ProcessedByPaymentProvider))
 import qualified Hasql.Statement as HS
 import Hasql.TH
 import qualified Data.Text as T
@@ -34,6 +35,7 @@ import Data.Aeson.WithField (WithField)
 import Data.UUID (UUID)
 import Data.Int (Int64)
 import Data.Tuple.Extended (snocT)
+import Data.String.Conv (toS)
 
 getTransactionsToBeSent :: HS.Statement () (Either String [WithField "id" UUID TransactionToInitiator])
 getTransactionsToBeSent =
@@ -99,7 +101,10 @@ insertSentTransactions =
 -- }
 create :: HS.Statement (Int64, TransactionFromPaymentProvider) Bool
 create = 
-  dimap (\(x, y) -> snocT x $ encodeTransactionFromPaymentProvider y) (>0)
+  (flip dimap (>0) $ \(x, y) -> 
+    snocT (toS (show ProcessedByPaymentProvider)) $ 
+      snocT x $ 
+        encodeTransactionFromPaymentProvider y)
   [rowsAffectedStatement|
     with new_transaction as (  
       insert into institution.transaction
@@ -130,12 +135,16 @@ create =
         $12 :: int8
       from institution.invoice_to_institution_delivery
       where external_id = $1 :: uuid
-      returning id, invoice_id)
-    insert into institution.transaction_to_institution_delivery 
-    (transaction_id, institution_id)
-    select
-      n.id,
-      i.institution_id
-    from new_transaction as n
-    inner join institution.invoice as i
-    on n.invoice_id = i.id|]
+      returning id, invoice_id),
+    delivery as (  
+      insert into institution.transaction_to_institution_delivery 
+      (transaction_id, institution_id)
+      select
+        n.id,
+        i.institution_id
+      from new_transaction as n
+      inner join institution.invoice as i
+      on n.invoice_id = i.id)
+    update institution.invoice 
+    set status = $13 :: text
+    where id = (select invoice_id from new_transaction)|]
