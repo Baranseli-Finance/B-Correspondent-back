@@ -341,7 +341,8 @@ main = do
               katipEnvGithub = envKeys >>= envKeysGithub,
               katipEnvFrontEnvFilePath = frontEnvFilePath,
               katipEnvCache = cache,
-              katipEnvCountryCode = cfg^.countryCodeFilePath
+              katipEnvCountryCode = cfg^.countryCodeFilePath,
+              katipEnvTokenLife = cfg^.sourceTokenLife
           }
 
     let shutdownMsg = print "------ server is shut down --------"

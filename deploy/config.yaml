@@ -45,3 +45,5 @@ configJobFrequency: 500
 configWebhook: https://b-correspondent.app
 
 configCountryCodeFilePath: country-code.csv
+
+configSourceTokenLife: 120000 

@@ -7,7 +7,13 @@
 module BCorrespondent.Api.Handler.Auth.GenerateToken (handle) where
 
 import BCorrespondent.Api.Handler.Utils (withError)
-import BCorrespondent.Statement.Auth (getInstitutionCreds, insertInstToken, InstitutionCreds (..), CheckToken (..), AccountType (Institution))
+import BCorrespondent.Statement.Auth 
+      (getInstitutionCreds, 
+       insertInstToken, 
+       InstitutionCreds (..), 
+       CheckToken (..), 
+       AccountType (Institution)
+      )
 import BCorrespondent.Transport.Model.Auth (AuthToken (..), InstitutionKey (..))
 import BCorrespondent.Transport.Response (Response)
 import BCorrespondent.Auth (generateJWT, validateJwt, Role (None))
@@ -34,9 +40,10 @@ instance Show Error where
 handle :: InstitutionKey -> KatipHandlerM (Response AuthToken)
 handle instKey = do 
   hasql <- fmap (^. katipEnv . hasqlDbPool) ask
+  tl <- fmap (^. katipEnv . tokenLife) ask
   key <- fmap (^. katipEnv . jwk) ask
   let mkToken ident = do
-       res <- liftIO $ generateJWT key ident Nothing 1800
+       res <- liftIO $ generateJWT key ident Nothing $ fromIntegral tl
        fmap (join . first (const JWT)) $
          for res $ \(bs, uuid) -> 
            fmap (const (Right (toS bs))) $ 
