@@ -16,7 +16,7 @@ import BCorrespondent.Statement.Auth
       )
 import BCorrespondent.Transport.Model.Auth (AuthToken (..), InstitutionKey (..))
 import BCorrespondent.Transport.Response (Response)
-import BCorrespondent.Auth (generateJWT, validateJwt, Role (None))
+import BCorrespondent.Auth (generateJWT, validateJwt, Role (Source))
 import Katip.Handler
 import Control.Lens ((^.))
 import Data.Coerce (coerce)
@@ -61,7 +61,7 @@ handle instKey = do
                     CheckToken 
                     { checkTokenIsValid = isValid, 
                       checkTokenAccountType = Institution,
-                      checkTokenRole = Just $ V.singleton $ toS $ show None
+                      checkTokenRole = Just $ V.singleton $ toS $ show Source
                     }
               res <- liftIO $ validateJwt (defaultJWTSettings key) (const $ pure (Just checkToken)) $ toS value
               case res of 

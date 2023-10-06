@@ -276,10 +276,9 @@ checkToken =
        on ur.role_id = t.id
        where user_id is not null
        group by user_id, roles
-       order by max(array_length(roles, 1)) desc 
-       limit 1) as s
+       order by max(array_length(roles, 1)) desc) as s
        on f.user_id = s.user_id) as uj
-    on j.id = uj.jwt_id 
+    on j.id = uj.jwt_id
     and user_id = $2 :: int8
     left join (
       select f.*, 'institution' as ty, s.roles
@@ -294,8 +293,7 @@ checkToken =
        on ir.role_id = t.id
        where inst_id is not null
        group by inst_id, roles
-       order by max(array_length(roles, 1)) desc 
-       limit 1) as s
+       order by max(array_length(roles, 1)) desc) as s
        on f.inst_id = s.inst_id) as ij
     on j.id = ij.jwt_id
     and inst_id = $2 :: int8

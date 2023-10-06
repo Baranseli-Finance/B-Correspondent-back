@@ -22,7 +22,8 @@ import BCorrespondent.Transport.Model.Transaction
         TransactionId (..), 
         TransactionFromPaymentProvider,
         encodeTransactionFromPaymentProvider)
-import BCorrespondent.Statement.Invoice (Status (ProcessedByPaymentProvider))
+import BCorrespondent.Statement.Invoice 
+       (Status (ProcessedByPaymentProvider, ForwardedToPaymentProvider))
 import qualified Hasql.Statement as HS
 import Hasql.TH
 import qualified Data.Text as T
@@ -101,10 +102,10 @@ insertSentTransactions =
 -- }
 create :: HS.Statement (Int64, TransactionFromPaymentProvider) Bool
 create = 
-  (flip dimap (>0) $ \(x, y) -> 
-    snocT (toS (show ProcessedByPaymentProvider)) $ 
-      snocT x $ 
-        encodeTransactionFromPaymentProvider y)
+  (flip dimap (>0) $ \(x, y) ->
+    snocT (toS (show ForwardedToPaymentProvider)) $
+      snocT (toS (show ProcessedByPaymentProvider)) $ 
+        snocT x $ encodeTransactionFromPaymentProvider y)
   [rowsAffectedStatement|
     with new_transaction as (  
       insert into institution.transaction
@@ -129,7 +130,7 @@ create =
         $6 :: text,
         $7 :: text,
         $8 :: float8,
-        $9 :: text,
+        trim(both '"' from $9 :: text),
         $10 :: text,
         $11 :: text,
         $12 :: int8
@@ -147,4 +148,5 @@ create =
       on n.invoice_id = i.id)
     update institution.invoice 
     set status = $13 :: text
-    where id = (select invoice_id from new_transaction)|]
+    where id = (select invoice_id from new_transaction)
+    and status = $14 :: text|]

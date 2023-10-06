@@ -26,7 +26,7 @@ module BCorrespondent.Transport.Model.Transaction
 
 import BCorrespondent.Transport.Model.Invoice (Currency)
 import Data.UUID (UUID)
-import Data.Aeson (ToJSON, FromJSON)
+import Data.Aeson (ToJSON, FromJSON, encode)
 import Data.Aeson.Generic.DerivingVia
 import GHC.Generics
 import Data.Swagger.Schema.Extended (deriveToSchemaFieldLabelModifier, modify)
@@ -91,7 +91,7 @@ encodeTransactionFromPaymentProvider
       Double, T.Text, T.Text, T.Text)
 encodeTransactionFromPaymentProvider = 
     fromMaybe undefined 
-  . fmap (app9 (toS @_ @T.Text . show) . del12)
+  . fmap (app9 (toS @_ @T.Text . encode) . del12)
   . mkEncoderTransactionFromPaymentProvider
 
 instance ParamsShow TransactionFromPaymentProvider where
@@ -111,7 +111,7 @@ data TransactionToInitiator =
        via WithOptions
           '[OmitNothingFields 'True, 
             FieldLabelModifier 
-            '[UserDefined ToLower, 
+            '[UserDefined FirstLetterToLower, 
               UserDefined (StripConstructor TransactionToInitiator)]]
           TransactionToInitiator
 

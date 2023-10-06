@@ -40,7 +40,7 @@ import Data.String.Conv (toS)
 import qualified Data.Vector.Extended as V
 import Data.Tuple.Extended (app1, app2, app3, snocT, app16)
 import Database.Transaction (ParamsShow (..))
-import Data.Aeson (encode, eitherDecode, FromJSON, Value)
+import Data.Aeson (encode, eitherDecode, FromJSON, ToJSON)
 import Data.Bifunctor (second)
 import TH.Mk (mkArbitrary)
 import GHC.Generics
@@ -109,7 +109,7 @@ register =
           $19 :: int8, 
           invoice_id, 
           customer_id,
-          currency,
+          trim(both '"' from currency),
           invoice_time, 
           seller, 
           seller_address, 
@@ -122,9 +122,9 @@ register =
           payment_description, 
           amount,
           vat,
-          fee,
+          trim(both '"' from fee),
           country_code
-          || currency 
+          || upper(trim(both '"' from currency))
           || repeat('0', 9 - length(cast(current_ident as text)))
           || cast(current_ident as text),
           $18 :: text
@@ -139,7 +139,7 @@ register =
           $8 :: text?[],
           $9 :: text[], 
           $10 :: text[], 
-          $11 :: text?[], 
+          $11 :: text?[],
           $12 :: text?[],
           $13 :: text[],
           $14 :: float8[],
@@ -172,7 +172,7 @@ register =
         insert into institution.invoice_to_institution_delivery
         (invoice_id, institution_id)
         select invoice_id, $19 :: int8 from xs),
-      external_ident as (  
+      external_ident as (
         insert into institution.invoice_external_ident
         (invoice_id)
         select invoice_id from xs
@@ -186,8 +186,8 @@ register =
     mkEncoder (instIdent, xs) =
       snocT instIdent $
         snocT (toS (show Registered)) $
-          app3 (V.map (toS . show)) $
-            app16 (V.map (toS . show)) $
+          app3 (V.map (toS . encode)) $
+            app16 (V.map (toS . encode)) $
               app2 (V.map coerce) $ 
                 app1 (V.map coerce) $
                   V.unzip17 $ 
@@ -254,7 +254,7 @@ data Validation =
      }
     deriving stock (Generic)
      deriving
-     (FromJSON)
+     (FromJSON, ToJSON)
      via WithOptions
           '[FieldLabelModifier
             '[CamelTo2 "_", 
@@ -265,8 +265,8 @@ data Validation =
 getValidation :: HS.Statement () (Either String [Validation])
 getValidation =
   dimap
-  (const (toS (show ProcessedByPaymentProvider))) 
-  (sequence . V.toList . V.map (eitherDecode @Validation . encode @Value))
+  (const (toS (show ProcessedByPaymentProvider)))
+  (sequence . V.toList . V.map (eitherDecode @Validation . encode))
   [vectorStatement|
     select
       jsonb_build_object(
@@ -279,5 +279,5 @@ getValidation =
       ) :: jsonb
     from institution.invoice as i
     inner join institution.transaction as t
-    on i.id = t.invoice
+    on i.id = t.invoice_id
     where i.status = $1 :: text|]

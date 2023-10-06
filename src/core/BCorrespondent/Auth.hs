@@ -99,6 +99,9 @@ instance KnownRole 'Writer where
 instance KnownRole 'Source where
   roleSing = UnsafeRRole Source
 
+instance KnownRole 'BCorrespondent.Auth.None where
+  roleSing = UnsafeRRole BCorrespondent.Auth.None
+
 roleVal :: forall r proxy. KnownRole r => proxy r -> Role
 roleVal _ = 
   case roleSing :: RRole r of
@@ -173,7 +176,7 @@ withAuth :: forall r a.  KnownRole r => AuthResult (AuthenticatedUser r) -> (Aut
 withAuth (Authenticated user) runApi =
   let res = V.find ((==) (roleVal (Proxy @r))) (roles user)
   in if isJust res 
-     then runApi user 
+     then runApi user
      else return $ 
             Error (Just 403) $ 
               asError @T.Text 
