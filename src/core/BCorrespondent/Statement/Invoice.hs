@@ -40,7 +40,7 @@ import Data.String.Conv (toS)
 import qualified Data.Vector.Extended as V
 import Data.Tuple.Extended (app1, app2, app3, snocT, app16)
 import Database.Transaction (ParamsShow (..))
-import Data.Aeson (encode, eitherDecode, FromJSON, ToJSON)
+import Data.Aeson (encode, eitherDecode, FromJSON, ToJSON, parseJSON, withText)
 import Data.Bifunctor (second)
 import TH.Mk (mkArbitrary)
 import GHC.Generics
@@ -49,6 +49,7 @@ import qualified Data.Text as T
 import Data.Bifunctor (first)
 import Data.Tuple (swap)
 import Data.Aeson.Generic.DerivingVia
+import BuildInfo (location)
 
 data Status = 
        Registered
@@ -56,10 +57,13 @@ data Status =
      | ProcessedByPaymentProvider
      | Confirmed
      | Declined
-  deriving stock (Generic, Show)
+  deriving stock (Generic, Show, Read)
 
 instance ParamsShow Status where
   render = show
+
+instance FromJSON Status where
+  parseJSON = withText ($location <> ":Status") $ pure . read @Status . toS
 
 mkArbitrary ''Status
 
