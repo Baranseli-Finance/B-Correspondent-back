@@ -158,7 +158,7 @@ run Cfg {..} = do
                   setMaxRequestKeyLength 100 
                     defaultParseRequestBodyOptions
           }
-  
+
   let checkToken = transactionIO (katipEnvHasqlDbPool configKatipEnv) auth_logger . statement Auth.checkToken
 
   rateBackend <- liftIO $ postgresBackend psqlpool "rate_limit"
@@ -197,13 +197,13 @@ run Cfg {..} = do
       flip logExceptionM ErrorS $ 
         Async.Lifted.waitAnyCatchCancel 
           [ serverAsync, 
+            validateAsync,
             forwardToInitiatorAsync, 
-            forwardToProviderAsync,
-            validateAsync
+            forwardToProviderAsync
           ]
     whenLeft end $ \e -> do
       ST.modify' (+1)
-      let msg = 
+      let msg =
             "server has been \
             \ terminated with error "
       $(logTM) EmergencyS $ 
