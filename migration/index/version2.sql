@@ -69,6 +69,6 @@ insert into auth.role (role) values ('Admin');
 insert into auth.role (role, parent_id) values ('Writer', 1);
 insert into auth.role (role, parent_id) values ('Reader', 2);
 insert into auth.role (role, parent_id) values ('None', 3);
-insert into auth.role (role, parent_id) values ('Bank', 1);
+insert into auth.role (role, parent_id) values ('Source', 1);
 
 
