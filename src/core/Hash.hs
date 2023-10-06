@@ -10,7 +10,7 @@ import Data.Text
 import Data.String.Conv (toS)
 
 mkHashG :: forall al a . (HashAlgorithm  al, Show al, Show a) => a -> Text
-mkHashG x = toS $ show (hash (toS (show x)) :: al)
+mkHashG = toS . show . hash @al . toS . show
 
 mkHash :: Show a => a -> Text
 mkHash = mkHashG @SHA256

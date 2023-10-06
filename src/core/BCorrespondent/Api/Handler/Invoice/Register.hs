@@ -31,8 +31,7 @@ import qualified Data.Vector as V
 import Data.Maybe (isJust, fromMaybe)
 import Data.List ((\\))
 import BuildInfo (location)
--- import Data.Foldable (for_)
--- import Data.Coerce
+
 
 data CountryCode = 
      CountryCode
@@ -74,5 +73,4 @@ handle Auth.AuthenticatedUser {..} xs = do
     withEither cmpRes $ const $ do 
       hasql <- fmap (^. katipEnv . hasqlDbPool) ask
       fmap (fromEither @T.Text . first toS) $ 
-        transactionM hasql $
-          statement Invoice.register (ident, xs')
+        transactionM hasql $ statement Invoice.register (ident, xs')

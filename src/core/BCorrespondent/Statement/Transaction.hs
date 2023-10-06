@@ -101,31 +101,41 @@ create :: HS.Statement (Int64, TransactionFromPaymentProvider) Bool
 create = 
   dimap (\(x, y) -> snocT x $ encodeTransactionFromPaymentProvider y) (>0)
   [rowsAffectedStatement|
-    insert into institution.transaction
-    ( invoice_id,
-      sender_name,
-      sender_address,
-      sender_phone_number,
-      sender_bank,
-      swift_sepa_code,
-      sender_bank_account,
-      amount,
-      currency,
-      correspondent_bank,
-     correspondent_bank_swift_sepa_code,
-     swift_sepa_message_id)
+    with new_transaction as (  
+      insert into institution.transaction
+      ( invoice_id,
+        sender_name,
+        sender_address,
+        sender_phone_number,
+        sender_bank,
+        swift_sepa_code,
+        sender_bank_account,
+        amount,
+        currency,
+        correspondent_bank,
+      correspondent_bank_swift_sepa_code,
+      swift_sepa_message_id)
+      select
+        invoice_id,
+        $2 :: text,
+        $3 :: text,
+        $4 :: text,
+        $5 :: text,
+        $6 :: text,
+        $7 :: text,
+        $8 :: float8,
+        $9 :: text,
+        $10 :: text,
+        $11 :: text,
+        $12 :: int8
+      from institution.invoice_to_institution_delivery
+      where external_id = $1 :: uuid
+      returning id, invoice_id)
+    insert into institution.transaction_to_institution_delivery 
+    (transaction_id, institution_id)
     select
-      invoice_id,
-      $2 :: text,
-      $3 :: text,
-      $4 :: text,
-      $5 :: text,
-      $6 :: text,
-      $7 :: text,
-      $8 :: float8,
-      $9 :: text,
-      $10 :: text,
-      $11 :: text,
-      $12 :: int8
-    from institution.invoice_to_institution_delivery
-    where external_id = $1 :: uuid|]
+      n.id,
+      i.institution_id
+    from new_transaction as n
+    inner join institution.invoice as i
+    on n.invoice_id = i.id|]
