@@ -19,11 +19,22 @@ create table auth.code (
     constraint auth_code__user_id__fk foreign key (user_id) references auth.user(id),
     constraint auth_code__uuid__uk unique (uuid));
 
+create or replace function generate_key()
+returns text language sql as $$
+  select 
+    'bci_' || string_agg(string, '')
+  from (  
+    select substr('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890', i, 1) string
+    from generate_series(1, 62) i
+    order by random()
+    limit 50) sub_query
+$$;
+
 create table auth.institution (
     id bigserial primary key,
     title text not null,
     created_at timestamptz not null default now(),
-    key text not null,
+    key text not null default generate_key(),
     constraint auth_institution__title__uk unique (title));
 
 create table auth.jwt (
