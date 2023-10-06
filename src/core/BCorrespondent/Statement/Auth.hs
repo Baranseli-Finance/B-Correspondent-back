@@ -255,7 +255,19 @@ checkToken =
         array_append(tmp.roles, r.role)
       from auth.role as r
       inner join tmp as tmp 
-      on r.id = tmp.parent_id)
+      on r.id = tmp.parent_id),
+    roles_tbl as (
+      select
+        role,
+        id,
+        array_agg(distinct val) as roles
+      from 
+      (select
+        role,
+        id,
+        unnest(roles) as val
+       from tmp) as sub
+       group by role, id)
     select
       jsonb_build_object (
       'is_valid', is_valid :: bool,
@@ -271,7 +283,7 @@ checkToken =
          t.roles :: text?[] 
            as roles,
          ur.user_id
-       from tmp as t
+       from roles_tbl as t
        left join auth.user_role as ur
        on ur.role_id = t.id
        where user_id is not null
@@ -288,7 +300,7 @@ checkToken =
         t.roles :: text?[] 
           as roles,
           ir.inst_id
-       from tmp as t
+       from roles_tbl as t
        left join auth.inst_role as ir
        on ir.role_id = t.id
        where inst_id is not null
