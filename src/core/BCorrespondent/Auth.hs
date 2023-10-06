@@ -76,7 +76,13 @@ data AuthError = NoAuthHeader | NoBearer | TokenInvalid
 
 data JWT
 
-data Role = Writer | Reader | Admin | None | Bank
+data Role = 
+       Writer 
+     | Reader 
+     | Admin 
+     | None
+      -- any entity that can initiate an invoice query 
+     | Source
   deriving (Eq, Show, Read)
 
 newtype RRole (r :: Role) = UnsafeRRole Role
@@ -90,8 +96,8 @@ instance KnownRole 'Reader where
 instance KnownRole 'Writer where
   roleSing = UnsafeRRole Writer
 
-instance KnownRole 'Bank where
-  roleSing = UnsafeRRole Bank
+instance KnownRole 'Source where
+  roleSing = UnsafeRRole Source
 
 roleVal :: forall r proxy. KnownRole r => proxy r -> Role
 roleVal _ = 

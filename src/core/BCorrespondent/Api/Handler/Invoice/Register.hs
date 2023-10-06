@@ -46,7 +46,7 @@ data CountryCode =
 instance FromRecord CountryCode
 
 handle
-  :: Auth.AuthenticatedUser 'Auth.Bank 
+  :: Auth.AuthenticatedUser 'Auth.Source 
   -> [InvoiceRegisterRequest] 
   -> KatipHandlerM (Response [InvoiceRegisterResponse])
 handle Auth.AuthenticatedUser {..} xs = do
