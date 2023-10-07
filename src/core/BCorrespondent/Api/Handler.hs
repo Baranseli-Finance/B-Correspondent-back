@@ -23,6 +23,7 @@ import qualified BCorrespondent.Api.Handler.Auth.Login as Auth.Login
 import qualified BCorrespondent.Api.Handler.Auth.Logout as Auth.Logout
 import qualified BCorrespondent.Api.Handler.Invoice.Register as Invoice.Register
 import qualified BCorrespondent.Api.Handler.Frontend.Dashboard.InitDailyBalanceSheet as Frontend.Dashboard.InitDailyBalanceSheet
+import qualified BCorrespondent.Api.Handler.Frontend.Dashboard.FetchGap as Frontend.Dashboard.FetchGap
 import qualified BCorrespondent.Api.Handler.Frontend.Dashboard.GetHistory as Frontend.Dashboard.GetHistory
 import qualified BCorrespondent.Api.Handler.Frontend.Dashboard.MakeProcuratory as Frontend.Dashboard.MakeProcuratory
 import qualified BCorrespondent.Api.Handler.Frontend.Init as Frontend.Init
@@ -151,8 +152,14 @@ dashboard nm =
        auth `Auth.withAuth` \user ->
          flip logExceptionM ErrorS $
            katipAddNamespace
-           (Namespace [nm, "timeline"])
+           (Namespace [nm, "balanceSheet", "init"])
            (Frontend.Dashboard.InitDailyBalanceSheet.handle user),
+    _dashboardApiFetchGap = \auth from to ->
+      auth `Auth.withAuth` \user ->
+         flip logExceptionM ErrorS $
+           katipAddNamespace
+           (Namespace [nm, "balanceSheet", "gap"])
+           (Frontend.Dashboard.FetchGap.handle user from to),
     _dashboardApiGetHistory = \auth ->
        auth `Auth.withAuth` \_ ->
          flip logExceptionM ErrorS $

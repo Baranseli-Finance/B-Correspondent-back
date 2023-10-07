@@ -15,6 +15,7 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE TupleSections #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -fno-warn-unused-top-binds #-}
 {-# OPTIONS_GHC -fno-warn-missing-exported-signatures #-}
 
@@ -39,7 +40,7 @@ module BCorrespondent.Transport.Model.Frontend
         GapItemTime (..),
        ) where
 
-import Data.Text (Text)
+import Data.Text (Text, splitOn, unpack)
 import Data.Aeson (ToJSON, FromJSON)
 import Data.Aeson.Generic.DerivingVia
 import GHC.Generics (Generic)
@@ -61,7 +62,8 @@ import TH.Mk
 import Control.Lens
 import Control.Lens.Iso.Extended (jsonb, stext)
 import Data.Char (toLower)
-
+import Data.Swagger
+import Servant.API (FromHttpApiData (..))
 
 data ProcuratoryRequest = 
      ProcuratoryRequest { procuratoryTest :: Text }
@@ -161,7 +163,16 @@ data GapItemTime =
 
 deriveToSchemaFieldLabelModifier ''GapItemTime [|firstLetterModify (Proxy @GapItemTime)|]
 
-data GapItemUnitStatus = 
+instance ToParamSchema GapItemTime where
+  toParamSchema _ = mempty & type_ ?~ SwaggerArray & maxItems ?~ 2 & minItems ?~ 2 
+
+instance FromHttpApiData GapItemTime where
+  parseUrlPiece s = 
+    case map (read @Int . unpack) (splitOn "," s) of
+      [h, m] -> Right $ GapItemTime h m
+      _ -> Left $ "cannot parse " <> s <> " into GapItemTime"
+
+data GapItemUnitStatus =
        Pending
      | ProcessedOk 
      | ProcessedDecline

@@ -9,9 +9,9 @@
 
 module BCorrespondent.Api.Frontend.Dashboard (DashboardApi (..)) where
 
-import BCorrespondent.Transport.Model.Frontend (DailyBalanceSheet)
+import BCorrespondent.Transport.Model.Frontend (DailyBalanceSheet, GapItem)
 import BCorrespondent.Transport.Response (Response)
-import BCorrespondent.Transport.Model.Frontend (ProcuratoryRequest) 
+import BCorrespondent.Transport.Model.Frontend (ProcuratoryRequest, GapItemTime)
 import BCorrespondent.Auth (AuthenticatedUser, JWT, Role (..))
 import Servant.API.Extended
 import Servant.API.Generic (Generic)
@@ -27,8 +27,17 @@ data DashboardApi route = DashboardApi
     _dashboardApiInitDailyBalanceSheet ::
       route
         :- "daily-balance-sheet"
+          :> "init"
           :> SA.Auth '[JWT] (AuthenticatedUser 'Reader)
           :> Get '[JSON] (Response DailyBalanceSheet),
+    _dashboardApiFetchGap ::
+      route
+        :- "daily-balance-sheet"
+          :> "gap"
+          :> SA.Auth '[JWT] (AuthenticatedUser 'Reader)
+          :> QueryParam' '[Required, Strict] "from" GapItemTime
+          :> QueryParam' '[Required, Strict] "to" GapItemTime
+          :> Get '[JSON] (Response GapItem),
     _dashboardApiMakeProcuratory ::
       route
         :- "procuratory"
