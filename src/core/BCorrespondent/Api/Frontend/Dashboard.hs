@@ -24,7 +24,7 @@ data DashboardApi route = DashboardApi
         :- "history"
           :> SA.Auth '[JWT] (AuthenticatedUser 'Reader)
           :> Get '[JSON] (Response ()),
-    _dashboardApiGetDailyBalanceSheet ::
+    _dashboardApiInitDailyBalanceSheet ::
       route
         :- "daily-balance-sheet"
           :> SA.Auth '[JWT] (AuthenticatedUser 'Reader)
