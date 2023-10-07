@@ -91,5 +91,7 @@ explainTests =
   , "BCorrespondent.Statement.Fs" ==> 
      [ "insertFiles" =>> BCorrespondent.Statement.Fs.insertFiles]
   , "BCorrespondent.Statement.Frontend" ==>
-     ["getCurrentTimeline" =>> BCorrespondent.Statement.Frontend.getCurrentTimeline]    
+     ["get1HourTimeline" =>> BCorrespondent.Statement.Frontend.get1HourTimeline,
+      "getGap" =>> BCorrespondent.Statement.Frontend.getGap 
+     ] 
   ]

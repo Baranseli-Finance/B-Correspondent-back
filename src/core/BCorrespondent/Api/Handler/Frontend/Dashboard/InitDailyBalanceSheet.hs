@@ -4,7 +4,7 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TransformListComp #-}
 
-module BCorrespondent.Api.Handler.Frontend.Dashboard.InitDailyBalanceSheet (handle) where
+module BCorrespondent.Api.Handler.Frontend.Dashboard.InitDailyBalanceSheet (handle, mkStatus) where
 
 import BCorrespondent.Transport.Model.Frontend 
        (DailyBalanceSheet (..), 
@@ -13,7 +13,7 @@ import BCorrespondent.Transport.Model.Frontend
         GapItemUnit (..),
         GapItemUnitStatus (..)
        )
-import BCorrespondent.Statement.Frontend (getCurrentTimeline, CurrentTimelineValue (..))
+import BCorrespondent.Statement.Frontend (get1HourTimeline, HourTimeline (..))
 import BCorrespondent.Transport.Response (Response (Error))
 import BCorrespondent.Statement.Invoice  (Status (..))
 import BCorrespondent.Transport.Error (asError)
@@ -33,9 +33,7 @@ import Data.Functor ((<&>))
 
 handle :: Auth.AuthenticatedUser 'Auth.Reader -> KatipHandlerM (Response DailyBalanceSheet)
 handle AuthenticatedUser {ident, institution = Nothing} = pure $ Error (Just 403) $ asError @Text msg
-  where msg = 
-          "there is no institution assigned to you. \ 
-          \ write to us to give the access mailto:admin@b-correspondent.app"
+  where msg = "there is no institution assigned to you. write to mailto:admin@b-correspondent.app to give the access"
 handle AuthenticatedUser {institution = Just ident} = do
   tm <- currentTime
   let day = toOrdinalDate $ utctDay tm
@@ -44,27 +42,22 @@ handle AuthenticatedUser {institution = Just ident} = do
   let lowerBoundTmp = addUTCTime (-3600) upperBound
   let lowerBound = mkLowerBound lowerBoundTmp day
   hasql <- fmap (^. katipEnv . hasqlDbPool) ask
-  dbResp <- transactionM hasql $ statement getCurrentTimeline (lowerBound, upperBound, ident)
+  dbResp <- transactionM hasql $ statement get1HourTimeline (lowerBound, upperBound, ident)
   pure $ withError dbResp $ \xs -> DailyBalanceSheet $ transform xs 
 
-transform :: [CurrentTimelineValue] -> [GapItem]
+transform :: [HourTimeline] -> [GapItem]
 transform xs =
   [ (el, the interval)
-    | CurrentTimelineValue
-      {currentTimelineValueStartHour = startH,
-       currentTimelineValueStartMinute = startM,
-       currentTimelineValueEndHour = endH,
-       currentTimelineValueEndMinute = endM,
-       currentTimelineValueTextualIdent = ident,
-       currentTimelineValueStatus = status } <- xs,
+    | HourTimeline
+      {hourTimelineStartHour = startH,
+       hourTimelineStartMinute = startM,
+       hourTimelineEndHour = endH,
+       hourTimelineEndMinute = endM,
+       hourTimelineTextualIdent = ident,
+       hourTimelineStatus = status } <- xs,
        let start = GapItemTime startH startM,
        let end = GapItemTime endH endM,
-        let mkStatus | status == ForwardedToPaymentProvider ||
-                       status == ProcessedByPaymentProvider = Pending
-                     | status == Confirmed = ProcessedOk
-                     | status == Declined = ProcessedDecline
-                     | otherwise = error $ "inappropriate status " <> show status,
-       let el = GapItemUnit ident mkStatus,
+       let el = GapItemUnit ident $ mkStatus status,
        let interval = (start, end),
        then group by interval using groupWith
   ] <&> \(xs, (start, end)) -> GapItem start end xs
@@ -72,3 +65,11 @@ transform xs =
 mkLowerBound :: UTCTime -> (Year, DayOfYear) -> UTCTime
 mkLowerBound tm (day, year) | snd (toOrdinalDate (utctDay tm)) == fromIntegral day = tm
                             | otherwise = UTCTime (fromOrdinalDate (fromIntegral year) (fromIntegral day)) 0
+
+mkStatus :: Status -> GapItemUnitStatus
+mkStatus status
+  | status == ForwardedToPaymentProvider ||
+    status == ProcessedByPaymentProvider = Pending
+  | status == Confirmed = ProcessedOk
+  | status == Declined = ProcessedDecline
+  | otherwise = error $ "inappropriate status " <> show status
