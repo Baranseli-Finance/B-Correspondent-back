@@ -32,6 +32,11 @@ module BCorrespondent.Transport.Model.Frontend
         Sha (..),
         JWTStatus (..),
         LogLevel,
+        GapItem (..),
+        GapItemUnit (..),
+        GapItemUnitStatus (..),
+        DailyBalanceSheet (..),
+        GapItemTime (..),
        ) where
 
 import Data.Text (Text)
@@ -46,7 +51,13 @@ import Data.Swagger.Schema.Extended
 import Data.Proxy (Proxy (..))
 import Data.Default.Class
 import Data.Default.Class.Extended ()
-import TH.Mk (mkToSchemaAndJSON, mkEnumConvertor, mkParamSchemaEnum, mkFromHttpApiDataEnum, mkArbitrary)
+import TH.Mk 
+       (mkToSchemaAndJSON, 
+        mkEnumConvertor, 
+        mkParamSchemaEnum, 
+        mkFromHttpApiDataEnum, 
+        mkArbitrary
+       )
 import Control.Lens
 import Control.Lens.Iso.Extended (jsonb, stext)
 import Data.Char (toLower)
@@ -63,7 +74,9 @@ data ProcuratoryRequest =
               UserDefined (StripConstructor ProcuratoryRequest)]]
           ProcuratoryRequest
 
-deriveToSchemaFieldLabelModifier ''ProcuratoryRequest [|firstLetterModify (Proxy @ProcuratoryRequest)|]
+deriveToSchemaFieldLabelModifier 
+  ''ProcuratoryRequest 
+  [|firstLetterModify (Proxy @ProcuratoryRequest)|]
 
 data JWTStatus = Valid | Invalid | Skip
   deriving stock (Generic, Show)
@@ -133,35 +146,68 @@ defInit = Init def def def def def def def
 data GapItemTime = 
       GapItemTime 
       { gapItemTimeHour :: Int, 
-        gapItemTimeMin :: Int 
+        gapItemTimeMin :: Int
       }
-    deriving stock (Generic, Show)
+    deriving stock (Generic, Show, Ord, Eq)
     deriving
       (ToJSON, FromJSON)
       via WithOptions 
           '[FieldLabelModifier
-            '[UserDefined 
+            '[UserDefined FirstLetterToLower,
+              UserDefined 
               (StripConstructor 
-               GapItemTime),
-              UserDefined ToLower]]
+               GapItemTime)]]
       GapItemTime
+
+deriveToSchemaFieldLabelModifier ''GapItemTime [|firstLetterModify (Proxy @GapItemTime)|]
+
+data GapItemUnitStatus = 
+       Pending
+     | ProcessedOk 
+     | ProcessedDecline
+     deriving stock (Generic, Show)
+
+mkToSchemaAndJSON ''GapItemUnitStatus
+mkEnumConvertor ''GapItemUnitStatus
+mkParamSchemaEnum ''GapItemUnitStatus [|isoGapItemUnitStatus . jsonb|]
+mkFromHttpApiDataEnum ''GapItemUnitStatus [|from stext . from isoGapItemUnitStatus . to Right|]
+
+data GapItemUnit =
+     GapItemUnit 
+     { gapItemUnitTextualIdent :: Text, 
+       gapItemUnitStatus :: GapItemUnitStatus
+     }
+    deriving stock (Generic, Show)
+    deriving
+      (ToJSON, FromJSON)
+      via WithOptions
+          '[FieldLabelModifier
+            '[UserDefined FirstLetterToLower,
+              UserDefined 
+              (StripConstructor 
+               GapItemUnit)]]
+      GapItemUnit
+
+deriveToSchemaFieldLabelModifier ''GapItemUnit [|firstLetterModify (Proxy @GapItemUnit)|]
 
 data GapItem =
      GapItem
      { gapItemStart :: !GapItemTime,
        gapItemEnd :: !GapItemTime,
-       gapItemElements :: ![Int]
+       gapItemElements :: ![GapItemUnit]
      }
     deriving stock (Generic, Show)
     deriving
       (ToJSON, FromJSON)
       via WithOptions 
           '[FieldLabelModifier
-            '[UserDefined 
+            '[UserDefined FirstLetterToLower,
+              UserDefined 
               (StripConstructor 
-               GapItem),
-              UserDefined ToLower]]
+               GapItem)]]
       GapItem
+
+deriveToSchemaFieldLabelModifier ''GapItem [|firstLetterModify (Proxy @GapItem)|]
 
 data DailyBalanceSheet = 
      DailyBalanceSheet
@@ -171,8 +217,10 @@ data DailyBalanceSheet =
       (ToJSON, FromJSON)
       via WithOptions 
           '[FieldLabelModifier
-            '[UserDefined 
+            '[UserDefined FirstLetterToLower,
+              UserDefined 
               (StripConstructor 
-               DailyBalanceSheet),
-              UserDefined ToLower]]
+               DailyBalanceSheet)]]
       DailyBalanceSheet
+
+deriveToSchemaFieldLabelModifier ''DailyBalanceSheet [|firstLetterModify (Proxy @DailyBalanceSheet)|]

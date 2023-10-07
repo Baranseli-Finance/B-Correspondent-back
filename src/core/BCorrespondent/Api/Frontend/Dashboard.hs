@@ -9,6 +9,7 @@
 
 module BCorrespondent.Api.Frontend.Dashboard (DashboardApi (..)) where
 
+import BCorrespondent.Transport.Model.Frontend (DailyBalanceSheet)
 import BCorrespondent.Transport.Response (Response)
 import BCorrespondent.Transport.Model.Frontend (ProcuratoryRequest) 
 import BCorrespondent.Auth (AuthenticatedUser, JWT, Role (..))
@@ -27,7 +28,7 @@ data DashboardApi route = DashboardApi
       route
         :- "daily-balance-sheet"
           :> SA.Auth '[JWT] (AuthenticatedUser 'Reader)
-          :> Get '[JSON] (Response ()),
+          :> Get '[JSON] (Response DailyBalanceSheet),
     _dashboardApiMakeProcuratory ::
       route
         :- "procuratory"

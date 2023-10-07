@@ -9,7 +9,7 @@
 {-# LANGUAGE DerivingVia #-}
 {-# OPTIONS_GHC -fno-warn-unused-top-binds #-}
 
-module BCorrespondent.Statement.Frontend (getCurrentTimeline) where
+module BCorrespondent.Statement.Frontend (getCurrentTimeline, CurrentTimelineValue (..)) where
 
 import BCorrespondent.Statement.Invoice (Status (..))
 import qualified Hasql.Statement as HS
@@ -23,11 +23,15 @@ import Control.Lens (dimap)
 import qualified Data.Vector as V
 import Data.Tuple.Extended (snocT)
 import Data.String.Conv (toS)
+import Data.Maybe (fromMaybe)
+import Data.Int (Int64)
 
 data CurrentTimelineValue = 
      CurrentTimelineValue
-     { currentTimelineValueStart :: UTCTime,
-       currentTimelineValueEnd :: UTCTime,
+     { currentTimelineValueStartHour :: Int,
+       currentTimelineValueStartMinute :: Int,
+       currentTimelineValueEndHour :: Int,
+       currentTimelineValueEndMinute :: Int,
        currentTimelineValueTextualIdent :: Text,
        currentTimelineValueStatus :: Status
      }
@@ -42,22 +46,26 @@ data CurrentTimelineValue =
                CurrentTimelineValue)]]
           CurrentTimelineValue
 
-getCurrentTimeline :: HS.Statement (UTCTime, UTCTime) (Either String [CurrentTimelineValue])
+getCurrentTimeline :: HS.Statement (UTCTime, UTCTime, Int64) (Either String [CurrentTimelineValue])
 getCurrentTimeline =
   dimap 
   (snocT (toS (show Declined)) .
    snocT (toS (show Confirmed)) .
    snocT (toS (show ForwardedToPaymentProvider)))
-   (sequence . map (eitherDecode @CurrentTimelineValue . encode) . V.toList)
-  [singletonStatement|
+   (fromMaybe (Right []) . fmap (sequence . map (eitherDecode @CurrentTimelineValue . encode) . V.toList))
+  [maybeStatement|
     select
       tmp.values :: jsonb[]
-    from (  
+    from (
       select
         tm.start,
         tm.end,
         array_agg(
         json_build_object(
+        'start_hour', extract(hour from tm.start),
+        'start_minute', extract(minute from tm.start),
+        'end_hour', extract(hour from tm.end),
+        'end_minute', extract(minute from tm.end),
         'textual_ident', i.textual_view, 
         'status', i.status)) 
         :: jsonb[] as values
@@ -70,11 +78,15 @@ getCurrentTimeline =
             $2 :: timestamptz,
             interval '5 min') as _(el)
         where el < $2 :: timestamptz) as tm
-      cross join institution.invoice as i
+      cross join (
+        select 
+          *
+        from institution.invoice
+        where institution_id = $3 :: int8) as i
       where 
-      (i.status = $3 :: text or 
-       i.status = $4 :: text or 
-       i.status = $5 :: text) 
+      (i.status = $4 :: text or 
+       i.status = $5 :: text or 
+       i.status = $6 :: text) 
       and (i.appearance_on_timeline > tm.start and 
            i.appearance_on_timeline < tm.end)
       group by tm.start, tm.end) as tmp|]

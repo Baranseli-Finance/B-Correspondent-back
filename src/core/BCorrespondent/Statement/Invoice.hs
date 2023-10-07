@@ -57,7 +57,7 @@ data Status =
      | ProcessedByPaymentProvider
      | Confirmed
      | Declined
-  deriving stock (Generic, Show, Read)
+  deriving stock (Generic, Show, Read, Ord, Eq)
 
 instance ParamsShow Status where
   render = show
