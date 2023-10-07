@@ -225,7 +225,8 @@ data CheckToken =
      CheckToken 
      { checkTokenIsValid :: Bool, 
        checkTokenAccountType :: AccountType,
-       checkTokenRole :: Maybe (Vector T.Text)
+       checkTokenRole :: Maybe (Vector T.Text),
+       checkTokenInstitution :: Maybe Int64
      } 
      deriving stock (Generic, Show)
      deriving
@@ -273,33 +274,47 @@ checkToken =
       'is_valid', is_valid :: bool,
       'account_type', 
       coalesce(uj.ty, ij.ty),
-      'role', coalesce(uj.roles, ij.roles)) :: jsonb
+      'role', coalesce(uj.roles, ij.roles),
+      'institution', 
+       coalesce(uj.institution, ij.institution)) :: jsonb
     from auth.jwt as j
     left join (
-      select f.*, 'user' as ty, s.roles
+      select 
+        f.*, 
+        'user' as ty, 
+        s.roles, 
+        s.institution
       from auth.user_jwt as f
       left join
       (select
          t.roles :: text?[] 
            as roles,
-         ur.user_id
+         ur.user_id,
+         iu.institution_id as institution
        from roles_tbl as t
        left join auth.user_role as ur
        on ur.role_id = t.id
-       where user_id is not null
-       group by user_id, roles
+       left join institution.user as iu
+       on ur.user_id = iu.user_id
+       where ur.user_id is not null
+       group by ur.user_id, roles, iu.institution_id
        order by max(array_length(roles, 1)) desc) as s
        on f.user_id = s.user_id) as uj
     on j.id = uj.jwt_id
     and user_id = $2 :: int8
     left join (
-      select f.*, 'institution' as ty, s.roles
+      select 
+        f.*, 
+        'institution' as ty, 
+        s.roles, 
+        s.institution
       from auth.institution_jwt as f
       left join
       (select
         t.roles :: text?[] 
           as roles,
-          ir.inst_id
+          ir.inst_id,
+          ir.inst_id as institution
        from roles_tbl as t
        left join auth.inst_role as ir
        on ir.role_id = t.id

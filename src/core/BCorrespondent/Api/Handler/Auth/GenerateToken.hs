@@ -61,7 +61,9 @@ handle instKey = do
                     CheckToken 
                     { checkTokenIsValid = isValid, 
                       checkTokenAccountType = Institution,
-                      checkTokenRole = Just $ V.singleton $ toS $ show Source
+                      checkTokenRole = 
+                        Just $ V.singleton $ toS $ show Source,
+                      checkTokenInstitution = Just institutionCredsIdent
                     }
               res <- liftIO $ validateJwt (defaultJWTSettings key) (const $ pure (Just checkToken)) $ toS value
               case res of 

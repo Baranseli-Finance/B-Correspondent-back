@@ -119,11 +119,12 @@ data AuthenticatedUser (r :: Role) =
      { ident :: !Int64, 
        account :: !Auth.AccountType,
        jwtIdent :: !UUID,
-       roles :: !(V.Vector Role) 
+       roles :: !(V.Vector Role),
+       institution :: !(Maybe Int64)
      } deriving (Show)
 
 instance FromJWT (AuthenticatedUser r) where
-  decodeJWT _ = Right $ AuthenticatedUser 0 Auth.User def $ V.singleton BCorrespondent.Auth.None
+  decodeJWT _ = Right $ AuthenticatedUser 0 Auth.User def (V.singleton BCorrespondent.Auth.None) Nothing
 
 instance ToJWT (AuthenticatedUser r) where
   encodeJWT _ = emptyClaimsSet
@@ -170,6 +171,7 @@ validateJwt cfg@JWTSettings {..} checkToken input = do
                 (fromMaybe V.empty $ 
                  (fmap (V.map (read . toS)) 
                   checkTokenRole))
+                checkTokenInstitution  
           else Left TokenInvalid
 
 withAuth :: forall r a.  KnownRole r => AuthResult (AuthenticatedUser r) -> (AuthenticatedUser r -> KatipHandlerM (Response a)) -> KatipHandlerM (Response a)

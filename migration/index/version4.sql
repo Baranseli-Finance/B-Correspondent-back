@@ -75,3 +75,10 @@ create table institution.account (
     currency text not null,
     amount decimal(24, 2) not null,
     constraint institution_account__institution_id__fk foreign key (institution_id) references auth.institution(id));
+
+create table institution.user (
+  institution_id bigserial not null,
+  user_id bigserial not null,
+  constraint institution_user__institution_id__fk foreign key (institution_id) references auth.institution(id),
+  constraint institution_user__user_id__fk foreign key (user_id) references auth.user(id),
+  constraint institution_user__institution_id_user_id__unique unique (user_id, institution_id))
