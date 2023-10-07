@@ -15,6 +15,7 @@ import qualified BCorrespondent.Statement.Auth
 import qualified BCorrespondent.Statement.Invoice
 import qualified BCorrespondent.Statement.Transaction
 import qualified BCorrespondent.Statement.Fs
+import qualified BCorrespondent.Statement.Frontend
 
 import Control.Lens
 import Control.Monad.IO.Class
@@ -78,7 +79,8 @@ explainTests =
      [ "register" =>> BCorrespondent.Statement.Invoice.register,
        "getInvoicesToBeSent" =>> BCorrespondent.Statement.Invoice.getInvoicesToBeSent,
        "insertFailedInvoices" =>> BCorrespondent.Statement.Invoice.insertFailedInvoices,
-       "updateStatus" =>> BCorrespondent.Statement.Invoice.updateStatus
+       "updateStatus" =>> BCorrespondent.Statement.Invoice.updateStatus,
+       "getValidation" =>> BCorrespondent.Statement.Invoice.getValidation
      ] 
   , "BCorrespondent.Statement.Transaction" ==>
      [  "getTransactionsToBeSent" =>> BCorrespondent.Statement.Transaction.getTransactionsToBeSent,
@@ -87,5 +89,7 @@ explainTests =
         "create" =>> BCorrespondent.Statement.Transaction.create
      ]
   , "BCorrespondent.Statement.Fs" ==> 
-     [ "insertFiles" =>> BCorrespondent.Statement.Fs.insertFiles]   
+     [ "insertFiles" =>> BCorrespondent.Statement.Fs.insertFiles]
+  , "BCorrespondent.Statement.Frontend" ==>
+     ["getCurrentTimeline" =>> BCorrespondent.Statement.Frontend.getCurrentTimeline]    
   ]

@@ -16,7 +16,8 @@ import BCorrespondent.Config (Email)
 import BCorrespondent.Api.Foreign.SendGrid (SendGridApi)
 import BCorrespondent.Transport.Model.Frontend (ProcuratoryRequest)
 import BCorrespondent.Transport.Model.Invoice (InvoiceRegisterResponse)
-import BCorrespondent.Transport.Model.Frontend (Init, Sha, JWTStatus)
+import BCorrespondent.Transport.Model.Frontend 
+       (Init, Sha, JWTStatus, DailyBalanceSheet, GapItem, GapItemUnit, GapItemUnitStatus, GapItemTime)
 
 import Servant.API.Generic
 import Servant.Swagger.Test
@@ -36,6 +37,11 @@ mkArbitrary ''Init
 mkArbitrary ''AuthCodeHash
 mkArbitrary ''ResendCode
 mkArbitrary ''AuthCode
+mkArbitrary ''GapItemUnitStatus
+mkArbitrary ''GapItemTime
+mkArbitrary ''GapItemUnit
+mkArbitrary ''GapItem
+mkArbitrary ''DailyBalanceSheet
 
 spec_api :: Spec
 spec_api =
