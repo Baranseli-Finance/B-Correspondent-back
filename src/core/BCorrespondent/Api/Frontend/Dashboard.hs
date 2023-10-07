@@ -9,14 +9,16 @@
 
 module BCorrespondent.Api.Frontend.Dashboard (DashboardApi (..)) where
 
-import BCorrespondent.Transport.Model.Frontend (DailyBalanceSheet, GapItem)
+import BCorrespondent.Transport.Model.Frontend 
+       (DailyBalanceSheet, GapItem, WSResource)
 import BCorrespondent.Transport.Response (Response)
 import BCorrespondent.Transport.Model.Frontend (ProcuratoryRequest, GapItemTime)
 import BCorrespondent.Auth (AuthenticatedUser, JWT, Role (..))
 import Servant.API.Extended
 import Servant.API.Generic (Generic)
 import qualified Servant.Auth.Server as SA
-
+import Servant.API.WebSocket (WebSocketPending)
+import Servant.Swagger.Internal.Extended ()
 
 data DashboardApi route = DashboardApi
   { _dashboardApiGetHistory ::
@@ -38,6 +40,12 @@ data DashboardApi route = DashboardApi
           :> QueryParam' '[Required, Strict] "from" GapItemTime
           :> QueryParam' '[Required, Strict] "to" GapItemTime
           :> Get '[JSON] (Response GapItem),
+    _dashboardApiNotifyDailyBalanceSheet ::
+      route
+        :- "daily-balance-sheet"
+        :> "notify"
+        :> Capture "resource" WSResource
+        :> WebSocketPending,
     _dashboardApiMakeProcuratory ::
       route
         :- "procuratory"

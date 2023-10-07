@@ -38,16 +38,18 @@ module BCorrespondent.Transport.Model.Frontend
         GapItemUnitStatus (..),
         DailyBalanceSheet (..),
         GapItemTime (..),
+        WSResource (..)
        ) where
 
 import Data.Text (Text, splitOn, unpack)
-import Data.Aeson (ToJSON, FromJSON)
+import Data.Aeson (ToJSON, FromJSON, Value (String))
 import Data.Aeson.Generic.DerivingVia
 import GHC.Generics (Generic)
 import Data.Swagger.Schema.Extended 
        (deriveToSchemaFieldLabelModifier,
         firstLetterModify,
-        deriveToSchemaConstructorTag
+        deriveToSchemaConstructorTag,
+        modify
        )
 import Data.Proxy (Proxy (..))
 import Data.Default.Class
@@ -235,3 +237,9 @@ data DailyBalanceSheet =
       DailyBalanceSheet
 
 deriveToSchemaFieldLabelModifier ''DailyBalanceSheet [|firstLetterModify (Proxy @DailyBalanceSheet)|]
+
+data WSResource = WSResourceTimeline deriving (Show)
+
+mkEnumConvertor ''WSResource
+mkParamSchemaEnum ''WSResource [|isoWSResource . to (modify (Proxy @WSResource)) . stext . to String|]
+mkFromHttpApiDataEnum ''WSResource [|from stext . from isoWSResource . to Right|]

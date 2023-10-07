@@ -31,6 +31,7 @@ import qualified BCorrespondent.Api.Handler.Webhook.CatchPaymentProvider as Webh
 import qualified BCorrespondent.Api.Handler.Webhook.CatchGithub as Webhook.CatchGithub
 import qualified BCorrespondent.Api.Handler.Fs.Upload as Fs.Upload
 import qualified BCorrespondent.Api.Handler.Fs.Download as Fs.Download
+import qualified BCorrespondent.Api.Handler.WS.Dashboard.NotifyDailyBalanceSheet as WS.Dashboard.NotifyDailyBalanceSheet
 -- << end handlers
 import qualified BCorrespondent.Auth as Auth
 import Katip
@@ -38,7 +39,7 @@ import Katip.Handler hiding (webhook)
 import Servant.API.Generic
 import Servant.RawM.Server ()
 import Servant.Server.Generic
--- import qualified Network.WebSockets.Connection as WS
+import qualified Network.WebSockets.Connection as WS
 import Servant.RateLimit.Server ()
 import Data.Text (Text)
 
@@ -160,6 +161,13 @@ dashboard nm =
            katipAddNamespace
            (Namespace [nm, "balanceSheet", "gap"])
            (Frontend.Dashboard.FetchGap.handle user from to),
+    _dashboardApiNotifyDailyBalanceSheet =
+      \resource (pend :: WS.PendingConnection) ->
+        pend `Auth.withWSAuth` \(ident, conn) ->
+          flip logExceptionM ErrorS
+          $ katipAddNamespace
+            (Namespace [nm, "balanceSheet", "notify"])
+            (WS.Dashboard.NotifyDailyBalanceSheet.handle ident conn resource),
     _dashboardApiGetHistory = \auth ->
        auth `Auth.withAuth` \_ ->
          flip logExceptionM ErrorS $
