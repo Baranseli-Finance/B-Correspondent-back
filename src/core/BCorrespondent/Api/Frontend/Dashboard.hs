@@ -10,7 +10,7 @@
 module BCorrespondent.Api.Frontend.Dashboard (DashboardApi (..)) where
 
 import BCorrespondent.Transport.Model.Frontend 
-       (DailyBalanceSheet, GapItem, WSResource)
+       (DailyBalanceSheet, GapItem, WSDashboardResource)
 import BCorrespondent.Transport.Response (Response)
 import BCorrespondent.Transport.Model.Frontend (ProcuratoryRequest, GapItemTime)
 import BCorrespondent.Auth (AuthenticatedUser, JWT, Role (..))
@@ -44,7 +44,7 @@ data DashboardApi route = DashboardApi
       route
         :- "daily-balance-sheet"
         :> "notify"
-        :> Capture "resource" WSResource
+        :> Capture "resource" WSDashboardResource
         :> WebSocketPending,
     _dashboardApiMakeProcuratory ::
       route

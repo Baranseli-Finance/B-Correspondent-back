@@ -38,7 +38,7 @@ module BCorrespondent.Transport.Model.Frontend
         GapItemUnitStatus (..),
         DailyBalanceSheet (..),
         GapItemTime (..),
-        WSResource (..)
+        WSDashboardResource (..)
        ) where
 
 import Data.Text (Text, splitOn, unpack)
@@ -238,8 +238,8 @@ data DailyBalanceSheet =
 
 deriveToSchemaFieldLabelModifier ''DailyBalanceSheet [|firstLetterModify (Proxy @DailyBalanceSheet)|]
 
-data WSResource = WSResourceTimeline deriving (Show)
+data WSDashboardResource = WSDashboardResourceTimeline deriving (Show)
 
-mkEnumConvertor ''WSResource
-mkParamSchemaEnum ''WSResource [|isoWSResource . to (modify (Proxy @WSResource)) . stext . to String|]
-mkFromHttpApiDataEnum ''WSResource [|from stext . from isoWSResource . to Right|]
+mkEnumConvertor ''WSDashboardResource
+mkParamSchemaEnum ''WSDashboardResource [|isoWSDashboardResource . to (modify (Proxy @WSDashboardResource)) . stext . to String|]
+mkFromHttpApiDataEnum ''WSDashboardResource [|from stext . from isoWSDashboardResource . to Right|]

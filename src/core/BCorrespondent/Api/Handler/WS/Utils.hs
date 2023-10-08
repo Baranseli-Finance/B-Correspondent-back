@@ -10,10 +10,12 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -fno-warn-redundant-constraints #-}
 
-module BCorrespondent.Api.Handler.WS.Utils (withWS, listenPsql, ListenPsql) where
+module BCorrespondent.Api.Handler.WS.Utils (withWS, listenPsql, sendError, ListenPsql) where
 
 
+import BCorrespondent.Transport.Response (Response (Error))
 import BCorrespondent.Api.Handler.Utils (withError)
+import BCorrespondent.Transport.Error (asError)
 import Katip
 import Katip.Handler
 import qualified Network.WebSockets as WS
@@ -33,16 +35,20 @@ import Control.Monad (forever)
 import Control.Concurrent.Lifted (fork, killThread)
 import qualified Control.Concurrent.MVar.Lifted as Async
 import Data.Kind (Type, Constraint)
-import GHC.TypeLits (Symbol, symbolVal, KnownSymbol, KnownNat, natVal)
+import GHC.TypeLits (Symbol, symbolVal, KnownSymbol)
 import qualified Hasql.Notifications as Hasql
 import Data.Proxy (Proxy (..))
 import Control.Lens.Iso.Extended (bytesLazy)
 import Data.String.Conv (toS)
 import Control.Concurrent (threadDelay)
 import qualified Data.Text.Lazy as TL
+import Data.Int (Int64)
+import Data.Text (Text)
+import Data.Traversable (for)
+import Data.String (fromString)
 
 withWS 
-  :: forall a . 
+  :: forall a .
   FromJSON a =>
   WS.Connection -> 
   (Hasql.Connection -> a -> KatipHandlerM ()) -> 
@@ -62,11 +68,17 @@ withWS conn go = do
   let back =
         forever $ do
           msg <- atomically $ Async.readTChan ch
-          for_ (eitherDecode @a msg) $ \val -> do
+          res <- for (eitherDecode @a msg) $ \val -> do
             threadm <- Async.tryTakeMVar thread
             for_ threadm killThread
             forkId <- fork $ go db val
             Async.putMVar thread forkId
+          whenLeft res $ \e -> 
+            $(logTM) ErrorS $
+              fromString $ 
+                $location <> 
+                " cannot parse " <> 
+                toS msg
   let keepAlive = liftIO $ forever $ threadDelay (10 * 10 ^ 6) >> WS.sendPing @TL.Text conn mempty  
 
   res <- Async.withAsync front $ 
@@ -86,9 +98,9 @@ withWS conn go = do
 
 type family ListenPsql (s :: Symbol) (b :: Type) :: Constraint
 
-listenPsql :: forall s n a b . (KnownNat n, KnownSymbol s, ListenPsql s a, FromJSON a, ToJSON b) => WS.Connection -> Hasql.Connection -> (a -> b) -> IO ()
-listenPsql c db go = do
-  let channel =  toS (symbolVal (Proxy @s)) <> "_" <> toS (show (natVal (Proxy @n)))
+listenPsql :: forall s a b . (KnownSymbol s, ListenPsql s a, FromJSON a, ToJSON b) => WS.Connection -> Hasql.Connection -> Int64 -> (a -> b) -> IO ()
+listenPsql c db userIdent go = do
+  let channel =  toS (symbolVal (Proxy @s)) <> "_" <> toS (show userIdent)
   let channelToListen = Hasql.toPgIdentifier channel
   Hasql.listen db channelToListen
   forever $
@@ -96,3 +108,6 @@ listenPsql c db go = do
       \channel payload -> do 
         let resp = eitherDecode @a $ payload^.from bytesLazy
         WS.sendDataMessage c (WS.Text (encode (withError resp go)) Nothing)
+
+sendError :: WS.Connection -> Text -> IO ()
+sendError c msg = WS.sendDataMessage c (WS.Text (encode @(Response ()) (Error Nothing (asError msg))) Nothing)

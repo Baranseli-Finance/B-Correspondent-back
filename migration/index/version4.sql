@@ -81,4 +81,49 @@ create table institution.user (
   user_id bigserial not null,
   constraint institution_user__institution_id__fk foreign key (institution_id) references auth.institution(id),
   constraint institution_user__user_id__fk foreign key (user_id) references auth.user(id),
-  constraint institution_user__institution_id_user_id__unique unique (user_id, institution_id))
+  constraint institution_user__institution_id_user_id__unique unique (user_id, institution_id));
+
+ timelineItemDayOfYear :: Int,
+       timelineItemHour :: Int,
+       timelineItemMin :: Int,
+       timelineItemIdent :: Text
+
+create or replace function notify_server_on_invoice()
+returns trigger as
+$$
+declare
+  result jsonb;
+begin
+    select
+        json_build_object(
+        'day_of_year', coalesce(cast(extract('doy' from tmp.appearance_on_timeline) as int), 0),
+        'hour', coalesce(cast(extract('hour' from tmp.appearance_on_timeline) as int), 0),
+        'min', coalesce(cast(extract('min' from tmp.appearance_on_timeline) as int), 0),
+        'ident', tmp.textual_view,
+        'status', tmp.status)
+        :: jsonb
+    into result
+    from (
+      select
+       inv.*
+      from auth.user as u
+      inner join institution.user as iu
+      on u.id = iu.user_id
+      inner join institution.invoice as inv
+      on iu.institution_id = inv.institution_id
+      where inv.status = 'ForwardedToPaymentProvider' or 
+      inv.status = 'Confirmed' or 
+      inv.status = 'Declined') as tmp;
+  perform 
+    pg_notify(
+      'timeline_item_update' || '_' || u.id,
+      coalesce(result :: text, 'null' :: text))
+  from auth.user as u;
+  return new;
+end;
+$$ language 'plpgsql';
+
+create or replace trigger on_invoice_update
+after update on institution.invoice
+for each row execute procedure notify_server_on_invoice();
+
