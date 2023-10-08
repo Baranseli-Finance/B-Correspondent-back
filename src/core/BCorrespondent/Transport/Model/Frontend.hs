@@ -166,7 +166,7 @@ data GapItemTime =
 deriveToSchemaFieldLabelModifier ''GapItemTime [|firstLetterModify (Proxy @GapItemTime)|]
 
 instance ToParamSchema GapItemTime where
-  toParamSchema _ = mempty & type_ ?~ SwaggerArray & maxItems ?~ 2 & minItems ?~ 2 
+  toParamSchema _ = mempty & type_ ?~ SwaggerString 
 
 instance FromHttpApiData GapItemTime where
   parseUrlPiece s = 
