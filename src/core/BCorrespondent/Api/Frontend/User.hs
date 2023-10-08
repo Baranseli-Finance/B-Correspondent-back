@@ -7,7 +7,7 @@
 {-# LANGUAGE TypeOperators #-}
 
 
-module BCorrespondent.Api.Frontend.Dashboard (DashboardApi (..)) where
+module BCorrespondent.Api.Frontend.User (UserApi (..)) where
 
 import BCorrespondent.Transport.Model.Frontend 
        (DailyBalanceSheet, GapItem, WSDashboardResource)
@@ -20,33 +20,36 @@ import qualified Servant.Auth.Server as SA
 import Servant.API.WebSocket (WebSocketPending)
 import Servant.Swagger.Internal.Extended ()
 
-data DashboardApi route = DashboardApi
-  { _dashboardApiGetHistory ::
+data UserApi route = UserApi
+  { _userApiGetHistory ::
       route
         :- "history"
           :> SA.Auth '[JWT] (AuthenticatedUser 'Reader)
           :> Get '[JSON] (Response ()),
-    _dashboardApiInitDailyBalanceSheet ::
+    _userApiInitDailyBalanceSheet ::
       route
-        :- "daily-balance-sheet"
+        :- "dashboard"
+          :> "daily-balance-sheet"
           :> "init"
           :> SA.Auth '[JWT] (AuthenticatedUser 'Reader)
           :> Get '[JSON] (Response DailyBalanceSheet),
-    _dashboardApiFetchGap ::
+    _userApiFetchGap ::
       route
-        :- "daily-balance-sheet"
+        :- "dashboard"
+          :> "daily-balance-sheet"
           :> "gap"
           :> SA.Auth '[JWT] (AuthenticatedUser 'Reader)
           :> QueryParam' '[Required, Strict] "from" GapItemTime
           :> QueryParam' '[Required, Strict] "to" GapItemTime
           :> Get '[JSON] (Response GapItem),
-    _dashboardApiNotifyDailyBalanceSheet ::
+    _userApiNotifyDailyBalanceSheet ::
       route
-        :- "daily-balance-sheet"
+        :- "dashboard"
+        :> "daily-balance-sheet"
         :> "notify"
         :> Capture "resource" WSDashboardResource
         :> WebSocketPending,
-    _dashboardApiMakeProcuratory ::
+    _userApiMakeProcuratory ::
       route
         :- "procuratory"
           :> SA.Auth '[JWT] (AuthenticatedUser 'Writer)

@@ -8,9 +8,9 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE NamedFieldPuns #-}
 
-module BCorrespondent.Api.Handler.WS.Dashboard.NotifyDailyBalanceSheet (handle) where
+module BCorrespondent.Api.Handler.WS.User.NotifyDailyBalanceSheet (handle) where
 
-import BCorrespondent.Api.Handler.Frontend.Dashboard.InitDailyBalanceSheet (mkStatus)
+import BCorrespondent.Api.Handler.Frontend.User.InitDailyBalanceSheet (mkStatus)
 import BCorrespondent.Auth (AuthenticatedUser (..), Role (..))
 import BCorrespondent.Transport.Model.Frontend 
        (WSDashboardResource (WSDashboardResourceTimeline))

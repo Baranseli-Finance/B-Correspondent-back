@@ -21,7 +21,7 @@ module BCorrespondent.Api
     FileApi (..),
     InstitutionApi (..),
     FiatApi (..),
-    DashboardApi (..),
+    UserApi (..),
     api,
     swaggerHttpApi,
   )

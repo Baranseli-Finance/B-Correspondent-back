@@ -22,16 +22,16 @@ import qualified BCorrespondent.Api.Handler.Auth.ResendAuthCode as Auth.ResendAu
 import qualified BCorrespondent.Api.Handler.Auth.Login as Auth.Login
 import qualified BCorrespondent.Api.Handler.Auth.Logout as Auth.Logout
 import qualified BCorrespondent.Api.Handler.Invoice.Register as Invoice.Register
-import qualified BCorrespondent.Api.Handler.Frontend.Dashboard.InitDailyBalanceSheet as Frontend.Dashboard.InitDailyBalanceSheet
-import qualified BCorrespondent.Api.Handler.Frontend.Dashboard.FetchGap as Frontend.Dashboard.FetchGap
-import qualified BCorrespondent.Api.Handler.Frontend.Dashboard.GetHistory as Frontend.Dashboard.GetHistory
-import qualified BCorrespondent.Api.Handler.Frontend.Dashboard.MakeProcuratory as Frontend.Dashboard.MakeProcuratory
+import qualified BCorrespondent.Api.Handler.Frontend.User.InitDailyBalanceSheet as Frontend.User.InitDailyBalanceSheet
+import qualified BCorrespondent.Api.Handler.Frontend.User.FetchGap as Frontend.User.FetchGap
+import qualified BCorrespondent.Api.Handler.Frontend.User.GetHistory as Frontend.User.GetHistory
+import qualified BCorrespondent.Api.Handler.Frontend.User.MakeProcuratory as Frontend.User.MakeProcuratory
 import qualified BCorrespondent.Api.Handler.Frontend.Init as Frontend.Init
 import qualified BCorrespondent.Api.Handler.Webhook.CatchPaymentProvider as Webhook.CatchPaymentProvider
 import qualified BCorrespondent.Api.Handler.Webhook.CatchGithub as Webhook.CatchGithub
 import qualified BCorrespondent.Api.Handler.Fs.Upload as Fs.Upload
 import qualified BCorrespondent.Api.Handler.Fs.Download as Fs.Download
-import qualified BCorrespondent.Api.Handler.WS.Dashboard.NotifyDailyBalanceSheet as WS.Dashboard.NotifyDailyBalanceSheet
+import qualified BCorrespondent.Api.Handler.WS.User.NotifyDailyBalanceSheet as WS.User.NotifyDailyBalanceSheet
 -- << end handlers
 import qualified BCorrespondent.Auth as Auth
 import Katip
@@ -136,9 +136,9 @@ webhook =
 frontend :: FrontendApi (AsServerT KatipHandlerM)
 frontend =
   FrontendApi
-    { _frontendApiDashboard =
+    { _frontendApiUser =
         let nm = "dasboard"
-        in toServant (dashboard nm),
+        in toServant (user nm),
       _frontendApiInit =
         flip logExceptionM ErrorS
            . katipAddNamespace
@@ -146,40 +146,40 @@ frontend =
            . Frontend.Init.handle
     }
 
-dashboard :: Text -> DashboardApi (AsServerT KatipHandlerM)
-dashboard nm =
-  DashboardApi
-  { _dashboardApiInitDailyBalanceSheet = \auth ->
+user :: Text -> UserApi (AsServerT KatipHandlerM)
+user nm =
+  UserApi
+  { _userApiInitDailyBalanceSheet = \auth ->
        auth `Auth.withAuth` \user ->
          flip logExceptionM ErrorS $
            katipAddNamespace
            (Namespace [nm, "balanceSheet", "init"])
-           (Frontend.Dashboard.InitDailyBalanceSheet.handle user),
-    _dashboardApiFetchGap = \auth from to ->
+           (Frontend.User.InitDailyBalanceSheet.handle user),
+    _userApiFetchGap = \auth from to ->
       auth `Auth.withAuth` \user ->
          flip logExceptionM ErrorS $
            katipAddNamespace
            (Namespace [nm, "balanceSheet", "gap"])
-           (Frontend.Dashboard.FetchGap.handle user from to),
-    _dashboardApiNotifyDailyBalanceSheet =
+           (Frontend.User.FetchGap.handle user from to),
+    _userApiNotifyDailyBalanceSheet =
       \resource (pend :: WS.PendingConnection) ->
         pend `Auth.withWSAuth` \(ident, conn) ->
           flip logExceptionM ErrorS
           $ katipAddNamespace
             (Namespace [nm, "balanceSheet", "notify"])
-            (WS.Dashboard.NotifyDailyBalanceSheet.handle ident conn resource),
-    _dashboardApiGetHistory = \auth ->
+            (WS.User.NotifyDailyBalanceSheet.handle ident conn resource),
+    _userApiGetHistory = \auth ->
        auth `Auth.withAuth` \_ ->
          flip logExceptionM ErrorS $
            katipAddNamespace
            (Namespace [nm, "history"])
-           Frontend.Dashboard.GetHistory.handle,
-    _dashboardApiMakeProcuratory = \auth req ->
+           Frontend.User.GetHistory.handle,
+    _userApiMakeProcuratory = \auth req ->
        auth `Auth.withAuth` \user ->
          flip logExceptionM ErrorS $
            katipAddNamespace
              (Namespace [nm, "procuratory"])
-             (Frontend.Dashboard.MakeProcuratory.handle user req)
+             (Frontend.User.MakeProcuratory.handle user req)
   }
 
 institution :: InstitutionApi (AsServerT KatipHandlerM)

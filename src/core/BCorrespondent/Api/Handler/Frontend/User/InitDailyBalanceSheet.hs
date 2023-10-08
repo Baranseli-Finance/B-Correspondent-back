@@ -4,7 +4,7 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TransformListComp #-}
 
-module BCorrespondent.Api.Handler.Frontend.Dashboard.InitDailyBalanceSheet (handle, mkStatus) where
+module BCorrespondent.Api.Handler.Frontend.User.InitDailyBalanceSheet (handle, mkStatus) where
 
 import BCorrespondent.Transport.Model.Frontend 
        (DailyBalanceSheet (..), 

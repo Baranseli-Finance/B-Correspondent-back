@@ -1,6 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 
-module BCorrespondent.Api.Handler.Frontend.Dashboard.MakeProcuratory (handle) where
+module BCorrespondent.Api.Handler.Frontend.User.MakeProcuratory (handle) where
 
 import BCorrespondent.Transport.Model.Frontend (ProcuratoryRequest)
 import BCorrespondent.Transport.Response (Response)

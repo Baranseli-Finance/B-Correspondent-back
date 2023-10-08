@@ -4,10 +4,10 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE RecordWildCards #-}
 
-module BCorrespondent.Api.Handler.Frontend.Dashboard.FetchGap (handle) where
+module BCorrespondent.Api.Handler.Frontend.User.FetchGap (handle) where
 
 import BCorrespondent.Transport.Model.Frontend (GapItemTime (..), GapItem (..), GapItemUnit (..))
-import BCorrespondent.Api.Handler.Frontend.Dashboard.InitDailyBalanceSheet (mkStatus)
+import BCorrespondent.Api.Handler.Frontend.User.InitDailyBalanceSheet (mkStatus)
 import BCorrespondent.Statement.Frontend (getGap, Gap (..))
 import BCorrespondent.Transport.Response (Response (Error))
 import BCorrespondent.Transport.Error (asError)
