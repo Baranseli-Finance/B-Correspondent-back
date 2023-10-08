@@ -96,9 +96,9 @@ declare
 begin
     select
         json_build_object(
-        'day_of_year', coalesce(cast(extract('doy' from tmp.appearance_on_timeline) as int), 0),
-        'hour', coalesce(cast(extract('hour' from tmp.appearance_on_timeline) as int), 0),
-        'min', coalesce(cast(extract('min' from tmp.appearance_on_timeline) as int), 0),
+        'day_of_year', cast(extract('doy' from tmp.appearance_on_timeline) as int),
+        'hour', cast(extract('hour' from tmp.appearance_on_timeline) as int),
+        'min', cast(extract('min' from tmp.appearance_on_timeline) as int),
         'ident', tmp.textual_view,
         'status', tmp.status)
         :: jsonb
@@ -113,7 +113,9 @@ begin
       on iu.institution_id = inv.institution_id
       where inv.status = 'ForwardedToPaymentProvider' or 
       inv.status = 'Confirmed' or 
-      inv.status = 'Declined') as tmp;
+      inv.status = 'Declined'
+      and (extract('doy' from inv.appearance_on_timeline) = extract('doy' from now())))
+      as tmp;
   perform 
     pg_notify(
       'timeline_item_update' || '_' || u.id,
@@ -126,4 +128,3 @@ $$ language 'plpgsql';
 create or replace trigger on_invoice_update
 after update on institution.invoice
 for each row execute procedure notify_server_on_invoice();
-
