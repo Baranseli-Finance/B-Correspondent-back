@@ -63,8 +63,8 @@ transform xs =
   ] <&> \(xs, (start, end)) -> GapItem start end xs
 
 mkLowerBound :: UTCTime -> (Year, DayOfYear) -> UTCTime
-mkLowerBound tm (day, year) | snd (toOrdinalDate (utctDay tm)) == fromIntegral day = tm
-                            | otherwise = UTCTime (fromOrdinalDate (fromIntegral year) (fromIntegral day)) 0
+mkLowerBound tm (year, day) | snd (toOrdinalDate (utctDay tm)) == day = tm
+                            | otherwise = UTCTime (fromOrdinalDate year day) 0
 
 mkStatus :: Status -> GapItemUnitStatus
 mkStatus status
