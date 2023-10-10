@@ -3,6 +3,7 @@
 
 module BCorrespondent.Api.Handler.Frontend.User.FetchTimeline (handle) where
 
+import BCorrespondent.Api.Handler.Frontend.User.InitDailyBalanceSheet (transform)
 import BCorrespondent.Statement.Frontend (get1HourTimeline)
 import qualified BCorrespondent.Auth as Auth
 import BCorrespondent.Transport.Model.Frontend 
@@ -54,4 +55,4 @@ handle user direction GapItemTime {gapItemTimeHour=hour, gapItemTimeMin=min} =
     $(logTM) DebugS $ fromString $ $location <> " params ---> " <> show params        
     hasql <- fmap (^. katipEnv . hasqlDbPool) ask           
     dbResp <- transactionM hasql $ statement get1HourTimeline params
-    pure $ withError dbResp undefined
+    pure $ withError dbResp transform
