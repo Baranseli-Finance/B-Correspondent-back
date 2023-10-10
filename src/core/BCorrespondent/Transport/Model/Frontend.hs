@@ -38,7 +38,8 @@ module BCorrespondent.Transport.Model.Frontend
         GapItemUnitStatus (..),
         DailyBalanceSheet (..),
         GapItemTime (..),
-        WSDashboardResource (..)
+        WSDashboardResource (..),
+        TimelineDirection
        ) where
 
 import Data.Text (Text, splitOn, unpack)
@@ -243,3 +244,12 @@ data WSDashboardResource = WSDashboardResourceTimeline deriving (Show)
 mkEnumConvertor ''WSDashboardResource
 mkParamSchemaEnum ''WSDashboardResource [|isoWSDashboardResource . to (modify (Proxy @WSDashboardResource)) . stext . to String|]
 mkFromHttpApiDataEnum ''WSDashboardResource [|from stext . from isoWSDashboardResource . to Right|]
+
+data TimelineDirection = Backward | Forward
+  deriving stock (Generic, Show)
+  deriving (Enum)
+
+mkToSchemaAndJSON ''TimelineDirection
+mkEnumConvertor ''TimelineDirection
+mkParamSchemaEnum ''TimelineDirection [|isoTimelineDirection . jsonb|]
+mkFromHttpApiDataEnum ''TimelineDirection [|from stext . from isoTimelineDirection . to Right|]

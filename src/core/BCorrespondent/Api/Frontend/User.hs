@@ -12,7 +12,8 @@ module BCorrespondent.Api.Frontend.User (UserApi (..)) where
 import BCorrespondent.Transport.Model.Frontend 
        (DailyBalanceSheet, GapItem, WSDashboardResource)
 import BCorrespondent.Transport.Response (Response)
-import BCorrespondent.Transport.Model.Frontend (ProcuratoryRequest, GapItemTime)
+import BCorrespondent.Transport.Model.Frontend 
+       (ProcuratoryRequest, GapItemTime, TimelineDirection)
 import BCorrespondent.Auth (AuthenticatedUser, JWT, Role (..))
 import Servant.API.Extended
 import Servant.API.Generic (Generic)
@@ -42,6 +43,15 @@ data UserApi route = UserApi
           :> QueryParam' '[Required, Strict] "from" GapItemTime
           :> QueryParam' '[Required, Strict] "to" GapItemTime
           :> Get '[JSON] (Response GapItem),
+    _userApiFetchOneHourTimeline ::
+      route
+        :- "dashboard"
+          :> "daily-balance-sheet"
+          :> "timeline"
+          :> SA.Auth '[JWT] (AuthenticatedUser 'Reader)
+          :> Capture "direction" TimelineDirection
+          :> QueryParam' '[Required, Strict] "point" GapItemTime
+          :> Get '[JSON] (Response [GapItem]),      
     _userApiNotifyDailyBalanceSheet ::
       route
         :- "dashboard"

@@ -26,6 +26,7 @@ import qualified BCorrespondent.Api.Handler.Frontend.User.InitDailyBalanceSheet 
 import qualified BCorrespondent.Api.Handler.Frontend.User.FetchGap as Frontend.User.FetchGap
 import qualified BCorrespondent.Api.Handler.Frontend.User.GetHistory as Frontend.User.GetHistory
 import qualified BCorrespondent.Api.Handler.Frontend.User.MakeProcuratory as Frontend.User.MakeProcuratory
+import qualified BCorrespondent.Api.Handler.Frontend.User.FetchTimeline as Frontend.User.FetchTimeline
 import qualified BCorrespondent.Api.Handler.Frontend.Init as Frontend.Init
 import qualified BCorrespondent.Api.Handler.Webhook.CatchPaymentProvider as Webhook.CatchPaymentProvider
 import qualified BCorrespondent.Api.Handler.Webhook.CatchGithub as Webhook.CatchGithub
@@ -179,7 +180,13 @@ user nm =
          flip logExceptionM ErrorS $
            katipAddNamespace
              (Namespace [nm, "procuratory"])
-             (Frontend.User.MakeProcuratory.handle user req)
+             (Frontend.User.MakeProcuratory.handle user req),
+    _userApiFetchOneHourTimeline = \auth direction point ->
+       auth `Auth.withAuth` \user ->
+         flip logExceptionM ErrorS $
+           katipAddNamespace
+             (Namespace [nm, "balanceSheet", "timeline"])
+             (Frontend.User.FetchTimeline.handle user direction point)        
   }
 
 institution :: InstitutionApi (AsServerT KatipHandlerM)
