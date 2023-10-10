@@ -39,7 +39,7 @@ module BCorrespondent.Transport.Model.Frontend
         DailyBalanceSheet (..),
         GapItemTime (..),
         WSDashboardResource (..),
-        TimelineDirection
+        TimelineDirection (..)
        ) where
 
 import Data.Text (Text, splitOn, unpack)
@@ -246,7 +246,7 @@ mkParamSchemaEnum ''WSDashboardResource [|isoWSDashboardResource . to (modify (P
 mkFromHttpApiDataEnum ''WSDashboardResource [|from stext . from isoWSDashboardResource . to Right|]
 
 data TimelineDirection = Backward | Forward
-  deriving stock (Generic, Show)
+  deriving stock (Generic, Show, Eq)
   deriving (Enum)
 
 mkToSchemaAndJSON ''TimelineDirection
