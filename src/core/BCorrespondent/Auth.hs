@@ -23,7 +23,8 @@ module BCorrespondent.Auth
         withAuth, 
         withWSAuth, 
         Auth.AccountType (..),
-        Role (..)
+        Role (..),
+        KnownRole
        ) where
 
 import BCorrespondent.Transport.Model.Auth (AuthToken (..))
