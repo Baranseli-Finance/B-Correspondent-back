@@ -39,7 +39,8 @@ module BCorrespondent.Transport.Model.Frontend
         DailyBalanceSheet (..),
         GapItemTime (..),
         WSDashboardResource (..),
-        TimelineDirection (..)
+        TimelineDirection (..),
+        FetchGap (..)
        ) where
 
 import Data.Text (Text, splitOn, unpack)
@@ -67,6 +68,9 @@ import Control.Lens.Iso.Extended (jsonb, stext)
 import Data.Char (toLower)
 import Data.Swagger
 import Servant.API (FromHttpApiData (..))
+import Data.Int (Int64)
+import Data.Time.Clock (UTCTime)
+
 
 data ProcuratoryRequest = 
      ProcuratoryRequest { procuratoryTest :: Text }
@@ -188,7 +192,9 @@ mkFromHttpApiDataEnum ''GapItemUnitStatus [|from stext . from isoGapItemUnitStat
 
 data GapItemUnit =
      GapItemUnit 
-     { gapItemUnitTextualIdent :: Text, 
+     { gapItemUnitIdent :: Int64,
+       gapItemUnitTm :: UTCTime,
+       gapItemUnitTextualIdent :: Text,
        gapItemUnitStatus :: GapItemUnitStatus
      }
     deriving stock (Generic, Show)
@@ -253,3 +259,17 @@ mkToSchemaAndJSON ''TimelineDirection
 mkEnumConvertor ''TimelineDirection
 mkParamSchemaEnum ''TimelineDirection [|isoTimelineDirection . jsonb|]
 mkFromHttpApiDataEnum ''TimelineDirection [|from stext . from isoTimelineDirection . to Right|]
+
+data FetchGap = FetchGap { fetchGapGap :: GapItem }
+    deriving stock (Generic, Show)
+    deriving
+      (ToJSON, FromJSON)
+      via WithOptions 
+          '[FieldLabelModifier
+            '[UserDefined FirstLetterToLower,
+              UserDefined 
+              (StripConstructor 
+               FetchGap)]]
+      FetchGap
+
+deriveToSchemaFieldLabelModifier ''FetchGap [|firstLetterModify (Proxy @FetchGap)|]

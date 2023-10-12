@@ -38,7 +38,9 @@ data HourTimeline =
        hourTimelineEndHour :: Int,
        hourTimelineEndMinute :: Int,
        hourTimelineTextualIdent :: Text,
-       hourTimelineStatus :: Status
+       hourTimelineStatus :: Status,
+       hourTimelineIdent :: Int64,
+       hourTimelineTm :: UTCTime
      }
     deriving stock (Generic)
     deriving
@@ -72,7 +74,9 @@ get1HourTimeline =
         'end_hour', extract(hour from tm.end),
         'end_minute', extract(minute from tm.end),
         'textual_ident', i.textual_view, 
-        'status', i.status)) 
+        'status', i.status,
+        'ident', i.id,
+        'tm', cast(i.created_at as text) || 'Z')) 
         :: jsonb[] as values
       from (
         select
@@ -96,7 +100,13 @@ get1HourTimeline =
            i.appearance_on_timeline < tm.end)
       group by tm.start, tm.end) as tmp|]
 
-data Gap = Gap { gapTextualIdent :: Text, gapStatus :: Status }
+data Gap = 
+     Gap 
+     { gapTextualIdent :: Text, 
+       gapStatus :: Status,
+       gapIdent :: Int64,
+       gapTm :: UTCTime
+     }
     deriving stock (Generic)
     deriving
      (FromJSON)
@@ -113,7 +123,9 @@ getGap =
     select
       json_build_object(
         'textual_ident', textual_view, 
-        'status', status) :: jsonb
+        'status', status,
+        'ident', id,
+        'tm', cast(i.created_at as text) || 'Z') :: jsonb
     from institution.invoice 
     where institution_id = $1 :: int8
     and appearance_on_timeline > 

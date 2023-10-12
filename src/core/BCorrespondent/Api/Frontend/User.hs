@@ -10,7 +10,7 @@
 module BCorrespondent.Api.Frontend.User (UserApi (..)) where
 
 import BCorrespondent.Transport.Model.Frontend 
-       (DailyBalanceSheet, GapItem, WSDashboardResource)
+       (DailyBalanceSheet, GapItem, WSDashboardResource, FetchGap)
 import BCorrespondent.Transport.Response (Response)
 import BCorrespondent.Transport.Model.Frontend 
        (ProcuratoryRequest, GapItemTime, TimelineDirection)
@@ -42,7 +42,7 @@ data UserApi route = UserApi
           :> SA.Auth '[JWT] (AuthenticatedUser 'Reader)
           :> QueryParam' '[Required, Strict] "from" GapItemTime
           :> QueryParam' '[Required, Strict] "to" GapItemTime
-          :> Get '[JSON] (Response GapItem),
+          :> Get '[JSON] (Response FetchGap),
     _userApiFetchOneHourTimeline ::
       route
         :- "dashboard"

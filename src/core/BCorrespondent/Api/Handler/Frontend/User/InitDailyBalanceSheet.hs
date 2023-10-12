@@ -50,11 +50,13 @@ transform xs =
        hourTimelineStartMinute = startM,
        hourTimelineEndHour = endH,
        hourTimelineEndMinute = endM,
-       hourTimelineTextualIdent = ident,
-       hourTimelineStatus = status } <- xs,
+       hourTimelineTextualIdent = textIdent,
+       hourTimelineStatus = status,
+       hourTimelineIdent = ident,
+       hourTimelineTm = tm } <- xs,
        let start = GapItemTime startH startM,
        let end = GapItemTime endH endM,
-       let el = GapItemUnit ident $ mkStatus status,
+       let el = GapItemUnit ident tm textIdent $ mkStatus status,
        let interval = (start, end),
        then group by interval using groupWith
   ] <&> \(xs, (start, end)) -> GapItem start end xs

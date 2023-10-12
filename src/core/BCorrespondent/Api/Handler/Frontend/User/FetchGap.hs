@@ -6,7 +6,7 @@
 
 module BCorrespondent.Api.Handler.Frontend.User.FetchGap (handle) where
 
-import BCorrespondent.Transport.Model.Frontend (GapItemTime (..), GapItem (..), GapItemUnit (..))
+import BCorrespondent.Transport.Model.Frontend (GapItemTime (..), GapItem (..), GapItemUnit (..), FetchGap (..))
 import BCorrespondent.Api.Handler.Frontend.User.InitDailyBalanceSheet (mkStatus)
 import BCorrespondent.Api.Handler.Frontend.User.Utils (checkInstitution)
 import BCorrespondent.Statement.Frontend (getGap, Gap (..))
@@ -20,7 +20,7 @@ import Database.Transaction (transactionM, statement)
 import Control.Lens ((^.))
 import Data.Functor ((<&>))
 
-handle :: Auth.AuthenticatedUser 'Auth.Reader -> GapItemTime -> GapItemTime -> KatipHandlerM (Response GapItem)
+handle :: Auth.AuthenticatedUser 'Auth.Reader -> GapItemTime -> GapItemTime -> KatipHandlerM (Response FetchGap)
 handle _ from to 
   | not (validateGapItemTime from) ||
     not (validateGapItemTime to) = 
@@ -42,8 +42,9 @@ handle user from to =
           )
     dbResp <- transactionM hasql $ statement getGap params
     pure $ withError dbResp $ \xs -> 
-      GapItem from to $ xs <&> \(Gap {..}) -> 
-        GapItemUnit gapTextualIdent $ mkStatus gapStatus
+      FetchGap $ 
+        GapItem from to $ xs <&> \(Gap {..}) -> 
+          GapItemUnit gapIdent gapTm gapTextualIdent $ mkStatus gapStatus
 
 validateGapItemTime :: GapItemTime -> Bool
 validateGapItemTime GapItemTime {..} = (0 <= gapItemTimeHour && gapItemTimeHour <= 12) && (0 <= gapItemTimeMin && gapItemTimeMin < 60)
