@@ -9,7 +9,7 @@
 {-# LANGUAGE DerivingVia #-}
 {-# OPTIONS_GHC -fno-warn-unused-top-binds #-}
 
-module BCorrespondent.Statement.Frontend 
+module BCorrespondent.Statement.Dashboard
        (get1HourTimeline,
         getGap,
         HourTimeline (..),

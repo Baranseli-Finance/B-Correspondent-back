@@ -13,7 +13,7 @@ import BCorrespondent.Transport.Model.Frontend
         GapItemUnit (..),
         GapItemUnitStatus (..)
        )
-import BCorrespondent.Statement.Frontend (get1HourTimeline, HourTimeline (..))
+import BCorrespondent.Statement.Dashboard (get1HourTimeline, HourTimeline (..))
 import BCorrespondent.Api.Handler.Frontend.User.Utils (checkInstitution)
 import BCorrespondent.Transport.Response (Response)
 import BCorrespondent.Statement.Invoice  (Status (..))

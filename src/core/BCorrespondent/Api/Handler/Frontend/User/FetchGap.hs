@@ -9,7 +9,7 @@ module BCorrespondent.Api.Handler.Frontend.User.FetchGap (handle) where
 import BCorrespondent.Transport.Model.Frontend (GapItemTime (..), GapItem (..), GapItemUnit (..), FetchGap (..))
 import BCorrespondent.Api.Handler.Frontend.User.InitDailyBalanceSheet (mkStatus)
 import BCorrespondent.Api.Handler.Frontend.User.Utils (checkInstitution)
-import BCorrespondent.Statement.Frontend (getGap, Gap (..))
+import BCorrespondent.Statement.Dashboard (getGap, Gap (..))
 import BCorrespondent.Transport.Response (Response (Error))
 import BCorrespondent.Transport.Error (asError)
 import BCorrespondent.Api.Handler.Utils (withError)

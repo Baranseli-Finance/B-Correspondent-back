@@ -15,7 +15,7 @@ import qualified BCorrespondent.Statement.Auth
 import qualified BCorrespondent.Statement.Invoice
 import qualified BCorrespondent.Statement.Transaction
 import qualified BCorrespondent.Statement.Fs
-import qualified BCorrespondent.Statement.Frontend
+import qualified BCorrespondent.Statement.Dashboard
 
 import Control.Lens
 import Control.Monad.IO.Class
@@ -90,8 +90,8 @@ explainTests =
      ]
   , "BCorrespondent.Statement.Fs" ==> 
      [ "insertFiles" =>> BCorrespondent.Statement.Fs.insertFiles]
-  , "BCorrespondent.Statement.Frontend" ==>
-     ["get1HourTimeline" =>> BCorrespondent.Statement.Frontend.get1HourTimeline,
-      "getGap" =>> BCorrespondent.Statement.Frontend.getGap 
+  , "BCorrespondent.Statement.Dashboard" ==>
+     ["get1HourTimeline" =>> BCorrespondent.Statement.Dashboard.get1HourTimeline,
+      "getGap" =>> BCorrespondent.Statement.Dashboard.getGap 
      ] 
   ]
