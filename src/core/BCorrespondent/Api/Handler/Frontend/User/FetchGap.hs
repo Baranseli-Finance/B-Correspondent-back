@@ -47,4 +47,4 @@ handle user from to =
           GapItemUnit gapIdent gapTm gapTextualIdent $ mkStatus gapStatus
 
 validateGapItemTime :: GapItemTime -> Bool
-validateGapItemTime GapItemTime {..} = (0 <= gapItemTimeHour && gapItemTimeHour <= 12) && (0 <= gapItemTimeMin && gapItemTimeMin < 60)
+validateGapItemTime GapItemTime {..} = (0 <= gapItemTimeHour && gapItemTimeHour < 24) && (0 <= gapItemTimeMin && gapItemTimeMin < 60)

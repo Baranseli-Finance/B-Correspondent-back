@@ -125,7 +125,7 @@ getGap =
         'textual_ident', textual_view, 
         'status', status,
         'ident', id,
-        'tm', cast(i.created_at as text) || 'Z') :: jsonb
+        'tm', cast(created_at as text) || 'Z') :: jsonb
     from institution.invoice 
     where institution_id = $1 :: int8
     and appearance_on_timeline > 
