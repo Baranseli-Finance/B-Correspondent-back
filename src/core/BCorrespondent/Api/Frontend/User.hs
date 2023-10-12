@@ -6,14 +6,18 @@
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE TypeOperators #-}
 
-
 module BCorrespondent.Api.Frontend.User (UserApi (..)) where
 
 import BCorrespondent.Transport.Model.Frontend 
        (DailyBalanceSheet, GapItem, WSDashboardResource, FetchGap)
 import BCorrespondent.Transport.Response (Response)
 import BCorrespondent.Transport.Model.Frontend 
-       (ProcuratoryRequest, GapItemTime, TimelineDirection)
+       (ProcuratoryRequest, 
+        GapItemTime, 
+        TimelineDirection, 
+        TimelineTransaction
+       )
+import BCorrespondent.Transport.Id (Id)       
 import BCorrespondent.Auth (AuthenticatedUser, JWT, Role (..))
 import Servant.API.Extended
 import Servant.API.Generic (Generic)
@@ -64,6 +68,14 @@ data UserApi route = UserApi
         :- "procuratory"
           :> SA.Auth '[JWT] (AuthenticatedUser 'Writer)
           :> ReqBody '[JSON] ProcuratoryRequest
-          :> Put '[JSON] (Response ())
+          :> Put '[JSON] (Response ()),
+    _userApiGetTimelineTransaction ::
+      route
+        :- "dashboard"
+          :> "timeline"
+          :> "transaction"
+          :> SA.Auth '[JWT] (AuthenticatedUser 'Reader)
+          :> Capture "ident" (Id "transaction")
+          :> Get '[JSON] (Response TimelineTransaction)
   }
   deriving stock (Generic)

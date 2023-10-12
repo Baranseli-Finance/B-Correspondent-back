@@ -40,7 +40,8 @@ module BCorrespondent.Transport.Model.Frontend
         GapItemTime (..),
         WSDashboardResource (..),
         TimelineDirection (..),
-        FetchGap (..)
+        FetchGap (..),
+        TimelineTransaction (..)
        ) where
 
 import Data.Text (Text, splitOn, unpack)
@@ -273,3 +274,24 @@ data FetchGap = FetchGap { fetchGapGap :: GapItem }
       FetchGap
 
 deriveToSchemaFieldLabelModifier ''FetchGap [|firstLetterModify (Proxy @FetchGap)|]
+
+data TimelineTransaction =
+     TimelineTransaction
+     {
+       timelineTransactionField1 :: Text,
+       timelineTransactionField2 :: Text
+     }
+    deriving stock (Generic, Show)
+    deriving
+      (ToJSON, FromJSON)
+      via WithOptions 
+          '[FieldLabelModifier
+            '[UserDefined FirstLetterToLower,
+              UserDefined 
+              (StripConstructor 
+               TimelineTransaction)]]
+      TimelineTransaction
+
+deriveToSchemaFieldLabelModifier 
+  ''TimelineTransaction 
+  [|firstLetterModify (Proxy @TimelineTransaction)|]

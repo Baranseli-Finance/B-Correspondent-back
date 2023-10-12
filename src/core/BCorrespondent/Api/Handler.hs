@@ -33,6 +33,7 @@ import qualified BCorrespondent.Api.Handler.Webhook.CatchGithub as Webhook.Catch
 import qualified BCorrespondent.Api.Handler.Fs.Upload as Fs.Upload
 import qualified BCorrespondent.Api.Handler.Fs.Download as Fs.Download
 import qualified BCorrespondent.Api.Handler.WS.User.NotifyDailyBalanceSheet as WS.User.NotifyDailyBalanceSheet
+import qualified BCorrespondent.Api.Handler.Frontend.User.GetTimelineTransaction as Frontend.User.GetTimelineTransaction
 -- << end handlers
 import qualified BCorrespondent.Auth as Auth
 import Katip
@@ -186,7 +187,14 @@ user nm =
          flip logExceptionM ErrorS $
            katipAddNamespace
              (Namespace [nm, "balanceSheet", "timeline"])
-             (Frontend.User.FetchTimeline.handle user direction point)        
+             (Frontend.User.FetchTimeline.handle user direction point),
+    _userApiGetTimelineTransaction = \auth ident ->
+       auth `Auth.withAuth` \user ->
+         flip logExceptionM ErrorS $
+           katipAddNamespace
+           (Namespace [nm, "balanceSheet", "timeline", "transaction"])
+           (Frontend.User.GetTimelineTransaction.handle user ident)
+
   }
 
 institution :: InstitutionApi (AsServerT KatipHandlerM)
