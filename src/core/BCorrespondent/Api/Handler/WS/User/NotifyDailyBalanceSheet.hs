@@ -15,7 +15,7 @@ import BCorrespondent.Auth (AuthenticatedUser (..), Role (..))
 import BCorrespondent.Transport.Model.Frontend 
        (WSDashboardResource (WSDashboardResourceTimeline))
 import BCorrespondent.Statement.Invoice (Status)
-import BCorrespondent.Api.Handler.WS.Utils (withWS, ListenPsql, listenPsql, sendError)
+import BCorrespondent.Api.Handler.WS.Utils (withWS, ListenPsql, listenPsql, sendError, Resource (..), withResource)
 import Katip.Handler (KatipHandlerM)
 import qualified Network.WebSockets.Connection as WS
 import Data.Text (Text)
@@ -34,15 +34,15 @@ data TimelineItem =
      { timelineItemDayOfYear :: Int,
        timelineItemHour :: Int,
        timelineItemMin :: Int,
-       timelineItemIdent :: Text
+       timelineItemTextualIdent :: Text
      }
     deriving stock (Generic)
      deriving
      (FromJSON, ToJSON)
      via WithOptions
           '[FieldLabelModifier
-            '[CamelTo2 "_", 
-              UserDefined 
+            '[UserDefined FirstLetterToLower, 
+              UserDefined
               (StripConstructor TimelineItem)]]
           TimelineItem
 
@@ -54,6 +54,8 @@ handle :: AuthenticatedUser 'Reader -> WS.Connection -> WSDashboardResource -> K
 handle AuthenticatedUser {institution = Nothing} conn WSDashboardResourceTimeline = 
   liftIO $ sendError conn "you haven't an institution assigned to to"
 handle AuthenticatedUser {ident, institution = Just _} conn WSDashboardResourceTimeline =
-  withWS @() conn $ \db val -> do
-    $(logTM) DebugS $ fromString $ $location <> " received " <> show val
-    liftIO $ listenPsql @"timeline_item_update" @TimelineItemExt conn db ident $ fmap (first mkStatus)
+  withWS @Resource conn $ \db resource -> do 
+     $(logTM) DebugS $ fromString $ $location <> " received " <> show resource
+     withResource @"Transaction" conn resource $ 
+       listenPsql @"timeline_item_update" @TimelineItemExt conn db ident $ 
+         fmap (first mkStatus)

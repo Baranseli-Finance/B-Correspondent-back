@@ -8,9 +8,19 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DerivingVia #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# OPTIONS_GHC -fno-warn-redundant-constraints #-}
 
-module BCorrespondent.Api.Handler.WS.Utils (withWS, listenPsql, sendError, ListenPsql) where
+module BCorrespondent.Api.Handler.WS.Utils 
+       ( withWS, 
+        listenPsql, 
+        sendError,
+        withResource,
+        ListenPsql, 
+        Resource (..)
+       ) where
 
 
 import BCorrespondent.Transport.Response (Response (Error))
@@ -46,6 +56,18 @@ import Data.Int (Int64)
 import Data.Text (Text)
 import Data.Traversable (for)
 import Data.String (fromString)
+import Data.Aeson.Generic.DerivingVia
+import GHC.Generics (Generic)
+
+
+data Resource = Transaction | Wallet
+     deriving stock (Generic, Show)
+     deriving
+     (ToJSON, FromJSON)
+     via WithOptions
+          '[ConstructorTagModifier 
+            '[UserDefined ToLower]]
+         Resource
 
 withWS 
   :: forall a .
@@ -111,3 +133,10 @@ listenPsql c db userIdent go = do
 
 sendError :: WS.Connection -> Text -> IO ()
 sendError c msg = WS.sendDataMessage c (WS.Text (encode @(Response ()) (Error Nothing (asError msg))) Nothing)
+
+withResource :: forall r . KnownSymbol r => WS.Connection -> Resource -> IO () -> KatipHandlerM ()
+withResource conn resource callback 
+  | show resource == toS (symbolVal (Proxy @r)) = liftIO callback
+  | otherwise = 
+      let err = Error Nothing $ asError @Text "wrong resource" 
+      in liftIO $ WS.sendDataMessage conn (WS.Text (encode @(Response ()) err) Nothing)

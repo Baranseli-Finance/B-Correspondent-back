@@ -127,7 +127,7 @@ getDailyBalanceSheet =
               i.appearance_on_timeline < tm.end)
         group by tm.start, tm.end, i.institution_id) as tmp) as gaps
     on i.id = gaps.ident
-    where gaps is not null|]
+    where i.id = $3 :: int8|]
   where
     decode (title, xs) =
       let transform = sequence . map (eitherDecode @HourTimeline . encode) . V.toList
