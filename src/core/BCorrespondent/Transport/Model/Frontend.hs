@@ -238,7 +238,9 @@ deriveToSchemaFieldLabelModifier ''GapItem [|firstLetterModify (Proxy @GapItem)|
 
 data DailyBalanceSheet = 
      DailyBalanceSheet
-     { dailyBalanceSheetGaps :: ![GapItem] }
+     { dailyBalanceSheetInstitution :: !Text,
+       dailyBalanceSheetGaps :: ![GapItem] 
+     }
     deriving stock (Generic, Show)
     deriving
       (ToJSON, FromJSON)

@@ -10,11 +10,13 @@
 {-# OPTIONS_GHC -fno-warn-unused-top-binds #-}
 
 module BCorrespondent.Statement.Dashboard
-       (get1HourTimeline,
-        getGap,
-        HourTimeline (..),
-        Gap (..),
-        getTransaction
+       ( getDailyBalanceSheet,
+         get1HourTimeline,
+         getGap,
+         HourTimeline (..),
+         DailyBalanceSheet (..),
+         Gap (..),
+         getTransaction
        ) where
 
 import BCorrespondent.Statement.Invoice (Status (..))
@@ -54,6 +56,82 @@ data HourTimeline =
               (StripConstructor 
                HourTimeline)]]
           HourTimeline
+
+data DailyBalanceSheet = 
+     DailyBalanceSheet 
+     { dailyBalanceSheetInstitution :: Text, 
+       dailyBalanceSheetTimeline :: [HourTimeline] 
+     }
+    deriving stock (Generic)
+    deriving
+     (FromJSON)
+     via WithOptions
+          '[FieldLabelModifier
+            '[CamelTo2 "_", 
+              UserDefined 
+              (StripConstructor 
+               DailyBalanceSheet)]]
+          DailyBalanceSheet
+
+getDailyBalanceSheet :: HS.Statement (UTCTime, UTCTime, Int64) (Either String DailyBalanceSheet)
+getDailyBalanceSheet =
+  dimap 
+  (snocT (toS (show Declined)) .
+   snocT (toS (show Confirmed)) .
+   snocT (toS (show ForwardedToPaymentProvider)))
+   decode
+  [singletonStatement|
+    select
+      i.title :: text,
+      gaps.xs :: jsonb[]?
+    from auth.institution as i
+    left join ( 
+      select
+        tmp.values :: jsonb[]? as xs,
+        tmp.ident as ident
+      from (
+        select
+          i.institution_id as ident,
+          tm.start,
+          tm.end,
+          array_agg(
+          json_build_object(
+          'start_hour', extract(hour from tm.start),
+          'start_minute', extract(minute from tm.start),
+          'end_hour', extract(hour from tm.end),
+          'end_minute', extract(minute from tm.end),
+          'textual_ident', i.textual_view, 
+          'status', i.status,
+          'ident', i.id,
+          'tm', cast(i.created_at as text) || 'Z')) 
+          :: jsonb[] as values
+        from (
+          select
+              el as start,
+              el + interval '5min' as end
+          from generate_series(
+              $1 :: timestamptz,
+              $2 :: timestamptz,
+              interval '5 min') as _(el)
+          where el < $2 :: timestamptz) as tm
+        cross join (
+          select 
+            *
+          from institution.invoice
+          where institution_id = $3 :: int8) as i
+        where 
+        (i.status = $4 :: text or 
+         i.status = $5 :: text or 
+         i.status = $6 :: text) 
+         and (i.appearance_on_timeline > tm.start and 
+              i.appearance_on_timeline < tm.end)
+        group by tm.start, tm.end, i.institution_id) as tmp) as gaps
+    on i.id = gaps.ident
+    where gaps is not null|]
+  where
+    decode (title, xs) =
+      let transform = sequence . map (eitherDecode @HourTimeline . encode) . V.toList
+      in fmap (DailyBalanceSheet title) $ fromMaybe (Right []) $ fmap transform xs
 
 get1HourTimeline :: HS.Statement (UTCTime, UTCTime, Int64) (Either String [HourTimeline])
 get1HourTimeline =

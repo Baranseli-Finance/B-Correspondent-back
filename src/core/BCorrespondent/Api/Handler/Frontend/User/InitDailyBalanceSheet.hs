@@ -3,6 +3,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TransformListComp #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module BCorrespondent.Api.Handler.Frontend.User.InitDailyBalanceSheet (handle, mkStatus, transform) where
 
@@ -13,7 +14,8 @@ import BCorrespondent.Transport.Model.Frontend
         GapItemUnit (..),
         GapItemUnitStatus (..)
        )
-import BCorrespondent.Statement.Dashboard (get1HourTimeline, HourTimeline (..))
+import BCorrespondent.Statement.Dashboard (getDailyBalanceSheet, HourTimeline (..))
+import qualified BCorrespondent.Statement.Dashboard as S (DailyBalanceSheet (..))
 import BCorrespondent.Api.Handler.Frontend.User.Utils (checkInstitution)
 import BCorrespondent.Transport.Response (Response)
 import BCorrespondent.Statement.Invoice  (Status (..))
@@ -39,8 +41,11 @@ handle user =
     let lowerBoundTmp = addUTCTime (-3600) upperBound
     let lowerBound = mkLowerBound lowerBoundTmp day
     hasql <- fmap (^. katipEnv . hasqlDbPool) ask
-    dbResp <- transactionM hasql $ statement get1HourTimeline (lowerBound, upperBound, ident)
-    pure $ withError dbResp $ \xs -> DailyBalanceSheet $ transform xs 
+    dbResp <- transactionM hasql $ statement getDailyBalanceSheet (lowerBound, upperBound, ident)
+    pure $ withError dbResp $ \S.DailyBalanceSheet {..} -> 
+      DailyBalanceSheet 
+      dailyBalanceSheetInstitution $ 
+      transform dailyBalanceSheetTimeline 
 
 transform :: [HourTimeline] -> [GapItem]
 transform xs =

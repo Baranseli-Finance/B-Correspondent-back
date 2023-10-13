@@ -91,7 +91,8 @@ explainTests =
   , "BCorrespondent.Statement.Fs" ==> 
      [ "insertFiles" =>> BCorrespondent.Statement.Fs.insertFiles]
   , "BCorrespondent.Statement.Dashboard" ==>
-     ["get1HourTimeline" =>> BCorrespondent.Statement.Dashboard.get1HourTimeline,
-      "getGap" =>> BCorrespondent.Statement.Dashboard.getGap 
+     [ "getDailyBalanceSheet" =>> BCorrespondent.Statement.Dashboard.getDailyBalanceSheet,
+       "get1HourTimeline" =>> BCorrespondent.Statement.Dashboard.get1HourTimeline,
+       "getGap" =>> BCorrespondent.Statement.Dashboard.getGap 
      ] 
   ]
