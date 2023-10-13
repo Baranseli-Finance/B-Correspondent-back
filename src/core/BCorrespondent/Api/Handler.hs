@@ -22,7 +22,7 @@ import qualified BCorrespondent.Api.Handler.Auth.ResendAuthCode as Auth.ResendAu
 import qualified BCorrespondent.Api.Handler.Auth.Login as Auth.Login
 import qualified BCorrespondent.Api.Handler.Auth.Logout as Auth.Logout
 import qualified BCorrespondent.Api.Handler.Invoice.Register as Invoice.Register
-import qualified BCorrespondent.Api.Handler.Frontend.User.InitDailyBalanceSheet as Frontend.User.InitDailyBalanceSheet
+import qualified BCorrespondent.Api.Handler.Frontend.User.InitDashboard as Frontend.User.InitDashboard
 import qualified BCorrespondent.Api.Handler.Frontend.User.FetchGap as Frontend.User.FetchGap
 import qualified BCorrespondent.Api.Handler.Frontend.User.GetHistory as Frontend.User.GetHistory
 import qualified BCorrespondent.Api.Handler.Frontend.User.MakeProcuratory as Frontend.User.MakeProcuratory
@@ -151,12 +151,12 @@ frontend =
 user :: Text -> UserApi (AsServerT KatipHandlerM)
 user nm =
   UserApi
-  { _userApiInitDailyBalanceSheet = \auth ->
+  { _userApiInitDashboard = \auth ->
        auth `Auth.withAuth` \user ->
          flip logExceptionM ErrorS $
            katipAddNamespace
-           (Namespace [nm, "balanceSheet", "init"])
-           (Frontend.User.InitDailyBalanceSheet.handle user),
+           (Namespace [nm, "dashboard", "init"])
+           (Frontend.User.InitDashboard.handle user),
     _userApiFetchGap = \auth from to ->
       auth `Auth.withAuth` \user ->
          flip logExceptionM ErrorS $

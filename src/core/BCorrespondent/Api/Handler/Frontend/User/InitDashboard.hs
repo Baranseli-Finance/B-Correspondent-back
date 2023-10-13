@@ -5,14 +5,15 @@
 {-# LANGUAGE TransformListComp #-}
 {-# LANGUAGE RecordWildCards #-}
 
-module BCorrespondent.Api.Handler.Frontend.User.InitDailyBalanceSheet (handle, mkStatus, transform) where
+module BCorrespondent.Api.Handler.Frontend.User.InitDashboard (handle, mkStatus, transform) where
 
 import BCorrespondent.Transport.Model.Frontend 
        (DailyBalanceSheet (..), 
         GapItem (..), 
         GapItemTime (..), 
         GapItemUnit (..),
-        GapItemUnitStatus (..)
+        GapItemUnitStatus (..),
+        InitDashboard (..)
        )
 import BCorrespondent.Statement.Dashboard (getDailyBalanceSheet, HourTimeline (..))
 import qualified BCorrespondent.Statement.Dashboard as S (DailyBalanceSheet (..))
@@ -31,7 +32,7 @@ import Control.Lens ((^.))
 import GHC.Exts (groupWith, the)
 import Data.Functor ((<&>))
 
-handle :: Auth.AuthenticatedUser 'Auth.Reader -> KatipHandlerM (Response DailyBalanceSheet)
+handle :: Auth.AuthenticatedUser 'Auth.Reader -> KatipHandlerM (Response InitDashboard)
 handle user = 
   checkInstitution user $ \(_, ident) -> do
     tm <- currentTime
@@ -41,11 +42,15 @@ handle user =
     let lowerBoundTmp = addUTCTime (-3600) upperBound
     let lowerBound = mkLowerBound lowerBoundTmp day
     hasql <- fmap (^. katipEnv . hasqlDbPool) ask
-    dbResp <- transactionM hasql $ statement getDailyBalanceSheet (lowerBound, upperBound, ident)
-    pure $ withError dbResp $ \S.DailyBalanceSheet {..} -> 
-      DailyBalanceSheet 
-      dailyBalanceSheetInstitution $ 
-      transform dailyBalanceSheetTimeline 
+    let mkResp dbResp =
+          withError dbResp $ \S.DailyBalanceSheet {..} ->
+            InitDashboard 
+            { initDashboardDailyBalanceSheet = 
+                DailyBalanceSheet 
+                dailyBalanceSheetInstitution $ 
+                transform dailyBalanceSheetTimeline 
+            }
+    fmap mkResp $ transactionM hasql $ statement getDailyBalanceSheet (lowerBound, upperBound, ident)
 
 transform :: [HourTimeline] -> [GapItem]
 transform xs =

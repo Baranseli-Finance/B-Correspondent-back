@@ -70,10 +70,12 @@ create table institution.invoice_external_ident (
      external_id uuid not null default uuid_generate_v4(),
      constraint institution__invoice_external_ident__invoice_id__fk foreign key (invoice_id) references institution.invoice(id));
 
-create table institution.account (
+create table institution.wallet (
     institution_id bigserial not null,
     currency text not null,
     amount decimal(24, 2) not null,
+    wallet_type text not null,
+    modified_at timestamptz null,
     constraint institution_account__institution_id__fk foreign key (institution_id) references auth.institution(id));
 
 create table institution.user (

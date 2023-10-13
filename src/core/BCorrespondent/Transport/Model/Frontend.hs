@@ -42,7 +42,8 @@ module BCorrespondent.Transport.Model.Frontend
         TimelineDirection (..),
         FetchGap (..),
         TimelineTransaction (..),
-        TimelineTransactionResponse (..)
+        TimelineTransactionResponse (..),
+        InitDashboard (..)
        ) where
 
 
@@ -253,6 +254,20 @@ data DailyBalanceSheet =
       DailyBalanceSheet
 
 deriveToSchemaFieldLabelModifier ''DailyBalanceSheet [|firstLetterModify (Proxy @DailyBalanceSheet)|]
+
+data InitDashboard = InitDashboard { initDashboardDailyBalanceSheet :: !DailyBalanceSheet }
+    deriving stock (Generic, Show)
+    deriving
+      (ToJSON, FromJSON)
+      via WithOptions 
+          '[FieldLabelModifier
+            '[UserDefined FirstLetterToLower,
+              UserDefined 
+              (StripConstructor 
+               InitDashboard)]]
+      InitDashboard
+
+deriveToSchemaFieldLabelModifier ''InitDashboard [|firstLetterModify (Proxy @InitDashboard)|]
 
 data WSDashboardResource = WSDashboardResourceTimeline deriving (Show)
 

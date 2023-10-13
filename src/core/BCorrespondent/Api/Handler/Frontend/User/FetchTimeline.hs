@@ -3,7 +3,7 @@
 
 module BCorrespondent.Api.Handler.Frontend.User.FetchTimeline (handle) where
 
-import BCorrespondent.Api.Handler.Frontend.User.InitDailyBalanceSheet (transform)
+import BCorrespondent.Api.Handler.Frontend.User.InitDashboard (transform)
 import BCorrespondent.Statement.Dashboard (get1HourTimeline)
 import qualified BCorrespondent.Auth as Auth
 import BCorrespondent.Transport.Model.Frontend 

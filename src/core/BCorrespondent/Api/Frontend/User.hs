@@ -9,7 +9,7 @@
 module BCorrespondent.Api.Frontend.User (UserApi (..)) where
 
 import BCorrespondent.Transport.Model.Frontend 
-       (DailyBalanceSheet, GapItem, WSDashboardResource, FetchGap)
+       (InitDashboard, GapItem, WSDashboardResource, FetchGap)
 import BCorrespondent.Transport.Response (Response)
 import BCorrespondent.Transport.Model.Frontend 
        (ProcuratoryRequest, 
@@ -31,13 +31,12 @@ data UserApi route = UserApi
         :- "history"
           :> SA.Auth '[JWT] (AuthenticatedUser 'Reader)
           :> Get '[JSON] (Response ()),
-    _userApiInitDailyBalanceSheet ::
+    _userApiInitDashboard ::
       route
         :- "dashboard"
-          :> "daily-balance-sheet"
           :> "init"
           :> SA.Auth '[JWT] (AuthenticatedUser 'Reader)
-          :> Get '[JSON] (Response DailyBalanceSheet),
+          :> Get '[JSON] (Response InitDashboard),
     _userApiFetchGap ::
       route
         :- "dashboard"
