@@ -41,7 +41,8 @@ module BCorrespondent.Transport.Model.Frontend
         WSDashboardResource (..),
         TimelineDirection (..),
         FetchGap (..),
-        TimelineTransaction (..)
+        TimelineTransaction (..),
+        TimelineTransactionResponse (..)
        ) where
 
 
@@ -54,7 +55,8 @@ import Data.Swagger.Schema.Extended
        (deriveToSchemaFieldLabelModifier,
         firstLetterModify,
         deriveToSchemaConstructorTag,
-        modify
+        modify,
+        deriveToSchema
        )
 import Data.Proxy (Proxy (..))
 import Data.Default.Class
@@ -74,6 +76,7 @@ import Servant.API (FromHttpApiData (..))
 import Data.Int (Int64)
 import Data.Time.Clock (UTCTime)
 import Data.UUID (UUID)
+import Data.Aeson.TH.Extended (deriveToJSON, defaultOptions)
 
 
 data ProcuratoryRequest = 
@@ -278,6 +281,7 @@ data FetchGap = FetchGap { fetchGapGap :: GapItem }
 
 deriveToSchemaFieldLabelModifier ''FetchGap [|firstLetterModify (Proxy @FetchGap)|]
 
+
 data TimelineTransaction =
      TimelineTransaction
      {
@@ -307,3 +311,12 @@ data TimelineTransaction =
 deriveToSchemaFieldLabelModifier 
   ''TimelineTransaction 
   [|firstLetterModify (Proxy @TimelineTransaction)|]
+
+data TimelineTransactionResponse =
+     TimelineTransactionResponse
+     { transaction :: TimelineTransaction }
+    deriving stock (Generic, Show)
+
+deriveToJSON defaultOptions ''TimelineTransactionResponse
+
+deriveToSchema ''TimelineTransactionResponse

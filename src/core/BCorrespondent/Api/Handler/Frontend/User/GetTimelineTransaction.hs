@@ -11,7 +11,7 @@ import qualified BCorrespondent.Auth as Auth
 import BCorrespondent.Api.Handler.Utils (withError)
 import BCorrespondent.Transport.Error (asError)
 import Database.Transaction (transactionM, statement)
-import BCorrespondent.Transport.Model.Frontend (TimelineTransaction)
+import BCorrespondent.Transport.Model.Frontend (TimelineTransactionResponse (..))
 import BCorrespondent.Api.Handler.Frontend.User.Utils (checkInstitution)
 import Katip.Handler (KatipHandlerM, katipEnv, hasqlDbPool, ask)
 import Control.Lens ((^.))
@@ -24,7 +24,7 @@ handle
   :: Auth.AuthenticatedUser 'Auth.Reader 
   -> Id "transaction" 
   -> KatipHandlerM 
-     (Response TimelineTransaction)
+     (Response TimelineTransactionResponse)
 handle user ident = 
   checkInstitution user $ \x -> do 
     hasql <- fmap (^. katipEnv . hasqlDbPool) ask
@@ -32,7 +32,7 @@ handle user ident =
           Error (Just 404) $ 
             asError $ 
               fromString @Text "transaction doesn't exist"
-    fmap (maybe error404 (`withError` id)) $ 
+    fmap (maybe error404 (`withError` TimelineTransactionResponse)) $ 
       transactionM hasql $ 
         statement getTransaction $ 
           del1 $ snocT (coerce ident) x

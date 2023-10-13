@@ -15,7 +15,7 @@ import BCorrespondent.Transport.Model.Frontend
        (ProcuratoryRequest, 
         GapItemTime, 
         TimelineDirection, 
-        TimelineTransaction
+        TimelineTransactionResponse
        )
 import BCorrespondent.Transport.Id (Id)       
 import BCorrespondent.Auth (AuthenticatedUser, JWT, Role (..))
@@ -76,6 +76,6 @@ data UserApi route = UserApi
           :> "transaction"
           :> SA.Auth '[JWT] (AuthenticatedUser 'Reader)
           :> Capture "ident" (Id "transaction")
-          :> Get '[JSON] (Response TimelineTransaction)
+          :> Get '[JSON] (Response TimelineTransactionResponse)
   }
   deriving stock (Generic)
