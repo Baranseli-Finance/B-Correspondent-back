@@ -83,11 +83,6 @@ create table institution.user (
   constraint institution_user__user_id__fk foreign key (user_id) references auth.user(id),
   constraint institution_user__institution_id_user_id__unique unique (user_id, institution_id));
 
- timelineItemDayOfYear :: Int,
-       timelineItemHour :: Int,
-       timelineItemMin :: Int,
-       timelineItemIdent :: Text
-
 create or replace function notify_server_on_invoice()
 returns trigger as
 $$
@@ -96,10 +91,10 @@ declare
 begin
     select
         json_build_object(
-        'day_of_year', cast(extract('doy' from tmp.appearance_on_timeline) as int),
+        'dayOfYear', cast(extract('doy' from tmp.appearance_on_timeline) as int),
         'hour', cast(extract('hour' from tmp.appearance_on_timeline) as int),
         'min', cast(extract('min' from tmp.appearance_on_timeline) as int),
-        'ident', tmp.textual_view,
+        'textualIdent', tmp.textual_view,
         'status', tmp.status)
         :: jsonb
     into result
