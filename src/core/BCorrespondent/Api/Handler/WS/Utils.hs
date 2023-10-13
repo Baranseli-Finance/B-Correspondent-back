@@ -100,7 +100,7 @@ withWS conn go = do
               fromString $ 
                 $location <> 
                 " cannot parse " <> 
-                toS msg
+                toS msg <> ", error " <> e
   let keepAlive = liftIO $ forever $ threadDelay (10 * 10 ^ 6) >> WS.sendPing @TL.Text conn mempty  
 
   res <- Async.withAsync front $ 
