@@ -13,10 +13,12 @@ module BCorrespondent.Statement.Dashboard
        (get1HourTimeline,
         getGap,
         HourTimeline (..),
-        Gap (..)
+        Gap (..),
+        getTransaction
        ) where
 
 import BCorrespondent.Statement.Invoice (Status (..))
+import BCorrespondent.Transport.Model.Frontend (TimelineTransaction)
 import qualified Hasql.Statement as HS
 import Hasql.TH
 import Data.Aeson.Generic.DerivingVia
@@ -138,4 +140,27 @@ getGap =
               cast($4 :: int as text) || ':' || 
               cast($5 :: int as text) || ':00') 
               as timestamp)|]
- 
+
+getTransaction :: HS.Statement (Int64, Int64) (Maybe (Either String TimelineTransaction))
+getTransaction = 
+  rmap (fmap (eitherDecode @TimelineTransaction . encode)) 
+  [maybeStatement|
+    select 
+      jsonb_build_object(
+        'ident', it.id,
+        'senderName', it.sender_name,
+        'senderAddress', it.sender_address,
+        'senderPhoneNumber', it.sender_phone_number,
+        'senderBank', it.sender_bank,
+        'swiftSepaCode', it.swift_sepa_code,
+        'senderBankAccount', it.sender_bank_account,
+        'amount', it.amount,
+        'currency', it.currency,
+        'correspondentBank', it.correspondent_bank,
+        'correspondentBankSwiftSepaCode', 
+          it.correspondent_bank_swift_sepa_code
+      ) :: jsonb
+    from institution.transaction as it 
+    inner join institution.invoice as ii 
+    on it.invoice_id = ii.id 
+    where ii.institution_id = $1 :: int8 and ii.id = $2 :: int8|]

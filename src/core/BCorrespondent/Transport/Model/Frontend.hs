@@ -44,6 +44,8 @@ module BCorrespondent.Transport.Model.Frontend
         TimelineTransaction (..)
        ) where
 
+
+import BCorrespondent.Transport.Model.Invoice (Currency)
 import Data.Text (Text, splitOn, unpack)
 import Data.Aeson (ToJSON, FromJSON, Value (String))
 import Data.Aeson.Generic.DerivingVia
@@ -71,6 +73,7 @@ import Data.Swagger
 import Servant.API (FromHttpApiData (..))
 import Data.Int (Int64)
 import Data.Time.Clock (UTCTime)
+import Data.UUID (UUID)
 
 
 data ProcuratoryRequest = 
@@ -278,8 +281,17 @@ deriveToSchemaFieldLabelModifier ''FetchGap [|firstLetterModify (Proxy @FetchGap
 data TimelineTransaction =
      TimelineTransaction
      {
-       timelineTransactionField1 :: Text,
-       timelineTransactionField2 :: Text
+       timelineTransactionIdent :: UUID,
+       timelineTransactionSenderName :: Text,
+       timelineTransactionSenderAddress :: Text,
+       timelineTransactionSenderPhoneNumber :: Text,
+       timelineTransactionSenderBank :: Text,
+       timelineTransactionSwiftSepaCode :: Text,
+       timelineTransactionSenderBankAccount :: Text,
+       timelineTransactionAmount :: Double,
+       timelineTransactionCurrency :: Currency,
+       timelineTransactionCorrespondentBank :: Text,
+       timelineTransactionCorrespondentBankSwiftSepaCode :: Text
      }
     deriving stock (Generic, Show)
     deriving
