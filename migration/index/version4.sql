@@ -95,6 +95,7 @@ declare
 begin
     select
         json_build_object(
+        'user', tmp.user,
         'dayOfYear', cast(extract('doy' from tmp.appearance_on_timeline) as int),
         'hour', cast(extract('hour' from tmp.appearance_on_timeline) as int),
         'min', cast(extract('min' from tmp.appearance_on_timeline) as int),
@@ -104,7 +105,8 @@ begin
     into result
     from (
       select
-       inv.*
+       inv.*,
+       u.id as user
       from auth.user as u
       inner join institution.user as iu
       on u.id = iu.user_id
@@ -136,13 +138,15 @@ declare
 begin
     select
         json_build_object(
+         'user', tmp.user,
          'ident', tmp.id,
          'amount', tmp.amount)
         :: jsonb
     into result
     from (
       select
-        inw.*
+        inw.*,
+        u.id as user
       from auth.user as u
       inner join institution.user as iu
       on u.id = iu.user_id
