@@ -73,10 +73,11 @@ create table institution.invoice_external_ident (
 create table institution.wallet (
     institution_id bigserial not null,
     currency text not null,
-    amount decimal(24, 2) not null,
+    amount decimal(24, 2) not null default 0,
     wallet_type text not null,
     modified_at timestamptz null,
-    constraint institution_account__institution_id__fk foreign key (institution_id) references auth.institution(id));
+    constraint institution_account__institution_id__fk foreign key (institution_id) references auth.institution(id),
+    constraint institution__wallet_institution_id_currency_wallet_type__unique unique(institution_id, currency, wallet_type));
 
 create table institution.user (
   institution_id bigserial not null,
