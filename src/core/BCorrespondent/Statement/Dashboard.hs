@@ -88,6 +88,7 @@ getDashboard =
       i.title :: text,
       gaps.xs :: jsonb[]?,
       array_agg(json_build_object(
+        'ident', iw.id,
         'currency', iw.currency,
         'amount', iw.amount,
         'walletType', iw.wallet_type

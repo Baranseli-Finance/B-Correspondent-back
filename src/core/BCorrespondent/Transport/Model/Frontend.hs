@@ -267,7 +267,8 @@ deriveToSchemaConstructorTag ''WalletType [| map toLower |]
 
 data Wallet = 
      Wallet 
-     { walletCurrency :: !Currency,
+     { walletIdent :: !Int64,
+       walletCurrency :: !Currency,
        walletAmount :: !Double,
        walletWalletType :: !WalletType
      }

@@ -71,6 +71,7 @@ create table institution.invoice_external_ident (
      constraint institution__invoice_external_ident__invoice_id__fk foreign key (invoice_id) references institution.invoice(id));
 
 create table institution.wallet (
+    id bigserial primary key,
     institution_id bigserial not null,
     currency text not null,
     amount decimal(24, 2) not null default 0,
@@ -86,7 +87,7 @@ create table institution.user (
   constraint institution_user__user_id__fk foreign key (user_id) references auth.user(id),
   constraint institution_user__institution_id_user_id__unique unique (user_id, institution_id));
 
-create or replace function notify_server_on_invoice()
+create or replace function notify_server_on_transaction()
 returns trigger as
 $$
 declare
@@ -116,7 +117,7 @@ begin
       as tmp;
   perform 
     pg_notify(
-      'timeline_item_update' || '_' || u.id,
+      'timeline_transaction' || '_' || u.id,
       coalesce(result :: text, 'null' :: text))
   from auth.user as u;
   return new;
@@ -125,4 +126,38 @@ $$ language 'plpgsql';
 
 create or replace trigger on_invoice_update
 after update on institution.invoice
-for each row execute procedure notify_server_on_invoice();
+for each row execute procedure notify_server_on_transaction();
+
+create or replace function notify_server_on_wallet()
+returns trigger as
+$$
+declare
+  result jsonb;
+begin
+    select
+        json_build_object(
+         'ident', tmp.id,
+         'amount', tmp.amount)
+        :: jsonb
+    into result
+    from (
+      select
+        inw.*
+      from auth.user as u
+      inner join institution.user as iu
+      on u.id = iu.user_id
+      inner join institution.wallet as inw
+      on iu.institution_id = inw.institution_id)
+      as tmp;
+  perform 
+    pg_notify(
+      'wallet' || '_' || u.id,
+      coalesce(result :: text, 'null' :: text))
+  from auth.user as u;
+  return new;
+end;
+$$ language 'plpgsql';
+
+create or replace trigger on_wallet_update
+after update on institution.wallet
+for each row execute procedure notify_server_on_wallet();

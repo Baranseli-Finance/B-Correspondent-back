@@ -62,6 +62,12 @@ data UserApi route = UserApi
         :> "transaction"
         :> "update"
         :> WebSocketPending,
+    _userApiNotifyWalletUpdate ::
+      route
+        :- "dashboard"
+        :> "wallet"
+        :> "update"
+        :> WebSocketPending,        
     _userApiMakeProcuratory ::
       route
         :- "procuratory"
