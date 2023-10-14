@@ -44,7 +44,8 @@ module BCorrespondent.Transport.Model.Frontend
         TimelineTransactionResponse (..),
         InitDashboard (..),
         Wallet (..),
-        WalletType (..)
+        WalletType (..),
+        GapItemAmount (..)
        ) where
 
 import BCorrespondent.Transport.Model.Invoice (Currency)
@@ -217,11 +218,30 @@ data GapItemUnit =
 
 deriveToSchemaFieldLabelModifier ''GapItemUnit [|firstLetterModify (Proxy @GapItemUnit)|]
 
+data GapItemAmount = 
+     GapItemAmount 
+     { gapItemAmountCurrency :: Currency, 
+       gapItemAmountValue :: Double 
+     }
+    deriving stock (Generic, Show)
+    deriving
+      (ToJSON, FromJSON)
+      via WithOptions 
+          '[FieldLabelModifier
+            '[UserDefined FirstLetterToLower,
+              UserDefined 
+              (StripConstructor 
+               GapItemAmount)]]
+      GapItemAmount
+
+deriveToSchemaFieldLabelModifier ''GapItemAmount [|firstLetterModify (Proxy @GapItemAmount)|]
+
 data GapItem =
      GapItem
      { gapItemStart :: !GapItemTime,
        gapItemEnd :: !GapItemTime,
-       gapItemElements :: ![GapItemUnit]
+       gapItemElements :: ![GapItemUnit],
+       gapItemAmounts :: ![GapItemAmount]
      }
     deriving stock (Generic, Show)
     deriving

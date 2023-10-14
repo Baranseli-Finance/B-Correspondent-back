@@ -41,10 +41,11 @@ handle user from to =
             fromIntegral (gapItemTimeMin to)
           )
     dbResp <- transactionM hasql $ statement getGap params
-    pure $ withError dbResp $ \xs -> 
-      FetchGap $ 
-        GapItem from to $ xs <&> \(Gap {..}) -> 
-          GapItemUnit gapIdent gapTm gapTextualIdent $ mkStatus gapStatus
+    pure $ withError dbResp $ \xs ->
+      let mkGap Gap {..} = 
+            GapItemUnit gapIdent gapTm gapTextualIdent $ 
+              mkStatus gapStatus
+      in FetchGap $ GapItem from to (xs <&> mkGap) []
 
 validateGapItemTime :: GapItemTime -> Bool
 validateGapItemTime GapItemTime {..} = (0 <= gapItemTimeHour && gapItemTimeHour < 24) && (0 <= gapItemTimeMin && gapItemTimeMin < 60)

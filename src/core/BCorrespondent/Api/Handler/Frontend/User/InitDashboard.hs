@@ -69,7 +69,7 @@ transform xs =
        let el = GapItemUnit ident tm textIdent $ mkStatus status,
        let interval = (start, end),
        then group by interval using groupWith
-  ] <&> \(xs, (start, end)) -> GapItem start end xs
+  ] <&> \(xs, (start, end)) -> GapItem start end xs []
 
 mkLowerBound :: UTCTime -> (Year, DayOfYear) -> UTCTime
 mkLowerBound tm (year, day) | snd (toOrdinalDate (utctDay tm)) == day = tm

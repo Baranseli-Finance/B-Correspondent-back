@@ -23,6 +23,7 @@ module BCorrespondent.Statement.Dashboard
 
 import BCorrespondent.Statement.Invoice (Status (..))
 import BCorrespondent.Transport.Model.Frontend (TimelineTransaction, Wallet)
+import BCorrespondent.Transport.Model.Invoice (Currency)
 import qualified Hasql.Statement as HS
 import Hasql.TH
 import Data.Aeson.Generic.DerivingVia
@@ -46,7 +47,9 @@ data HourTimeline =
        hourTimelineTextualIdent :: Text,
        hourTimelineStatus :: Status,
        hourTimelineIdent :: Int64,
-       hourTimelineTm :: UTCTime
+       hourTimelineTm :: UTCTime,
+       hourTimelineCurrency :: Currency,
+       hourTimelineAmount :: Double
      }
     deriving stock (Generic)
     deriving
@@ -112,7 +115,9 @@ getDashboard =
           'textual_ident', i.textual_view, 
           'status', i.status,
           'ident', i.id,
-          'tm', cast(i.created_at as text) || 'Z')) 
+          'tm', cast(i.created_at as text) || 'Z',
+          'currency', i.currency,
+          'amount', i.amount))
           :: jsonb[] as values
         from (
           select
@@ -170,7 +175,9 @@ get1HourTimeline =
         'textual_ident', i.textual_view, 
         'status', i.status,
         'ident', i.id,
-        'tm', cast(i.created_at as text) || 'Z')) 
+        'tm', cast(i.created_at as text) || 'Z',
+        'currency', i.currency,
+        'amount', i.amount))
         :: jsonb[] as values
       from (
         select
@@ -199,7 +206,9 @@ data Gap =
      { gapTextualIdent :: Text, 
        gapStatus :: Status,
        gapIdent :: Int64,
-       gapTm :: UTCTime
+       gapTm :: UTCTime,
+       gapCurrency :: Currency,
+       gapAmount :: Double
      }
     deriving stock (Generic)
     deriving
@@ -219,7 +228,9 @@ getGap =
         'textual_ident', textual_view, 
         'status', status,
         'ident', id,
-        'tm', cast(created_at as text) || 'Z') :: jsonb
+        'tm', cast(created_at as text) || 'Z',
+        'currency', currency,
+        'amount', amount) :: jsonb
     from institution.invoice 
     where institution_id = $1 :: int8
     and appearance_on_timeline > 
