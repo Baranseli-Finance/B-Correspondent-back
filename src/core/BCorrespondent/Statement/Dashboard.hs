@@ -7,25 +7,27 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE DerivingVia #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# OPTIONS_GHC -fno-warn-unused-top-binds #-}
 
 module BCorrespondent.Statement.Dashboard
-       ( getDailyBalanceSheet,
+       ( getDashboard,
          get1HourTimeline,
          getGap,
          HourTimeline (..),
-         DailyBalanceSheet (..),
+         Dashboard (..),
          Gap (..),
          getTransaction
        ) where
 
 import BCorrespondent.Statement.Invoice (Status (..))
-import BCorrespondent.Transport.Model.Frontend (TimelineTransaction)
+import BCorrespondent.Transport.Model.Frontend (TimelineTransaction, Wallet)
 import qualified Hasql.Statement as HS
 import Hasql.TH
 import Data.Aeson.Generic.DerivingVia
 import GHC.Generics (Generic)
-import Data.Aeson (FromJSON, encode, eitherDecode)
+import Data.Aeson (FromJSON, encode, eitherDecode, Value)
 import Data.Text (Text)
 import Data.Time.Clock (UTCTime)
 import Control.Lens (dimap, rmap)
@@ -57,10 +59,11 @@ data HourTimeline =
                HourTimeline)]]
           HourTimeline
 
-data DailyBalanceSheet = 
-     DailyBalanceSheet 
-     { dailyBalanceSheetInstitution :: Text, 
-       dailyBalanceSheetTimeline :: [HourTimeline] 
+data Dashboard = 
+     Dashboard 
+     { dashboardInstitution :: Text,
+       dashboardWallets :: [Wallet],
+       dashboardTimeline :: [HourTimeline]
      }
     deriving stock (Generic)
     deriving
@@ -70,11 +73,11 @@ data DailyBalanceSheet =
             '[CamelTo2 "_", 
               UserDefined 
               (StripConstructor 
-               DailyBalanceSheet)]]
-          DailyBalanceSheet
+               Dashboard)]]
+          Dashboard
 
-getDailyBalanceSheet :: HS.Statement (UTCTime, UTCTime, Int64) (Either String DailyBalanceSheet)
-getDailyBalanceSheet =
+getDashboard :: HS.Statement (UTCTime, UTCTime, Int64) (Either String Dashboard)
+getDashboard =
   dimap 
   (snocT (toS (show Declined)) .
    snocT (toS (show Confirmed)) .
@@ -83,7 +86,12 @@ getDailyBalanceSheet =
   [singletonStatement|
     select
       i.title :: text,
-      gaps.xs :: jsonb[]?
+      gaps.xs :: jsonb[]?,
+      array_agg(json_build_object(
+        'currency', iw.currency,
+        'amount', iw.amount,
+        'walletType', iw.wallet_type
+      )) :: jsonb[]
     from auth.institution as i
     left join ( 
       select
@@ -127,11 +135,16 @@ getDailyBalanceSheet =
               i.appearance_on_timeline < tm.end)
         group by tm.start, tm.end, i.institution_id) as tmp) as gaps
     on i.id = gaps.ident
-    where i.id = $3 :: int8|]
+    inner join institution.wallet as iw
+    on i.id = iw.institution_id
+    where i.id = $3 :: int8
+    group by i.title, gaps.xs|]
   where
-    decode (title, xs) =
-      let transform = sequence . map (eitherDecode @HourTimeline . encode) . V.toList
-      in fmap (DailyBalanceSheet title) $ fromMaybe (Right []) $ fmap transform xs
+    decode (title, gaps, wallets) =
+      let transform :: forall a . FromJSON a => V.Vector Value -> Either String [a] 
+          transform = sequence . map (eitherDecode @a . encode) . V.toList
+          pair = (,) <$> transform wallets <*> fromMaybe (Right []) (fmap transform gaps)  
+      in fmap (uncurry (Dashboard title)) pair
 
 get1HourTimeline :: HS.Statement (UTCTime, UTCTime, Int64) (Either String [HourTimeline])
 get1HourTimeline =

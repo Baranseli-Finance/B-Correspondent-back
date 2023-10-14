@@ -43,9 +43,10 @@ module BCorrespondent.Transport.Model.Frontend
         FetchGap (..),
         TimelineTransaction (..),
         TimelineTransactionResponse (..),
-        InitDashboard (..)
+        InitDashboard (..),
+        Wallet (..),
+        WalletType (..)
        ) where
-
 
 import BCorrespondent.Transport.Model.Invoice (Currency)
 import Data.Text (Text, splitOn, unpack)
@@ -189,8 +190,8 @@ instance FromHttpApiData GapItemTime where
 
 data GapItemUnitStatus =
        Pending
-     | ProcessedOk 
-     | ProcessedDecline
+     | Ok 
+     | Declined
      deriving stock (Generic, Show)
 
 mkToSchemaAndJSON ''GapItemUnitStatus
@@ -255,7 +256,41 @@ data DailyBalanceSheet =
 
 deriveToSchemaFieldLabelModifier ''DailyBalanceSheet [|firstLetterModify (Proxy @DailyBalanceSheet)|]
 
-data InitDashboard = InitDashboard { initDashboardDailyBalanceSheet :: !DailyBalanceSheet }
+data WalletType = Debit | Credit
+     deriving stock (Generic, Show)
+     deriving
+     (ToJSON, FromJSON)
+     via WithOptions
+          '[ConstructorTagModifier 
+            '[UserDefined ToLower]]
+         WalletType
+
+deriveToSchemaConstructorTag ''WalletType [| map toLower |]
+
+data Wallet = 
+     Wallet 
+     { walletCurrency :: !Currency,
+       walletAmount :: !Double,
+       walletWalletType :: !WalletType
+     }
+    deriving stock (Generic, Show)
+    deriving
+      (ToJSON, FromJSON)
+      via WithOptions 
+          '[FieldLabelModifier
+            '[UserDefined FirstLetterToLower,
+              UserDefined 
+              (StripConstructor 
+               Wallet)]]
+      Wallet
+
+deriveToSchemaFieldLabelModifier ''Wallet [|firstLetterModify (Proxy @Wallet)|]
+
+data InitDashboard = 
+     InitDashboard 
+     { initDashboardDailyBalanceSheet :: !DailyBalanceSheet,
+       initDashboardWallets :: ![Wallet]
+     }
     deriving stock (Generic, Show)
     deriving
       (ToJSON, FromJSON)

@@ -12,11 +12,10 @@ import BCorrespondent.Transport.Model.Frontend
         GapItem (..), 
         GapItemTime (..), 
         GapItemUnit (..),
-        GapItemUnitStatus (..),
         InitDashboard (..)
        )
-import BCorrespondent.Statement.Dashboard (getDailyBalanceSheet, HourTimeline (..))
-import qualified BCorrespondent.Statement.Dashboard as S (DailyBalanceSheet (..))
+import qualified BCorrespondent.Transport.Model.Frontend as M (GapItemUnitStatus (..)) 
+import BCorrespondent.Statement.Dashboard (getDashboard, HourTimeline (..), Dashboard (..))
 import BCorrespondent.Api.Handler.Frontend.User.Utils (checkInstitution)
 import BCorrespondent.Transport.Response (Response)
 import BCorrespondent.Statement.Invoice  (Status (..))
@@ -43,14 +42,15 @@ handle user =
     let lowerBound = mkLowerBound lowerBoundTmp day
     hasql <- fmap (^. katipEnv . hasqlDbPool) ask
     let mkResp dbResp =
-          withError dbResp $ \S.DailyBalanceSheet {..} ->
+          withError dbResp $ \Dashboard {..} ->
             InitDashboard 
             { initDashboardDailyBalanceSheet = 
                 DailyBalanceSheet 
-                dailyBalanceSheetInstitution $ 
-                transform dailyBalanceSheetTimeline 
+                dashboardInstitution $ 
+                transform dashboardTimeline,
+              initDashboardWallets = dashboardWallets  
             }
-    fmap mkResp $ transactionM hasql $ statement getDailyBalanceSheet (lowerBound, upperBound, ident)
+    fmap mkResp $ transactionM hasql $ statement getDashboard (lowerBound, upperBound, ident)
 
 transform :: [HourTimeline] -> [GapItem]
 transform xs =
@@ -75,10 +75,10 @@ mkLowerBound :: UTCTime -> (Year, DayOfYear) -> UTCTime
 mkLowerBound tm (year, day) | snd (toOrdinalDate (utctDay tm)) == day = tm
                             | otherwise = UTCTime (fromOrdinalDate year day) 0
 
-mkStatus :: Status -> GapItemUnitStatus
+mkStatus :: Status -> M.GapItemUnitStatus
 mkStatus status
   | status == ForwardedToPaymentProvider ||
-    status == ProcessedByPaymentProvider = Pending
-  | status == Confirmed = ProcessedOk
-  | status == Declined = ProcessedDecline
+    status == ProcessedByPaymentProvider = M.Pending
+  | status == Confirmed = M.Ok
+  | status == Declined = M.Declined
   | otherwise = error $ "inappropriate status " <> show status
