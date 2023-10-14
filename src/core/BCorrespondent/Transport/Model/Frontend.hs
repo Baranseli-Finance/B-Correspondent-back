@@ -38,7 +38,6 @@ module BCorrespondent.Transport.Model.Frontend
         GapItemUnitStatus (..),
         DailyBalanceSheet (..),
         GapItemTime (..),
-        WSDashboardResource (..),
         TimelineDirection (..),
         FetchGap (..),
         TimelineTransaction (..),
@@ -50,14 +49,13 @@ module BCorrespondent.Transport.Model.Frontend
 
 import BCorrespondent.Transport.Model.Invoice (Currency)
 import Data.Text (Text, splitOn, unpack)
-import Data.Aeson (ToJSON, FromJSON, Value (String))
+import Data.Aeson (ToJSON, FromJSON)
 import Data.Aeson.Generic.DerivingVia
 import GHC.Generics (Generic)
 import Data.Swagger.Schema.Extended 
        (deriveToSchemaFieldLabelModifier,
         firstLetterModify,
         deriveToSchemaConstructorTag,
-        modify,
         deriveToSchema
        )
 import Data.Proxy (Proxy (..))
@@ -303,12 +301,6 @@ data InitDashboard =
       InitDashboard
 
 deriveToSchemaFieldLabelModifier ''InitDashboard [|firstLetterModify (Proxy @InitDashboard)|]
-
-data WSDashboardResource = WSDashboardResourceTimeline deriving (Show)
-
-mkEnumConvertor ''WSDashboardResource
-mkParamSchemaEnum ''WSDashboardResource [|isoWSDashboardResource . to (modify (Proxy @WSDashboardResource)) . stext . to String|]
-mkFromHttpApiDataEnum ''WSDashboardResource [|from stext . from isoWSDashboardResource . to Right|]
 
 data TimelineDirection = Backward | Forward
   deriving stock (Generic, Show, Eq)

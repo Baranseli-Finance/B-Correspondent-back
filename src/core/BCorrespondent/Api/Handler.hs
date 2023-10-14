@@ -32,7 +32,7 @@ import qualified BCorrespondent.Api.Handler.Webhook.CatchPaymentProvider as Webh
 import qualified BCorrespondent.Api.Handler.Webhook.CatchGithub as Webhook.CatchGithub
 import qualified BCorrespondent.Api.Handler.Fs.Upload as Fs.Upload
 import qualified BCorrespondent.Api.Handler.Fs.Download as Fs.Download
-import qualified BCorrespondent.Api.Handler.WS.User.NotifyDailyBalanceSheet as WS.User.NotifyDailyBalanceSheet
+import qualified BCorrespondent.Api.Handler.WS.User.Transaction as WS.User.Transaction
 import qualified BCorrespondent.Api.Handler.Frontend.User.GetTimelineTransaction as Frontend.User.GetTimelineTransaction
 -- << end handlers
 import qualified BCorrespondent.Auth as Auth
@@ -163,13 +163,13 @@ user nm =
            katipAddNamespace
            (Namespace [nm, "balanceSheet", "gap"])
            (Frontend.User.FetchGap.handle user from to),
-    _userApiNotifyDailyBalanceSheet =
-      \resource (pend :: WS.PendingConnection) ->
+    _userApiNotifyTransactionUpdate =
+      \(pend :: WS.PendingConnection) ->
         pend `Auth.withWSAuth` \(ident, conn) ->
           flip logExceptionM ErrorS
           $ katipAddNamespace
-            (Namespace [nm, "balanceSheet", "notify"])
-            (WS.User.NotifyDailyBalanceSheet.handle ident conn resource),
+            (Namespace [nm, "balanceSheet", "transaction"])
+            (WS.User.Transaction.handle ident conn),
     _userApiGetHistory = \auth ->
        auth `Auth.withAuth` \_ ->
          flip logExceptionM ErrorS $

@@ -8,12 +8,10 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE NamedFieldPuns #-}
 
-module BCorrespondent.Api.Handler.WS.User.NotifyDailyBalanceSheet (handle) where
+module BCorrespondent.Api.Handler.WS.User.Transaction (handle) where
 
 import BCorrespondent.Api.Handler.Frontend.User.InitDashboard (mkStatus)
 import BCorrespondent.Auth (AuthenticatedUser (..), Role (..))
-import BCorrespondent.Transport.Model.Frontend 
-       (WSDashboardResource (WSDashboardResourceTimeline))
 import BCorrespondent.Statement.Invoice (Status)
 import BCorrespondent.Api.Handler.WS.Utils (withWS, ListenPsql, listenPsql, sendError, Resource (..), withResource)
 import Katip.Handler (KatipHandlerM)
@@ -29,12 +27,12 @@ import Katip (Severity (DebugS), logTM)
 import Data.String (fromString)
 import BuildInfo (location)
 
-data TimelineItem = 
-     TimelineItem 
-     { timelineItemDayOfYear :: Int,
-       timelineItemHour :: Int,
-       timelineItemMin :: Int,
-       timelineItemTextualIdent :: Text
+data Transaction = 
+     Transaction 
+     { transactionDayOfYear :: Int,
+       transactionHour :: Int,
+       transactionMin :: Int,
+       transactionTextualIdent :: Text
      }
     deriving stock (Generic)
      deriving
@@ -43,19 +41,19 @@ data TimelineItem =
           '[FieldLabelModifier
             '[UserDefined FirstLetterToLower, 
               UserDefined
-              (StripConstructor TimelineItem)]]
-          TimelineItem
+              (StripConstructor Transaction)]]
+          Transaction
 
-type TimelineItemExt = Maybe (WithField "status" Status TimelineItem)
+type TransactionExt = Maybe (WithField "status" Status Transaction)
 
-type instance ListenPsql "timeline_item_update" TimelineItemExt = ()
+type instance ListenPsql "timeline_transaction" TransactionExt = ()
 
-handle :: AuthenticatedUser 'Reader -> WS.Connection -> WSDashboardResource -> KatipHandlerM ()
-handle AuthenticatedUser {institution = Nothing} conn WSDashboardResourceTimeline = 
+handle :: AuthenticatedUser 'Reader -> WS.Connection -> KatipHandlerM ()
+handle AuthenticatedUser {institution = Nothing} conn = 
   liftIO $ sendError conn "you haven't an institution assigned to to"
-handle AuthenticatedUser {ident, institution = Just _} conn WSDashboardResourceTimeline =
+handle AuthenticatedUser {ident, institution = Just _} conn =
   withWS @Resource conn $ \db resource -> do 
      $(logTM) DebugS $ fromString $ $location <> " received " <> show resource
      withResource @"Transaction" conn resource $ 
-       listenPsql @"timeline_item_update" @TimelineItemExt conn db ident $ 
+       listenPsql @"timeline_transaction" @TransactionExt conn db ident $ 
          fmap (first mkStatus)

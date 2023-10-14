@@ -9,7 +9,7 @@
 module BCorrespondent.Api.Frontend.User (UserApi (..)) where
 
 import BCorrespondent.Transport.Model.Frontend 
-       (InitDashboard, GapItem, WSDashboardResource, FetchGap)
+       (InitDashboard, GapItem, FetchGap)
 import BCorrespondent.Transport.Response (Response)
 import BCorrespondent.Transport.Model.Frontend 
        (ProcuratoryRequest, 
@@ -55,12 +55,12 @@ data UserApi route = UserApi
           :> Capture "direction" TimelineDirection
           :> QueryParam' '[Required, Strict] "point" GapItemTime
           :> Get '[JSON] (Response [GapItem]),      
-    _userApiNotifyDailyBalanceSheet ::
+    _userApiNotifyTransactionUpdate ::
       route
         :- "dashboard"
         :> "daily-balance-sheet"
-        :> "notify"
-        :> Capture "resource" WSDashboardResource
+        :> "transaction"
+        :> "update"
         :> WebSocketPending,
     _userApiMakeProcuratory ::
       route
