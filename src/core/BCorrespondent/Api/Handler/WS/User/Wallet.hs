@@ -21,6 +21,8 @@ import Control.Monad.IO.Class (liftIO)
 import Katip (Severity (DebugS), logTM)
 import Data.String (fromString)
 import BuildInfo (location)
+import Data.Aeson.WithField (WithField (..))
+import Data.Int (Int64)
 
 data Wallet = 
      Wallet
@@ -38,7 +40,9 @@ data Wallet =
           Wallet
 
 
-type instance ListenPsql "wallet" Wallet = ()
+type WalletExt = WithField "user" Int64 Wallet
+
+type instance ListenPsql "wallet" WalletExt = ()
 
 handle :: AuthenticatedUser 'Reader -> WS.Connection -> KatipHandlerM ()
 handle AuthenticatedUser {institution = Nothing} conn = 
@@ -46,4 +50,7 @@ handle AuthenticatedUser {institution = Nothing} conn =
 handle AuthenticatedUser {ident, institution = Just _} conn =
   withWS @Resource conn $ \db resource -> do 
      $(logTM) DebugS $ fromString $ $location <> " received " <> show resource
-     withResource @"Wallet" conn resource $ listenPsql @"wallet" @Wallet conn db ident id
+     let mkResp (WithField dbUser x)
+          | dbUser == ident = Just x
+          | otherwise = Nothing
+     withResource @"Wallet" conn resource $ listenPsql @"wallet" @WalletExt conn db ident mkResp

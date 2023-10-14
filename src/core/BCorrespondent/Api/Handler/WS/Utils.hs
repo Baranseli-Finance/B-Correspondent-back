@@ -120,8 +120,8 @@ withWS conn go = do
 
 type family ListenPsql (s :: Symbol) (b :: Type) :: Constraint
 
-listenPsql :: forall s a b . (KnownSymbol s, ListenPsql s a, FromJSON a, ToJSON b) => WS.Connection -> Hasql.Connection -> Int64 -> (a -> b) -> IO ()
-listenPsql c db userIdent go = do
+listenPsql :: forall s a b . (KnownSymbol s, ListenPsql s a, FromJSON a, ToJSON b) => WS.Connection -> Hasql.Connection -> Int64 -> (a -> Maybe b) -> IO ()
+listenPsql c db userIdent modify = do
   let channel =  toS (symbolVal (Proxy @s)) <> "_" <> toS (show userIdent)
   let channelToListen = Hasql.toPgIdentifier channel
   Hasql.listen db channelToListen
@@ -129,7 +129,8 @@ listenPsql c db userIdent go = do
     flip Hasql.waitForNotifications db $ 
       \channel payload -> do 
         let resp = eitherDecode @a $ payload^.from bytesLazy
-        WS.sendDataMessage c (WS.Text (encode (withError resp go)) Nothing)
+        for_ (sequence (fmap modify resp)) $ \x -> 
+          WS.sendDataMessage c (WS.Text (encode (withError x id)) Nothing)
 
 sendError :: WS.Connection -> Text -> IO ()
 sendError c msg = WS.sendDataMessage c (WS.Text (encode @(Response ()) (Error Nothing (asError msg))) Nothing)

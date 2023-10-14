@@ -20,12 +20,13 @@ import Data.Text (Text)
 import Data.Aeson.Generic.DerivingVia
 import GHC.Generics
 import Data.Aeson (FromJSON, ToJSON)
-import Data.Aeson.WithField (WithField)
+import Data.Aeson.WithField (WithField (..))
 import Control.Monad.IO.Class (liftIO)
 import Data.Bifunctor (first)
 import Katip (Severity (DebugS), logTM)
 import Data.String (fromString)
 import BuildInfo (location)
+import Data.Int (Int64)
 
 data Transaction = 
      Transaction 
@@ -44,7 +45,7 @@ data Transaction =
               (StripConstructor Transaction)]]
           Transaction
 
-type TransactionExt = Maybe (WithField "status" Status Transaction)
+type TransactionExt = Maybe (WithField "user" Int64 (WithField "status" Status Transaction))
 
 type instance ListenPsql "timeline_transaction" TransactionExt = ()
 
@@ -54,6 +55,8 @@ handle AuthenticatedUser {institution = Nothing} conn =
 handle AuthenticatedUser {ident, institution = Just _} conn =
   withWS @Resource conn $ \db resource -> do 
      $(logTM) DebugS $ fromString $ $location <> " received " <> show resource
-     withResource @"Transaction" conn resource $ 
-       listenPsql @"timeline_transaction" @TransactionExt conn db ident $ 
-         fmap (first mkStatus)
+     let mkResp (Just (WithField dbUser x)) 
+           | dbUser == ident = Just $ first mkStatus x
+           | otherwise = Nothing
+         mkResp _ = Nothing  
+     withResource @"Transaction" conn resource $ listenPsql @"timeline_transaction" @TransactionExt conn db ident mkResp
