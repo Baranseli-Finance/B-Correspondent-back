@@ -146,14 +146,18 @@ getDashboard =
       inner join institution.wallet as iw
       on i.id = iw.institution_id
       where i.id = $3 :: int8
-      group by i.title, gaps.xs) 
-    select title :: text, wallets :: jsonb[], array_agg(gaps) filter(where gaps is not null) :: jsonb[][]? from tbl group by title, wallets|]
+      group by i.title, gaps.xs)
+    select 
+      title :: text, 
+      wallets :: jsonb[], 
+      array_agg(item) filter(where item is not null) :: jsonb[]?
+    from (select title :: text, wallets :: jsonb[], unnest(gaps) as item from tbl) as tbl
+    group by title, wallets|]
   where
     decode (title, wallets, timeline) =
-      let mkTimeline = sequence . V.toList . V.concatMap (V.map (eitherDecode @TimelineGapsItem . encode))
-          transform :: forall a . FromJSON a => V.Vector Value -> Either String [a]
+      let transform :: forall a . FromJSON a => V.Vector Value -> Either String [a]
           transform = sequence . map (eitherDecode @a . encode) . V.toList
-          pair = (,) <$> transform wallets <*> fromMaybe (Right []) (fmap mkTimeline timeline)
+          pair = (,) <$> transform wallets <*> fromMaybe (Right []) (fmap transform timeline)
       in fmap (uncurry (Dashboard title)) pair
 
 get1HourTimeline :: HS.Statement (UTCTime, UTCTime, Int64) (Either String [TimelineGapsItem])
@@ -162,48 +166,52 @@ get1HourTimeline =
   (snocT (toS (show Declined)) .
    snocT (toS (show Confirmed)) .
    snocT (toS (show ForwardedToPaymentProvider)))
-   (fromMaybe (Right []) . fmap (sequence . V.toList . V.concatMap (V.map (eitherDecode @TimelineGapsItem . encode))))
+   (fromMaybe (Right []) . fmap (sequence . map (eitherDecode @TimelineGapsItem . encode) . V.toList))
   [singletonStatement|
-    select
-      array_agg(tmp.values) filter(where tmp.values is not null) :: jsonb[][]?
-    from (
+    with tbl as (
       select
-        tm.start,
-        tm.end,
-        array_agg(
-        json_build_object(
-        'start_hour', extract(hour from tm.start),
-        'start_minute', extract(minute from tm.start),
-        'end_hour', extract(hour from tm.end),
-        'end_minute', extract(minute from tm.end),
-        'textual_ident', i.textual_view, 
-        'status', i.status,
-        'ident', i.id,
-        'tm', cast(i.created_at as text) || 'Z',
-        'currency', i.currency,
-        'amount', i.amount))
-        :: jsonb[] as values
+        tmp.values :: jsonb[]? as items
       from (
         select
-            el as start,
-            el + interval '5min' as end
-        from generate_series(
-            $1 :: timestamptz,
-            $2 :: timestamptz,
-            interval '5 min') as _(el)
-        where el < $2 :: timestamptz) as tm
-      cross join (
-        select 
-          *
-        from institution.invoice
-        where institution_id = $3 :: int8) as i
-      where 
-      (i.status = $4 :: text or 
-       i.status = $5 :: text or 
-       i.status = $6 :: text) 
-      and (i.appearance_on_timeline > tm.start and 
-           i.appearance_on_timeline < tm.end)
-      group by tm.start, tm.end) as tmp|]
+          tm.start,
+          tm.end,
+          array_agg(
+          json_build_object(
+          'start_hour', extract(hour from tm.start),
+          'start_minute', extract(minute from tm.start),
+          'end_hour', extract(hour from tm.end),
+          'end_minute', extract(minute from tm.end),
+          'textual_ident', i.textual_view, 
+          'status', i.status,
+          'ident', i.id,
+          'tm', cast(i.created_at as text) || 'Z',
+          'currency', i.currency,
+          'amount', i.amount))
+          :: jsonb[] as values
+        from (
+          select
+              el as start,
+              el + interval '5min' as end
+          from generate_series(
+              $1 :: timestamptz,
+              $2 :: timestamptz,
+              interval '5 min') as _(el)
+          where el < $2 :: timestamptz) as tm
+        cross join (
+          select 
+            *
+          from institution.invoice
+          where institution_id = $3 :: int8) as i
+        where 
+        (i.status = $4 :: text or 
+        i.status = $5 :: text or 
+        i.status = $6 :: text) 
+        and (i.appearance_on_timeline > tm.start and 
+            i.appearance_on_timeline < tm.end)
+        group by tm.start, tm.end) as tmp) 
+    select 
+      array_agg(item) filter(where item is not null) :: jsonb[]?
+    from (select unnest(items) as item from tbl) as tbl|]
 
 data Gap = 
      Gap 
