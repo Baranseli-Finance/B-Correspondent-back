@@ -52,7 +52,8 @@ create table institution.transaction (
     correspondent_bank text null,
     correspondent_bank_swift_sepa_code text null,
     constraint institution_transaction__invoice_id__fk foreign key (invoice_id) references institution.invoice(id),
-    constraint institution_transaction__swift_sepa_message_id__fk foreign key (swift_sepa_message_id) references storage.file(id));
+    constraint institution_transaction__swift_sepa_message_id__fk foreign key (swift_sepa_message_id) references storage.file(id),
+    constraint institution_transaction_invoice_id__unique unique (invoice_id));
 
 create table institution.transaction_to_institution_delivery (
     transaction_id uuid not null,

@@ -136,6 +136,7 @@ create =
         $12 :: int8
       from institution.invoice_to_institution_delivery
       where external_id = $1 :: uuid
+      on conflict (invoice_id) do nothing
       returning id, invoice_id),
     delivery as (  
       insert into institution.transaction_to_institution_delivery 
