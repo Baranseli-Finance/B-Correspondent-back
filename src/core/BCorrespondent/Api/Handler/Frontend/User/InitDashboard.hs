@@ -20,7 +20,7 @@ import BCorrespondent.Statement.Dashboard (getDashboard, TimelineGapsItem (..), 
 import BCorrespondent.Api.Handler.Frontend.User.Utils (checkInstitution)
 import BCorrespondent.Transport.Response (Response)
 import BCorrespondent.Statement.Invoice  (Status (..))
-import BCorrespondent.Api.Handler.Utils (withError)
+import BCorrespondent.Api.Handler.Utils (withError, roundTo)
 import qualified BCorrespondent.Auth as Auth
 import Katip.Handler (KatipHandlerM, katipEnv, hasqlDbPool, ask)
 import Control.Monad.Time (currentTime)
@@ -87,7 +87,7 @@ transform xs =
                      let val = Sum amount, 
                      then group by currency using groupWith 
                  ] 
-           in GapItem start end (mkGapItemUnits xs) (map (uncurry GapItemAmount . second (getSum . fold)) $ mkAmounts xs)
+           in GapItem start end (mkGapItemUnits xs) (map (uncurry GapItemAmount . second (roundTo 2 . getSum . fold)) $ mkAmounts xs)
 
 mkLowerBound :: UTCTime -> (Year, DayOfYear) -> UTCTime
 mkLowerBound tm (year, day) | snd (toOrdinalDate (utctDay tm)) == day = tm

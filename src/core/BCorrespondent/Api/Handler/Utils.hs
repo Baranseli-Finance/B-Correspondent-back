@@ -10,7 +10,8 @@ module BCorrespondent.Api.Handler.Utils
          withErrorExt, 
          extractMIMEandExts, 
          withEither,
-         withLogEither
+         withLogEither,
+         roundTo
        ) where
 
 import Katip.Handler (KatipHandlerM)
@@ -26,6 +27,7 @@ import Data.Bifunctor (second)
 import BuildInfo (location)
 import Katip (logTM, logStr, Severity(ErrorS))
 import Data.Functor (($>))
+import Data.Int (Int32)
 
 withErrorExt :: Show e => Either e (a, [E.Error]) -> (a -> r) -> Response r
 withErrorExt (Left e) _ = Error Nothing $ asError (show e ^. stext)
@@ -44,3 +46,8 @@ withEither (Right val) handler = handler val
 withLogEither :: Show e => Either e a -> (a -> KatipHandlerM (Response b)) -> KatipHandlerM (Response b)
 withLogEither (Right val) handler = handler val
 withLogEither (Left e) _ = ($(logTM) ErrorS $ logStr @T.Text $ $location <> "error ---> " <> T.pack (show e)) $> Error Nothing (asError @T.Text (T.pack (show e)))
+
+roundTo :: Int32 -> Double -> Double
+roundTo 0 = error "precision must be non-negative"
+roundTo digits = (/ factor) . fromIntegral . round . (* factor)
+  where factor = fromIntegral (10 ^ digits)

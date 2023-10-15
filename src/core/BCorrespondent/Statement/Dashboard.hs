@@ -147,12 +147,13 @@ getDashboard =
       on i.id = iw.institution_id
       where i.id = $3 :: int8
       group by i.title, gaps.xs)
-    select 
-      title :: text, 
-      wallets :: jsonb[], 
-      array_agg(item) filter(where item is not null) :: jsonb[]?
-    from (select title :: text, wallets :: jsonb[], unnest(gaps) as item from tbl) as tbl
-    group by title, wallets|]
+     select 
+      f.title :: text, 
+      f.wallets :: jsonb[], 
+      array_agg(s.item) filter(where s.item is not null) :: jsonb[]?
+     from (select title, wallets from tbl) as f
+     left join (select unnest(gaps) as item from tbl) as s on true
+     group by f.title, f.wallets|]
   where
     decode (title, wallets, timeline) =
       let transform :: forall a . FromJSON a => V.Vector Value -> Either String [a]
