@@ -22,8 +22,10 @@ import BCorrespondent.Transport.Model.Frontend
         defInit, 
         shaXs,
         loadCssLocally,
+        invoiceSince,
         JWTStatus (..), 
-        LogLevel)
+        LogLevel,
+        InvoiceSince)
 import BCorrespondent.Transport.Model.Auth (AuthToken (..))
 import BCorrespondent.EnvKeys (key, repos)
 import BCorrespondent.Auth (validateJwt, AuthenticatedUser (..), account, AccountType (Institution))
@@ -61,11 +63,12 @@ instance Show Error where
 
 data FrontEnvs = 
      FrontEnvs 
-     { frontEnvsLogLevel :: !LogLevel, 
+     { frontEnvsLogLevel :: !LogLevel,
        frontEnvsToTelegram :: !Bool,
        frontEnvsTelegramBot :: !Text,
        frontEnvsTelegramChat :: !Text,
-       frontEnvsLoadCssLocally :: !Bool
+       frontEnvsLoadCssLocally :: !Bool,
+       frontEnvsInvoiceSince :: !InvoiceSince
      }
     deriving stock (Generic)
     deriving
@@ -128,5 +131,6 @@ handle token = do
             toTelegram = frontEnvsToTelegram,
             telegramBot = frontEnvsTelegramBot,
             telegramChat = frontEnvsTelegramChat,
-            loadCssLocally = frontEnvsLoadCssLocally
+            loadCssLocally = frontEnvsLoadCssLocally,
+            invoiceSince = frontEnvsInvoiceSince
           }

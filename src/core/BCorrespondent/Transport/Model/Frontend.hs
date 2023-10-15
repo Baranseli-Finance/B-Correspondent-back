@@ -30,6 +30,7 @@ module BCorrespondent.Transport.Model.Frontend
         telegramChat,
         level,
         loadCssLocally,
+        invoiceSince,
         Sha (..),
         JWTStatus (..),
         LogLevel,
@@ -45,7 +46,8 @@ module BCorrespondent.Transport.Model.Frontend
         InitDashboard (..),
         Wallet (..),
         WalletType (..),
-        GapItemAmount (..)
+        GapItemAmount (..),
+        InvoiceSince (..)
        ) where
 
 import BCorrespondent.Transport.Model.Invoice (Currency)
@@ -134,6 +136,25 @@ mkArbitrary ''LogLevel
 
 deriveToSchemaConstructorTag ''LogLevel [| map toLower |]
 
+data InvoiceSince =
+     InvoiceSince 
+     { invoiceSinceYear :: !Int,
+       invoiceSinceMonth :: !Int,
+       invoiceSinceDay :: !Int
+     } 
+    deriving stock (Generic, Show)
+    deriving
+      (FromJSON, ToJSON)
+      via WithOptions 
+         '[FieldLabelModifier 
+           '[UserDefined ToLower,
+             UserDefined (StripConstructor InvoiceSince)]]
+      InvoiceSince
+
+instance Default InvoiceSince
+
+deriveToSchemaFieldLabelModifier ''InvoiceSince [| firstLetterModify (Proxy @InvoiceSince) |]
+
 data Init =
      Init
     { shaXs :: ![Sha],
@@ -142,7 +163,8 @@ data Init =
       toTelegram :: !Bool,
       telegramBot :: !Text,
       telegramChat :: !Text,
-      loadCssLocally :: !Bool
+      loadCssLocally :: !Bool,
+      invoiceSince :: !InvoiceSince 
     }
     deriving stock (Generic, Show)
     deriving
@@ -156,7 +178,7 @@ instance Default Init
 
 deriveToSchemaFieldLabelModifier ''Init [| map toLower |]
 
-defInit = Init def def def def def def def
+defInit = def @Init
 
 -- daily balance sheet
 
