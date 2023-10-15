@@ -166,3 +166,48 @@ $$ language 'plpgsql';
 create or replace trigger on_wallet_update
 after update on institution.wallet
 for each row execute procedure notify_server_on_wallet();
+
+
+create schema if not exists mv;
+
+create materialized view mv.invoice_and_transaction
+as 
+  select
+    i.id as invoice_ident,
+    i.created_at,
+    i.institution_id,
+    i.customer_id,
+    i.invoice_id,
+    i.invoice_time,
+    i.seller,
+    i.seller_address,
+    i.seller_tax_id,
+    i.seller_phone_number,
+    i.buyer,
+    i.buyer_address,
+    i.buyer_tax_id,
+    i.buyer_phone_number,
+    i.payment_description,
+    i.currency as invoice_currency,
+    i.amount as invoice_amount,
+    i.vat,
+    i.status,
+    i.fee,
+    i.textual_view,
+    i.appearance_on_timeline,
+    t.id as transaction_ident,
+    t.swift_sepa_message_id,
+    t.sender_name,
+    t.sender_address,
+    t.sender_phone_number,
+    t.sender_bank,
+    t.swift_sepa_code,
+    t.sender_bank_account,
+    t.amount as transaction_amount,
+    t.currency as transaction_currency,
+    t.correspondent_bank,
+    t.correspondent_bank_swift_sepa_code
+  from institution.invoice as i
+  left join institution.transaction as t
+  on i.id = t.invoice_id
+with no data;
