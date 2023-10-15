@@ -15,7 +15,7 @@ module BCorrespondent.Statement.Dashboard
        ( getDashboard,
          get1HourTimeline,
          getGap,
-         HourTimeline (..),
+         TimelineGapsItem (..),
          Dashboard (..),
          Gap (..),
          getTransaction
@@ -38,18 +38,19 @@ import Data.String.Conv (toS)
 import Data.Maybe (fromMaybe)
 import Data.Int (Int64, Int32)
 
-data HourTimeline = 
-     HourTimeline
-     { hourTimelineStartHour :: Int,
-       hourTimelineStartMinute :: Int,
-       hourTimelineEndHour :: Int,
-       hourTimelineEndMinute :: Int,
-       hourTimelineTextualIdent :: Text,
-       hourTimelineStatus :: Status,
-       hourTimelineIdent :: Int64,
-       hourTimelineTm :: UTCTime,
-       hourTimelineCurrency :: Currency,
-       hourTimelineAmount :: Double
+
+data TimelineGapsItem = 
+     TimelineGapsItem
+     { timelineGapsItemStartHour :: Int,
+       timelineGapsItemStartMinute :: Int,
+       timelineGapsItemEndHour :: Int,
+       timelineGapsItemEndMinute :: Int,
+       timelineGapsItemTextualIdent :: Text,
+       timelineGapsItemStatus :: Status,
+       timelineGapsItemIdent :: Int64,
+       timelineGapsItemTm :: UTCTime,
+       timelineGapsItemCurrency :: Currency,
+       timelineGapsItemAmount :: Double
      }
     deriving stock (Generic)
     deriving
@@ -59,14 +60,14 @@ data HourTimeline =
             '[CamelTo2 "_", 
               UserDefined 
               (StripConstructor 
-               HourTimeline)]]
-          HourTimeline
+               TimelineGapsItem)]]
+          TimelineGapsItem
 
 data Dashboard = 
      Dashboard 
      { dashboardInstitution :: Text,
-       dashboardWallets :: [Wallet],
-       dashboardTimeline :: [HourTimeline]
+       dashboardWallets :: [Wallet], 
+       dashboardTimeline :: [TimelineGapsItem]
      }
     deriving stock (Generic)
     deriving
@@ -87,81 +88,84 @@ getDashboard =
    snocT (toS (show ForwardedToPaymentProvider)))
    decode
   [singletonStatement|
-    select
-      i.title :: text,
-      gaps.xs :: jsonb[]?,
-      array_agg(json_build_object(
-        'ident', iw.id,
-        'currency', iw.currency,
-        'amount', iw.amount,
-        'walletType', iw.wallet_type
-      )) :: jsonb[]
-    from auth.institution as i
-    left join ( 
+    with tbl as (
       select
-        tmp.values :: jsonb[]? as xs,
-        tmp.ident as ident
-      from (
+        i.title :: text,
+        gaps.xs :: jsonb[]? as gaps,
+        array_agg(json_build_object(
+          'ident', iw.id,
+          'currency', iw.currency,
+          'amount', iw.amount,
+          'walletType', iw.wallet_type
+        )) :: jsonb[] as wallets
+      from auth.institution as i
+      left join ( 
         select
-          i.institution_id as ident,
-          tm.start,
-          tm.end,
-          array_agg(
-          json_build_object(
-          'start_hour', extract(hour from tm.start),
-          'start_minute', extract(minute from tm.start),
-          'end_hour', extract(hour from tm.end),
-          'end_minute', extract(minute from tm.end),
-          'textual_ident', i.textual_view, 
-          'status', i.status,
-          'ident', i.id,
-          'tm', cast(i.created_at as text) || 'Z',
-          'currency', i.currency,
-          'amount', i.amount))
-          :: jsonb[] as values
+          tmp.values :: jsonb[]? as xs,
+          tmp.ident as ident
         from (
           select
-              el as start,
-              el + interval '5min' as end
-          from generate_series(
-              $1 :: timestamptz,
-              $2 :: timestamptz,
-              interval '5 min') as _(el)
-          where el < $2 :: timestamptz) as tm
-        cross join (
-          select 
-            *
-          from institution.invoice
-          where institution_id = $3 :: int8) as i
-        where 
-        (i.status = $4 :: text or 
-         i.status = $5 :: text or 
-         i.status = $6 :: text) 
-         and (i.appearance_on_timeline > tm.start and 
-              i.appearance_on_timeline < tm.end)
-        group by tm.start, tm.end, i.institution_id) as tmp) as gaps
-    on i.id = gaps.ident
-    inner join institution.wallet as iw
-    on i.id = iw.institution_id
-    where i.id = $3 :: int8
-    group by i.title, gaps.xs|]
+            i.institution_id as ident,
+            tm.start,
+            tm.end,
+            array_agg(
+            json_build_object(
+            'start_hour', extract(hour from tm.start),
+            'start_minute', extract(minute from tm.start),
+            'end_hour', extract(hour from tm.end),
+            'end_minute', extract(minute from tm.end),
+            'textual_ident', i.textual_view, 
+            'status', i.status,
+            'ident', i.id,
+            'tm', cast(i.created_at as text) || 'Z',
+            'currency', i.currency,
+            'amount', i.amount))
+            :: jsonb[] as values
+          from (
+            select
+                el as start,
+                el + interval '5min' as end
+            from generate_series(
+                $1 :: timestamptz,
+                $2 :: timestamptz,
+                interval '5 min') as _(el)
+            where el < $2 :: timestamptz) as tm
+          cross join (
+            select 
+              *
+            from institution.invoice
+            where institution_id = $3 :: int8) as i
+          where 
+          (i.status = $4 :: text or 
+          i.status = $5 :: text or 
+          i.status = $6 :: text) 
+          and (i.appearance_on_timeline > tm.start and 
+                i.appearance_on_timeline < tm.end)
+          group by tm.start, tm.end, i.institution_id) as tmp) as gaps
+      on i.id = gaps.ident
+      inner join institution.wallet as iw
+      on i.id = iw.institution_id
+      where i.id = $3 :: int8
+      group by i.title, gaps.xs) 
+    select title :: text, wallets :: jsonb[], array_agg(gaps) filter(where gaps is not null) :: jsonb[][]? from tbl group by title, wallets|]
   where
-    decode (title, gaps, wallets) =
-      let transform :: forall a . FromJSON a => V.Vector Value -> Either String [a] 
+    decode (title, wallets, timeline) =
+      let mkTimeline = sequence . V.toList . V.concatMap (V.map (eitherDecode @TimelineGapsItem . encode))
+          transform :: forall a . FromJSON a => V.Vector Value -> Either String [a]
           transform = sequence . map (eitherDecode @a . encode) . V.toList
-          pair = (,) <$> transform wallets <*> fromMaybe (Right []) (fmap transform gaps)  
+          pair = (,) <$> transform wallets <*> fromMaybe (Right []) (fmap mkTimeline timeline)
       in fmap (uncurry (Dashboard title)) pair
 
-get1HourTimeline :: HS.Statement (UTCTime, UTCTime, Int64) (Either String [HourTimeline])
+get1HourTimeline :: HS.Statement (UTCTime, UTCTime, Int64) (Either String [TimelineGapsItem])
 get1HourTimeline =
   dimap 
   (snocT (toS (show Declined)) .
    snocT (toS (show Confirmed)) .
    snocT (toS (show ForwardedToPaymentProvider)))
-   (fromMaybe (Right []) . fmap (sequence . map (eitherDecode @HourTimeline . encode) . V.toList))
-  [maybeStatement|
+   (fromMaybe (Right []) . fmap (sequence . V.toList . V.concatMap (V.map (eitherDecode @TimelineGapsItem . encode))))
+  [singletonStatement|
     select
-      tmp.values :: jsonb[]
+      array_agg(tmp.values) filter(where tmp.values is not null) :: jsonb[][]?
     from (
       select
         tm.start,

@@ -54,7 +54,7 @@ import Data.Coerce (coerce)
 import Data.String.Conv (toS)
 
 data Currency = USD | EUR
-     deriving stock (Generic, Show, Eq, Read)
+     deriving stock (Generic, Show, Eq, Read, Ord)
      deriving (FromJSON, ToJSON)
       via WithOptions
           '[ConstructorTagModifier 

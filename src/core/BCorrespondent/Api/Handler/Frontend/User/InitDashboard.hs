@@ -12,10 +12,11 @@ import BCorrespondent.Transport.Model.Frontend
         GapItem (..), 
         GapItemTime (..), 
         GapItemUnit (..),
-        InitDashboard (..)
+        InitDashboard (..),
+        GapItemAmount (..)
        )
 import qualified BCorrespondent.Transport.Model.Frontend as M (GapItemUnitStatus (..)) 
-import BCorrespondent.Statement.Dashboard (getDashboard, HourTimeline (..), Dashboard (..))
+import BCorrespondent.Statement.Dashboard (getDashboard, TimelineGapsItem (..), Dashboard (..))
 import BCorrespondent.Api.Handler.Frontend.User.Utils (checkInstitution)
 import BCorrespondent.Transport.Response (Response)
 import BCorrespondent.Statement.Invoice  (Status (..))
@@ -30,6 +31,10 @@ import Database.Transaction (transactionM, statement)
 import Control.Lens ((^.))
 import GHC.Exts (groupWith, the)
 import Data.Functor ((<&>))
+import Data.Bifunctor (second)
+import Data.Foldable (fold)
+import Data.Monoid (Sum (..))
+
 
 handle :: Auth.AuthenticatedUser 'Auth.Reader -> KatipHandlerM (Response InitDashboard)
 handle user = 
@@ -52,24 +57,37 @@ handle user =
             }
     fmap mkResp $ transactionM hasql $ statement getDashboard (lowerBound, upperBound, ident)
 
-transform :: [HourTimeline] -> [GapItem]
+transform :: [TimelineGapsItem] -> [GapItem]
 transform xs =
   [ (el, the interval)
-    | HourTimeline
-      {hourTimelineStartHour = startH,
-       hourTimelineStartMinute = startM,
-       hourTimelineEndHour = endH,
-       hourTimelineEndMinute = endM,
-       hourTimelineTextualIdent = textIdent,
-       hourTimelineStatus = status,
-       hourTimelineIdent = ident,
-       hourTimelineTm = tm } <- xs,
+    | TimelineGapsItem
+      {timelineGapsItemStartHour = startH,
+       timelineGapsItemStartMinute = startM,
+       timelineGapsItemEndHour = endH,
+       timelineGapsItemEndMinute = endM,
+       timelineGapsItemTextualIdent = textIdent,
+       timelineGapsItemStatus = status,
+       timelineGapsItemIdent = ident,
+       timelineGapsItemTm = tm,
+       timelineGapsItemCurrency = currency,
+       timelineGapsItemAmount = amount } <- xs,
        let start = GapItemTime startH startM,
        let end = GapItemTime endH endM,
-       let el = GapItemUnit ident tm textIdent $ mkStatus status,
+       let el = (ident, tm, textIdent, mkStatus status, currency, amount),
        let interval = (start, end),
        then group by interval using groupWith
-  ] <&> \(xs, (start, end)) -> GapItem start end xs []
+  ] <&> \(xs, (start, end)) ->
+           let mkGapItemUnits xs = 
+                 [   GapItemUnit ident tm textIdent status 
+                   | (ident, tm, textIdent, status, _, _) <- xs 
+                 ]
+               mkAmounts xs = 
+                 [   (the currency, val) 
+                   | (_, _, _, _, currency, amount) <- xs, 
+                     let val = Sum amount, 
+                     then group by currency using groupWith 
+                 ] 
+           in GapItem start end (mkGapItemUnits xs) (map (uncurry GapItemAmount . second (getSum . fold)) $ mkAmounts xs)
 
 mkLowerBound :: UTCTime -> (Year, DayOfYear) -> UTCTime
 mkLowerBound tm (year, day) | snd (toOrdinalDate (utctDay tm)) == day = tm
