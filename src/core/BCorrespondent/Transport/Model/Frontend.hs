@@ -47,7 +47,11 @@ module BCorrespondent.Transport.Model.Frontend
         Wallet (..),
         WalletType (..),
         GapItemAmount (..),
-        InvoiceSince (..)
+        InvoiceSince (..),
+        -- * history endpoint
+        HistoryDate (..),
+        HistoryTimeline (..),
+        encodeHistoryDate
        ) where
 
 import BCorrespondent.Transport.Model.Invoice (Currency)
@@ -69,7 +73,8 @@ import TH.Mk
         mkEnumConvertor, 
         mkParamSchemaEnum, 
         mkFromHttpApiDataEnum, 
-        mkArbitrary
+        mkArbitrary,
+        mkEncoder
        )
 import Control.Lens
 import Control.Lens.Iso.Extended (jsonb, stext)
@@ -80,6 +85,8 @@ import Data.Int (Int64)
 import Data.Time.Clock (UTCTime)
 import Data.UUID (UUID)
 import Data.Aeson.TH.Extended (deriveToJSON, defaultOptions)
+import Data.Maybe (fromMaybe)
+import Database.Transaction (ParamsShow (..))
 
 
 data ProcuratoryRequest = 
@@ -407,3 +414,56 @@ data TimelineTransactionResponse =
 deriveToJSON defaultOptions ''TimelineTransactionResponse
 
 deriveToSchema ''TimelineTransactionResponse
+
+-- history 
+
+data HistoryDate = 
+     HistoryDate 
+     { historyDateYear :: Int, 
+       historyDateMonth :: Int,
+       historyDateDay :: Int
+     }
+    deriving stock (Generic, Show, Ord, Eq)
+    deriving
+      (ToJSON, FromJSON)
+      via WithOptions 
+          '[FieldLabelModifier
+            '[UserDefined FirstLetterToLower,
+              UserDefined 
+              (StripConstructor 
+               HistoryDate)]]
+      HistoryDate
+
+instance ToParamSchema HistoryDate where
+  toParamSchema _ = mempty & type_ ?~ SwaggerString 
+
+instance FromHttpApiData HistoryDate where
+  parseUrlPiece s = 
+    case map (read @Int . unpack) (splitOn "," s) of
+      [y, m, d] -> Right $ HistoryDate y m d
+      _ -> Left $ "cannot parse " <> s <> " into HistoryDate"
+
+mkEncoder ''HistoryDate
+mkArbitrary ''HistoryDate
+
+encodeHistoryDate :: HistoryDate -> (Int, Int, Int)
+encodeHistoryDate = fromMaybe undefined . mkEncoderHistoryDate
+
+instance ParamsShow HistoryDate where
+  render = show . encodeHistoryDate
+
+data HistoryTimeline = 
+     HistoryTimeline 
+     { historyTimelineTimeline :: [GapItem] }
+    deriving stock (Generic, Show)
+    deriving
+      (ToJSON, FromJSON)
+      via WithOptions 
+          '[FieldLabelModifier
+            '[UserDefined FirstLetterToLower,
+              UserDefined 
+              (StripConstructor 
+               HistoryTimeline)]]
+      HistoryTimeline
+
+deriveToSchemaFieldLabelModifier ''HistoryTimeline [|firstLetterModify (Proxy @HistoryTimeline)|]

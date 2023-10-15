@@ -178,12 +178,12 @@ user nm =
           $ katipAddNamespace
             (Namespace [nm, "wallet"])
             (WS.User.Wallet.handle ident conn),    
-    _userApiGetHistory = \auth ->
+    _userApiGetHistory = \auth date ->
        auth `Auth.withAuth` \_ ->
          flip logExceptionM ErrorS $
            katipAddNamespace
-           (Namespace [nm, "history"])
-           Frontend.User.GetHistory.handle,
+           (Namespace [nm, "history"]) $
+           Frontend.User.GetHistory.handle date,
     _userApiMakeProcuratory = \auth req ->
        auth `Auth.withAuth` \user ->
          flip logExceptionM ErrorS $

@@ -9,13 +9,14 @@
 module BCorrespondent.Api.Frontend.User (UserApi (..)) where
 
 import BCorrespondent.Transport.Model.Frontend 
-       (InitDashboard, GapItem, FetchGap)
+       (InitDashboard, GapItem, FetchGap, HistoryTimeline)
 import BCorrespondent.Transport.Response (Response)
 import BCorrespondent.Transport.Model.Frontend 
        (ProcuratoryRequest, 
         GapItemTime, 
         TimelineDirection, 
-        TimelineTransactionResponse
+        TimelineTransactionResponse,
+        HistoryDate
        )
 import BCorrespondent.Transport.Id (Id)       
 import BCorrespondent.Auth (AuthenticatedUser, JWT, Role (..))
@@ -30,7 +31,8 @@ data UserApi route = UserApi
       route
         :- "history"
           :> SA.Auth '[JWT] (AuthenticatedUser 'Reader)
-          :> Get '[JSON] (Response ()),
+          :> QueryParam' '[Required, Strict] "date" HistoryDate
+          :> Get '[JSON] (Response HistoryTimeline),
     _userApiInitDashboard ::
       route
         :- "dashboard"
