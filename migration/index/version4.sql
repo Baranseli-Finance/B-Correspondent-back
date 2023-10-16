@@ -173,7 +173,7 @@ create schema if not exists mv;
 create materialized view mv.invoice_and_transaction
 as 
   select
-    now () as refresh_tine
+    now () as refresh_time,
     i.id as invoice_ident,
     i.created_at,
     i.institution_id,
@@ -207,10 +207,13 @@ as
     t.amount as transaction_amount,
     t.currency as transaction_currency,
     t.correspondent_bank,
-    t.correspondent_bank_swift_sepa_code
+    t.correspondent_bank_swift_sepa_code,
+    iu.user_id as user_ident
   from institution.invoice as i
   left join institution.transaction as t
   on i.id = t.invoice_id
+  left join institution.user as iu
+  on i.institution_id = iu.institution_id
 with no data;
 
 create unique index invoice_and_transaction_uq on mv.invoice_and_transaction (invoice_ident, transaction_ident);
