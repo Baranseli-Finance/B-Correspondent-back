@@ -99,6 +99,7 @@ explainTests =
   , "BCorrespondent.Statement.History" ==>
      ["initTimeline" =>> BCorrespondent.Statement.History.initTimeline,
       "getLastRefreshTm" =>> BCorrespondent.Statement.History.getLastRefreshTm,
-      "refreshMV" =>> BCorrespondent.Statement.History.refreshMV
+      "refreshMV" =>> BCorrespondent.Statement.History.refreshMV,
+      "getHourShift" =>> BCorrespondent.Statement.History.getHourShift
     ]
   ]
