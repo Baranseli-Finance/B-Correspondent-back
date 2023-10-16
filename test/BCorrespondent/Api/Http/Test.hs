@@ -17,7 +17,11 @@ import BCorrespondent.Api.Foreign.SendGrid (SendGridApi)
 import BCorrespondent.Transport.Model.Frontend (ProcuratoryRequest)
 import BCorrespondent.Transport.Model.Invoice (InvoiceRegisterResponse)
 import BCorrespondent.Transport.Model.Frontend 
-       (Init, Sha, JWTStatus, DailyBalanceSheet, GapItem, GapItemUnit, GapItemUnitStatus, GapItemTime)
+       (Init, Sha, JWTStatus, DailyBalanceSheet, GapItem, 
+        GapItemUnit, GapItemUnitStatus, GapItemTime, 
+        InvoiceSince, GapItemAmount, HistoryTimeline, InitDashboard, 
+        WalletType, Wallet, FetchGap, TimelineTransactionResponse,
+        TimelineTransaction)
 
 import Servant.API.Generic
 import Servant.Swagger.Test
@@ -33,15 +37,24 @@ mkArbitrary ''ProcuratoryRequest
 mkArbitrary ''InvoiceRegisterResponse
 mkArbitrary ''JWTStatus
 mkArbitrary ''Sha
+mkArbitrary ''GapItemTime
+mkArbitrary ''GapItemAmount
+mkArbitrary ''GapItemUnitStatus
+mkArbitrary ''GapItemUnit
+mkArbitrary ''GapItem
+mkArbitrary ''WalletType
+mkArbitrary ''Wallet
+mkArbitrary ''FetchGap
+mkArbitrary ''TimelineTransaction
+mkArbitrary ''TimelineTransactionResponse
+mkArbitrary ''DailyBalanceSheet
+mkArbitrary ''InitDashboard
+mkArbitrary ''InvoiceSince
+mkArbitrary ''HistoryTimeline
 mkArbitrary ''Init
 mkArbitrary ''AuthCodeHash
 mkArbitrary ''ResendCode
 mkArbitrary ''AuthCode
-mkArbitrary ''GapItemUnitStatus
-mkArbitrary ''GapItemTime
-mkArbitrary ''GapItemUnit
-mkArbitrary ''GapItem
-mkArbitrary ''DailyBalanceSheet
 
 spec_api :: Spec
 spec_api =

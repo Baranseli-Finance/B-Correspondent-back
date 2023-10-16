@@ -16,6 +16,7 @@ import qualified BCorrespondent.Statement.Invoice
 import qualified BCorrespondent.Statement.Transaction
 import qualified BCorrespondent.Statement.Fs
 import qualified BCorrespondent.Statement.Dashboard
+import qualified BCorrespondent.Statement.History
 
 import Control.Lens
 import Control.Monad.IO.Class
@@ -94,5 +95,10 @@ explainTests =
      [ "getDashboard" =>> BCorrespondent.Statement.Dashboard.getDashboard,
        "get1HourTimeline" =>> BCorrespondent.Statement.Dashboard.get1HourTimeline,
        "getGap" =>> BCorrespondent.Statement.Dashboard.getGap 
-     ] 
+     ]
+  , "BCorrespondent.Statement.History" ==>
+     ["initTimeline" =>> BCorrespondent.Statement.History.initTimeline,
+      "getLastRefreshTm" =>> BCorrespondent.Statement.History.getLastRefreshTm,
+      "refreshMV" =>> BCorrespondent.Statement.History.refreshMV
+    ]
   ]
