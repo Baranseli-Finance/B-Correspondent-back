@@ -419,7 +419,7 @@ deriveToSchema ''TimelineTransactionResponse
 
 data HistoryDate = 
      HistoryDate 
-     { historyDateYear :: Int, 
+     { historyDateYear :: Int,
        historyDateMonth :: Int,
        historyDateDay :: Int
      }
@@ -454,7 +454,9 @@ instance ParamsShow HistoryDate where
 
 data HistoryTimeline = 
      HistoryTimeline 
-     { historyTimelineTimeline :: [GapItem] }
+     { historyTimelineInstitution :: Text,
+       historyTimelineTimeline :: [GapItem] 
+     }
     deriving stock (Generic, Show)
     deriving
       (ToJSON, FromJSON)
