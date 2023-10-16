@@ -1,4 +1,4 @@
-module BCorrespondent.Api.Handler.Frontend.User.GetHistory (handle) where
+module BCorrespondent.Api.Handler.Frontend.User.IntTimelineHistory (handle) where
 
 import BCorrespondent.Transport.Response (Response)
 import BCorrespondent.Transport.Model.Frontend (HistoryDate, HistoryTimeline (HistoryTimeline))

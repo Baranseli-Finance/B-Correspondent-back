@@ -24,7 +24,7 @@ import qualified BCorrespondent.Api.Handler.Auth.Logout as Auth.Logout
 import qualified BCorrespondent.Api.Handler.Invoice.Register as Invoice.Register
 import qualified BCorrespondent.Api.Handler.Frontend.User.InitDashboard as Frontend.User.InitDashboard
 import qualified BCorrespondent.Api.Handler.Frontend.User.FetchGap as Frontend.User.FetchGap
-import qualified BCorrespondent.Api.Handler.Frontend.User.GetHistory as Frontend.User.GetHistory
+import qualified BCorrespondent.Api.Handler.Frontend.User.IntTimelineHistory as Frontend.User.IntTimelineHistory
 import qualified BCorrespondent.Api.Handler.Frontend.User.MakeProcuratory as Frontend.User.MakeProcuratory
 import qualified BCorrespondent.Api.Handler.Frontend.User.FetchTimeline as Frontend.User.FetchTimeline
 import qualified BCorrespondent.Api.Handler.Frontend.Init as Frontend.Init
@@ -178,12 +178,12 @@ user nm =
           $ katipAddNamespace
             (Namespace [nm, "wallet"])
             (WS.User.Wallet.handle ident conn),    
-    _userApiGetHistory = \auth date ->
+    _userApiIntTimelineHistory = \auth date ->
        auth `Auth.withAuth` \_ ->
          flip logExceptionM ErrorS $
            katipAddNamespace
-           (Namespace [nm, "history"]) $
-           Frontend.User.GetHistory.handle date,
+           (Namespace [nm, "history", "timeline"]) $
+           Frontend.User.IntTimelineHistory.handle date,
     _userApiMakeProcuratory = \auth req ->
        auth `Auth.withAuth` \user ->
          flip logExceptionM ErrorS $

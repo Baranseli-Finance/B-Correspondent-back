@@ -27,12 +27,14 @@ import Servant.API.WebSocket (WebSocketPending)
 import Servant.Swagger.Internal.Extended ()
 
 data UserApi route = UserApi
-  { _userApiGetHistory ::
+  { _userApiIntTimelineHistory ::
       route
         :- "history"
+          :> "timeline"
           :> SA.Auth '[JWT] (AuthenticatedUser 'Reader)
           :> QueryParam' '[Required, Strict] "date" HistoryDate
           :> Get '[JSON] (Response HistoryTimeline),
+    -- _userApiGetHistory ::      
     _userApiInitDashboard ::
       route
         :- "dashboard"
