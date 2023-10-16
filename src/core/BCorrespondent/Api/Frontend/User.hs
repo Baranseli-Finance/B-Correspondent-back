@@ -34,7 +34,17 @@ data UserApi route = UserApi
           :> SA.Auth '[JWT] (AuthenticatedUser 'Reader)
           :> QueryParam' '[Required, Strict] "date" HistoryDate
           :> Get '[JSON] (Response HistoryTimeline),
-    -- _userApiGetHistory ::      
+    _userApiGetHourShiftTimelineHistory ::
+      route
+        :- "history"
+          :> "timeline"
+          :> Capture "year" Int
+          :> Capture "month" Int
+          :> Capture "day" Int
+          :> Capture "direction" TimelineDirection
+          :> SA.Auth '[JWT] (AuthenticatedUser 'Reader)
+          :> QueryParam' '[Required, Strict] "point" GapItemTime
+          :> Get '[JSON] (Response [GapItem]),
     _userApiInitDashboard ::
       route
         :- "dashboard"

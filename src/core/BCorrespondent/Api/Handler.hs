@@ -25,6 +25,7 @@ import qualified BCorrespondent.Api.Handler.Invoice.Register as Invoice.Register
 import qualified BCorrespondent.Api.Handler.Frontend.User.InitDashboard as Frontend.User.InitDashboard
 import qualified BCorrespondent.Api.Handler.Frontend.User.FetchGap as Frontend.User.FetchGap
 import qualified BCorrespondent.Api.Handler.Frontend.User.IntTimelineHistory as Frontend.User.IntTimelineHistory
+import qualified BCorrespondent.Api.Handler.Frontend.User.ShiftTimelineHistory as Frontend.User.ShiftTimelineHistory
 import qualified BCorrespondent.Api.Handler.Frontend.User.MakeProcuratory as Frontend.User.MakeProcuratory
 import qualified BCorrespondent.Api.Handler.Frontend.User.FetchTimeline as Frontend.User.FetchTimeline
 import qualified BCorrespondent.Api.Handler.Frontend.Init as Frontend.Init
@@ -179,11 +180,18 @@ user nm =
             (Namespace [nm, "wallet"])
             (WS.User.Wallet.handle ident conn),    
     _userApiIntTimelineHistory = \auth date ->
-       auth `Auth.withAuth` \_ ->
+       auth `Auth.withAuth` \user ->
          flip logExceptionM ErrorS $
            katipAddNamespace
            (Namespace [nm, "history", "timeline"]) $
-           Frontend.User.IntTimelineHistory.handle date,
+           Frontend.User.IntTimelineHistory.handle user date,
+    _userApiGetHourShiftTimelineHistory =
+      \y m d direction auth point ->
+        auth `Auth.withAuth` \user ->
+          flip logExceptionM ErrorS $
+            katipAddNamespace
+            (Namespace [nm, "history", "timeline", "shift"]) $
+            Frontend.User.ShiftTimelineHistory.handle user y m d direction point,
     _userApiMakeProcuratory = \auth req ->
        auth `Auth.withAuth` \user ->
          flip logExceptionM ErrorS $
