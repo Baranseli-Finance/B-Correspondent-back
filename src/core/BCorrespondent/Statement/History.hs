@@ -7,22 +7,24 @@
 {-# LANGUAGE TypeApplications #-}
 {-# OPTIONS_GHC -fno-warn-unused-top-binds #-}
 
-module BCorrespondent.Statement.History (initTimeline, getLastRefreshTm, refreshMV) where
+module BCorrespondent.Statement.History (initTimeline, getLastRefreshTm, refreshMV, getHourShift) where
 
 import BCorrespondent.Transport.Model.Frontend (HistoryDate, encodeHistoryDate)
 import BCorrespondent.Statement.Dashboard (TimelineGapsItem)
+import BCorrespondent.Statement.Invoice (Status (..))
 import qualified Hasql.Statement as HS
 import Control.Lens (rmap, dimap)
 import Hasql.TH
 import Hasql.Decoders (noResult)
 import Hasql.Encoders (noParams)
 import Data.Tuple.Extended (consT, snocT)
-import Data.Int (Int64)
+import Data.Int (Int64, Int32)
 import Data.Tuple.Extended (mapPolyT)
 import qualified Data.Vector as V
 import qualified Data.Aeson as A (encode, eitherDecode)
 import Data.Maybe (fromMaybe)
 import Data.Text (Text)
+import Data.String.Conv (toS)
 
 
 initTimeline :: HS.Statement (Int64, Int64, HistoryDate) (Either String (Text, [TimelineGapsItem]))
@@ -99,3 +101,56 @@ getLastRefreshTm =
 
 refreshMV :: HS.Statement () ()
 refreshMV = HS.Statement [uncheckedSql|refresh materialized view mv.invoice_and_transaction|] noParams noResult True
+
+getHourShift :: HS.Statement (Int64, Int32, Int32, Int32, Int32, Int32) (Either String [TimelineGapsItem])
+getHourShift =
+  dimap
+   (snocT (toS (show Declined)) .
+    snocT (toS (show Confirmed)) .
+    snocT (toS (show ForwardedToPaymentProvider)))
+  (fromMaybe (Right []) . fmap (sequence . map (A.eitherDecode @TimelineGapsItem . A.encode) . V.toList))  
+  [singletonStatement|
+   with tbl as (
+      select
+        tmp.values :: jsonb[]? as items
+      from (
+        select
+          tm.start,
+          tm.end,
+          array_agg(
+          json_build_object(
+          'start_hour', extract(hour from tm.start),
+          'start_minute', extract(minute from tm.start),
+          'end_hour', extract(hour from tm.end),
+          'end_minute', extract(minute from tm.end),
+          'textual_ident', i.textual_view, 
+          'status', i.status,
+          'ident', i.invoice_ident,
+          'tm', cast(i.created_at as text) || 'Z',
+          'currency', i.invoice_currency,
+          'amount', i.invoice_amount))
+          :: jsonb[] as values
+        from (
+          select
+              el as start,
+              el + interval '5min' as end
+          from generate_series(
+            make_timestamp($2 :: int, $3 :: int, $4 :: int, $5 :: int, 0, 0),
+            make_timestamp($2 :: int, $3 :: int, $4 :: int, $6 :: int, 0, 0),
+              interval '5 min') as _(el)) 
+         as tm
+        cross join (
+          select 
+            *
+          from mv.invoice_and_transaction
+          where institution_id = $1 :: int8) as i
+        where 
+        (i.status = $7 :: text or 
+         i.status = $8 :: text or 
+         i.status = $9 :: text)
+        and (i.appearance_on_timeline > tm.start)
+        and (i.appearance_on_timeline < tm.end)
+        group by tm.start, tm.end) as tmp)
+    select
+      array_agg(item) filter(where item is not null) :: jsonb[]?
+    from (select unnest(items) as item from tbl) as tbl|]

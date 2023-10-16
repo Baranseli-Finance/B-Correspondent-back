@@ -43,7 +43,7 @@ data UserApi route = UserApi
           :> Capture "day" Int
           :> Capture "direction" TimelineDirection
           :> SA.Auth '[JWT] (AuthenticatedUser 'Reader)
-          :> QueryParam' '[Required, Strict] "point" GapItemTime
+          :> QueryParam' '[Required, Strict] "hour" Int
           :> Get '[JSON] (Response [GapItem]),
     _userApiInitDashboard ::
       route

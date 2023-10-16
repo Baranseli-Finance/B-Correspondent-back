@@ -186,12 +186,12 @@ user nm =
            (Namespace [nm, "history", "timeline"]) $
            Frontend.User.IntTimelineHistory.handle user date,
     _userApiGetHourShiftTimelineHistory =
-      \y m d direction auth point ->
+      \y m d direction auth hour ->
         auth `Auth.withAuth` \user ->
           flip logExceptionM ErrorS $
             katipAddNamespace
             (Namespace [nm, "history", "timeline", "shift"]) $
-            Frontend.User.ShiftTimelineHistory.handle user y m d direction point,
+            Frontend.User.ShiftTimelineHistory.handle user y m d direction hour,
     _userApiMakeProcuratory = \auth req ->
        auth `Auth.withAuth` \user ->
          flip logExceptionM ErrorS $
