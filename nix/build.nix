@@ -43,6 +43,7 @@ pkgs.mkShell {
   # See https://nixos.org/nixos/nix-pills/nix-search-paths.html for more information
   NIX_PATH = "nixpkgs=" + pkgs.path;
   shellHook = ''
+      export PATH=./bin:$PATH
       echo "Welcome to server shell!!"
   '';
 }
