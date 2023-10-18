@@ -219,3 +219,10 @@ with no data;
 create unique index invoice_and_transaction_uq on mv.invoice_and_transaction (invoice_ident, transaction_ident);
 
 refresh materialized view mv.invoice_and_transaction;
+
+create table institution.withdrawal (
+  wallet_id bigserial not null,
+  amount decimal(16, 2) not null,
+  status text not null,
+  created_at timestamp not null default now(),
+  constraint institution_withdrawal__wallet_id__fk foreign key (wallet_id) references institution.wallet(id));
