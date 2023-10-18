@@ -105,7 +105,7 @@ registerWithdrawal =
         select $1 :: int8, $2 :: float8, ($3 :: jsonb) #>> '{}'
         where (
           select
-            wallet_amount - frozen_amount - ($2 :: float8) > 0
+            wallet_amount - frozen_amount - ($2 :: float8) >= 0
           from frozen_funds)
         returning id, wallet_id)   
      select
@@ -113,7 +113,7 @@ registerWithdrawal =
          when s.id is null and (f.wallet_amount - $2 :: float8 < 0)
          then to_jsonb('notenoughfunds'::text) 
          when s.id is null and 
-              (f.wallet_amount - $2 :: float8 > 0) and 
+              (f.wallet_amount - $2 :: float8 >= 0) and 
               (wallet_amount - frozen_amount - ($2 :: float8) < 0)
          then to_jsonb(f.frozen_amount)
          else to_jsonb('ok'::text)
