@@ -36,6 +36,8 @@ import qualified BCorrespondent.Api.Handler.Fs.Download as Fs.Download
 import qualified BCorrespondent.Api.Handler.WS.User.Transaction as WS.User.Transaction
 import qualified BCorrespondent.Api.Handler.WS.User.Wallet as WS.User.Wallet
 import qualified BCorrespondent.Api.Handler.Frontend.User.GetTimelineTransaction as Frontend.User.GetTimelineTransaction
+import qualified BCorrespondent.Api.Handler.Institution.Withdraw as Institution.Withdraw
+import qualified BCorrespondent.Api.Handler.Institution.GetBalances as Institution.GetBalances
 -- << end handlers
 import qualified BCorrespondent.Auth as Auth
 import Katip
@@ -141,7 +143,7 @@ frontend :: FrontendApi (AsServerT KatipHandlerM)
 frontend =
   FrontendApi
     { _frontendApiUser =
-        let nm = "dasboard"
+        let nm = "frontend"
         in toServant (user nm),
       _frontendApiInit =
         flip logExceptionM ErrorS
@@ -217,7 +219,7 @@ institution :: InstitutionApi (AsServerT KatipHandlerM)
 institution = 
   InstitutionApi 
   { _institutionApiInvoice = toServant invoice, 
-    _institutionApiFiat = toServant fiat 
+    _institutionApiFiat = toServant $ fiat "institution" 
   }
 
 invoice :: InvoiceApi (AsServerT KatipHandlerM)
@@ -231,11 +233,22 @@ invoice =
            (Invoice.Register.handle user req)
     }
 
-fiat :: FiatApi (AsServerT KatipHandlerM)
-fiat = 
+fiat :: Text -> FiatApi (AsServerT KatipHandlerM)
+fiat nm = 
   FiatApi 
-  { _fiatApiWithdraw = undefined, 
-    _fiatApiTransactionOrder = undefined 
+  { _fiatApiWithdraw = \auth req ->
+     auth `Auth.withAuth` \user ->
+       flip logExceptionM ErrorS $
+         katipAddNamespace
+         (Namespace ["fiat", "withdraw"])
+         (Institution.Withdraw.handle user req),
+    _fiatApiGetBalances = \auth ->
+     auth `Auth.withAuth` \user ->
+       flip logExceptionM ErrorS $
+         katipAddNamespace
+         (Namespace ["fiat", "balances"]) $
+         Institution.GetBalances.handle user,
+    _fiatApiTransactionOrder = undefined
   }
 
 file :: FileApi (AsServerT KatipHandlerM)

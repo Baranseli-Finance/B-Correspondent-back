@@ -8,6 +8,7 @@
 
 module BCorrespondent.Api.Institution.Fiat (FiatApi (..)) where
 
+import BCorrespondent.Transport.Model.Institution (Withdraw, Balances)
 import BCorrespondent.Transport.Response (Response)
 import BCorrespondent.Auth (AuthenticatedUser, JWT, Role (..))
 import Servant.API.Extended
@@ -19,13 +20,20 @@ import Data.Time.TypeLevel (TimePeriod (Second))
 data FiatApi route = 
      FiatApi
      { _fiatApiWithdraw ::
-        route
+         route
           :- "withdraw"
           :> RateLimit (FixedWindow (Second 1) 1) (KeyPolicy "Token")
           :> SA.Auth '[JWT] (AuthenticatedUser 'Writer)
+          :> ReqBody '[JSON] Withdraw
           :> Post '[JSON] (Response ()),
+       _fiatApiGetBalances ::
+         route
+          :- "balances"
+          :> RateLimit (FixedWindow (Second 1) 1) (KeyPolicy "Token")
+          :> SA.Auth '[JWT] (AuthenticatedUser 'Reader)
+          :> Get '[JSON] (Response Balances),
        _fiatApiTransactionOrder ::
-        route
+         route
           :- "transaction"
           :> "order"
           :> RateLimit (FixedWindow (Second 1) 1) (KeyPolicy "Token")
