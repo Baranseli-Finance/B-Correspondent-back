@@ -8,7 +8,7 @@
 
 module BCorrespondent.Api.Institution.Fiat (FiatApi (..)) where
 
-import BCorrespondent.Transport.Model.Institution (Withdraw, Balances)
+import BCorrespondent.Transport.Model.Institution (Withdraw, InitWithdrawal)
 import BCorrespondent.Transport.Response (Response)
 import BCorrespondent.Auth (AuthenticatedUser, JWT, Role (..))
 import Servant.API.Extended
@@ -26,12 +26,13 @@ data FiatApi route =
           :> SA.Auth '[JWT] (AuthenticatedUser 'Writer)
           :> ReqBody '[JSON] Withdraw
           :> Post '[JSON] (Response ()),
-       _fiatApiGetBalances ::
+       _fiatApiInitWithdrawal ::
          route
-          :- "balances"
+          :- "withdraw"
+          :> "init"
           :> RateLimit (FixedWindow (Second 1) 1) (KeyPolicy "Token")
           :> SA.Auth '[JWT] (AuthenticatedUser 'Reader)
-          :> Get '[JSON] (Response Balances),
+          :> Get '[JSON] (Response InitWithdrawal),
        _fiatApiTransactionOrder ::
          route
           :- "transaction"

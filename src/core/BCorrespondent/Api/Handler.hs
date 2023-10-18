@@ -37,7 +37,7 @@ import qualified BCorrespondent.Api.Handler.WS.User.Transaction as WS.User.Trans
 import qualified BCorrespondent.Api.Handler.WS.User.Wallet as WS.User.Wallet
 import qualified BCorrespondent.Api.Handler.Frontend.User.GetTimelineTransaction as Frontend.User.GetTimelineTransaction
 import qualified BCorrespondent.Api.Handler.Institution.Withdraw as Institution.Withdraw
-import qualified BCorrespondent.Api.Handler.Institution.GetBalances as Institution.GetBalances
+import qualified BCorrespondent.Api.Handler.Institution.InitWithdrawal as Institution.InitWithdrawal
 -- << end handlers
 import qualified BCorrespondent.Auth as Auth
 import Katip
@@ -242,12 +242,12 @@ fiat nm =
          katipAddNamespace
          (Namespace ["fiat", "withdraw"])
          (Institution.Withdraw.handle user req),
-    _fiatApiGetBalances = \auth ->
+    _fiatApiInitWithdrawal = \auth ->
      auth `Auth.withAuth` \user ->
        flip logExceptionM ErrorS $
          katipAddNamespace
-         (Namespace ["fiat", "balances"]) $
-         Institution.GetBalances.handle user,
+         (Namespace ["fiat", "withdrawal", "init"]) $
+         Institution.InitWithdrawal.handle user,
     _fiatApiTransactionOrder = undefined
   }
 
