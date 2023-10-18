@@ -36,7 +36,7 @@ import qualified BCorrespondent.Api.Handler.Fs.Download as Fs.Download
 import qualified BCorrespondent.Api.Handler.WS.User.Transaction as WS.User.Transaction
 import qualified BCorrespondent.Api.Handler.WS.User.Wallet as WS.User.Wallet
 import qualified BCorrespondent.Api.Handler.Frontend.User.GetTimelineTransaction as Frontend.User.GetTimelineTransaction
-import qualified BCorrespondent.Api.Handler.Institution.Withdraw as Institution.Withdraw
+import qualified BCorrespondent.Api.Handler.Institution.RegisterWithdrawal as Institution.RegisterWithdrawal
 import qualified BCorrespondent.Api.Handler.Institution.InitWithdrawal as Institution.InitWithdrawal
 -- << end handlers
 import qualified BCorrespondent.Auth as Auth
@@ -236,12 +236,12 @@ invoice =
 fiat :: Text -> FiatApi (AsServerT KatipHandlerM)
 fiat nm = 
   FiatApi 
-  { _fiatApiWithdraw = \auth req ->
+  { _fiatApiRegisterWithdrawal = \auth req ->
      auth `Auth.withAuth` \user ->
        flip logExceptionM ErrorS $
          katipAddNamespace
          (Namespace ["fiat", "withdraw"])
-         (Institution.Withdraw.handle user req),
+         (Institution.RegisterWithdrawal.handle user req),
     _fiatApiInitWithdrawal = \auth ->
      auth `Auth.withAuth` \user ->
        flip logExceptionM ErrorS $

@@ -14,11 +14,13 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 
 module BCorrespondent.Transport.Model.Institution 
-       ( Withdraw, 
+       ( Withdraw (..), 
          Balance (..),
          WithdrawalHistoryItem,
          WithdrawalStatus (..),
-         InitWithdrawal (..)
+         InitWithdrawal (..),
+         WithdrawResult (..),
+         WithdrawResultStatus (..)
        ) where
 
 import BCorrespondent.Transport.Model.Invoice (Currency)
@@ -53,7 +55,40 @@ data Withdraw =
 
 deriveToSchemaFieldLabelModifier ''Withdraw [|firstLetterModify (Proxy @Withdraw)|]
 
-data Balance = 
+data WithdrawResultStatus = 
+       NotEnoughFunds 
+     | WithdrawalRegistered
+     | FrozenFunds
+     deriving stock (Generic, Show)
+     deriving
+     (ToJSON, FromJSON)
+     via WithOptions
+          '[ConstructorTagModifier 
+            '[UserDefined ToLower]]
+         WithdrawResultStatus
+
+deriveToSchemaConstructorTag ''WithdrawResultStatus [| map toLower |]
+
+data WithdrawResult =
+     WithdrawResult
+     { withdrawResultStatus :: !WithdrawResultStatus,
+       withdrawResultFrozenFunds :: !(Maybe Double) 
+     } 
+    deriving stock (Generic, Show)
+    deriving
+      (ToJSON, FromJSON)
+      via WithOptions 
+          '[OmitNothingFields 'True,
+            FieldLabelModifier
+            '[UserDefined FirstLetterToLower,
+              UserDefined
+              (StripConstructor 
+               WithdrawResult)]]
+      WithdrawResult
+
+deriveToSchemaFieldLabelModifier ''WithdrawResult [|firstLetterModify (Proxy @WithdrawResult)|]
+
+data Balance =
      Balance 
      { balanceWalletIdent :: !Int64,
        balanceCurrency :: !Currency,
@@ -72,7 +107,13 @@ data Balance =
 
 deriveToSchemaFieldLabelModifier ''Balance [|firstLetterModify (Proxy @Balance)|]
 
-data WithdrawalStatus = Processing | Ok | Declined
+data WithdrawalStatus =
+       -- the withdrawal is registered in the server
+       Registered
+      -- handed over to payment provider for processing
+     | Processing 
+     | Confirmed
+     | Declined
      deriving stock (Generic, Show)
      deriving
      (ToJSON, FromJSON)
