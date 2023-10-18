@@ -221,6 +221,7 @@ create unique index invoice_and_transaction_uq on mv.invoice_and_transaction (in
 refresh materialized view mv.invoice_and_transaction;
 
 create table institution.withdrawal (
+  id bigserial primary key,
   wallet_id bigserial not null,
   amount decimal(16, 2) not null,
   status text not null,
