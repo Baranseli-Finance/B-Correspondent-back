@@ -21,12 +21,14 @@ import Data.Proxy (Proxy (..))
 import Data.Swagger.Schema.Extended (deriveToSchemaFieldLabelModifier, firstLetterModify)
 import Data.Aeson (ToJSON, FromJSON)
 import GHC.Generics (Generic)
+import Data.Int (Int64)
+
 
 data Withdraw = 
      Withdraw 
-     { withdrawAmount :: !Double, 
-       withdrawCurrency :: !Currency 
-    }
+     { withdrawWalletIdent :: !Int64,
+       withdrawAmount :: !Double
+     }
     deriving stock (Generic, Show)
     deriving
       (ToJSON, FromJSON)
@@ -42,7 +44,8 @@ deriveToSchemaFieldLabelModifier ''Withdraw [|firstLetterModify (Proxy @Withdraw
 
 data Balance = 
      Balance 
-     { balanceCurrency :: !Currency,  
+     { balanceWalletIdent :: !Int64,
+       balanceCurrency :: !Currency,
        balanceAmount :: !Double 
      }
     deriving stock (Generic, Show)
