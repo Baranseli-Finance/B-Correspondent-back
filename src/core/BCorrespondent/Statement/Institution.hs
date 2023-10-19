@@ -31,6 +31,7 @@ import Data.Aeson.Generic.DerivingVia
 import GHC.Generics
 import Data.Tuple.Extended (snocT)
 
+
 initWithdrawal :: HS.Statement (Int64, Int32) (Either String ([Balance], WithdrawalHistory))
 initWithdrawal = 
   dimap (snocT (toJSON Debit)) decode
@@ -38,8 +39,8 @@ initWithdrawal =
     select
       f.wallets :: jsonb[],
       json_build_object(
-        'total', s.total,
-        'items', s.history :: jsonb[]?) 
+        'total', coalesce(s.total, 0) :: int,
+        'items', coalesce(s.history, array[] :: jsonb[])) 
       :: jsonb
     from (
       select
@@ -97,8 +98,9 @@ initWithdrawal =
     where f.ident = $1 :: int8|]
   where 
     transform :: forall a . FromJSON a => V.Vector Value -> Either String [a]
-    transform = sequence . map (eitherDecode @a . encode) . V.toList 
-    decode (xs, history) = (,) <$> transform @Balance xs <*> (eitherDecode @WithdrawalHistory . encode) history
+    transform = sequence . map (eitherDecode @a . encode) . V.toList
+    withHistory = eitherDecode @WithdrawalHistory . encode
+    decode (xs, history) = (,) <$> transform @Balance xs <*> withHistory history
 
 data WithdrawResult = NotEnoughFunds | Ok | FrozenFunds Double
      deriving stock (Generic, Show)
