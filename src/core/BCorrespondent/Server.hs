@@ -25,6 +25,7 @@ module BCorrespondent.Server (Cfg (..), ServerM (..), run, addServerNm) where
 import qualified BCorrespondent.Job.Transaction as Job.Transaction
 import qualified BCorrespondent.Job.Invoice as Job.Invoice
 import qualified BCorrespondent.Job.History  as Job.History
+import qualified BCorrespondent.Job.Wallet as Job.Wallet 
 import BCorrespondent.Statement.Auth (CheckToken)
 import BCorrespondent.Api
 import BCorrespondent.EnvKeys (Sendgrid)
@@ -192,6 +193,8 @@ run Cfg {..} = do
     forwardToProviderAsync <- Async.Lifted.async $ Job.Invoice.forwardToPaymentProvider jobFrequency
     validateAsync <- Async.Lifted.async $ Job.Invoice.validateAgainstTransaction jobFrequency
     refreshMVAsync <- Async.Lifted.async $ Job.History.refreshMV jobFrequency
+    withdrawAsync <- Async.Lifted.async $ Job.Wallet.withdraw jobFrequency
+
 
     ServerState c <- get
     when (c == 50) $ throwM RecoveryFailed
@@ -202,7 +205,8 @@ run Cfg {..} = do
             validateAsync,
             forwardToInitiatorAsync, 
             forwardToProviderAsync,
-            refreshMVAsync
+            refreshMVAsync,
+            withdrawAsync
           ]
     whenLeft end $ \e -> do
       ST.modify' (+1)
