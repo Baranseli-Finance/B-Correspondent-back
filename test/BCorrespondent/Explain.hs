@@ -17,6 +17,7 @@ import qualified BCorrespondent.Statement.Transaction
 import qualified BCorrespondent.Statement.Fs
 import qualified BCorrespondent.Statement.Dashboard
 import qualified BCorrespondent.Statement.History
+import qualified BCorrespondent.Statement.Institution
 
 import Control.Lens
 import Control.Monad.IO.Class
@@ -102,4 +103,10 @@ explainTests =
       "refreshMV" =>> BCorrespondent.Statement.History.refreshMV,
       "getHourShift" =>> BCorrespondent.Statement.History.getHourShift
     ]
+  , "BCorrespondent.Statement.Institution" ==>
+    [
+      "initWithdrawal" =>> BCorrespondent.Statement.Institution.initWithdrawal,
+      "registerWithdrawal" =>> BCorrespondent.Statement.Institution.registerWithdrawal,
+      "getWithdrawalPage" =>> BCorrespondent.Statement.Institution.getWithdrawalPage
+    ] 
   ]

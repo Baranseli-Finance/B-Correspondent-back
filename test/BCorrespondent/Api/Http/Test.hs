@@ -22,6 +22,10 @@ import BCorrespondent.Transport.Model.Frontend
         InvoiceSince, GapItemAmount, HistoryTimeline, InitDashboard, 
         WalletType, Wallet, FetchGap, TimelineTransactionResponse,
         TimelineTransaction)
+import BCorrespondent.Transport.Model.Institution 
+       (Withdraw, InitWithdrawal, Balance, WithdrawalHistoryItem, 
+        WithdrawalStatus, WithdrawalHistory, WithdrawResult, WithdrawResultStatus,
+        WithdrawalHistoryItem)
 
 import Servant.API.Generic
 import Servant.Swagger.Test
@@ -55,6 +59,14 @@ mkArbitrary ''Init
 mkArbitrary ''AuthCodeHash
 mkArbitrary ''ResendCode
 mkArbitrary ''AuthCode
+mkArbitrary ''Balance
+mkArbitrary ''Withdraw
+mkArbitrary ''WithdrawResultStatus
+mkArbitrary ''WithdrawalStatus
+mkArbitrary ''WithdrawalHistoryItem
+mkArbitrary ''WithdrawalHistory
+mkArbitrary ''WithdrawResult
+mkArbitrary ''InitWithdrawal
 
 spec_api :: Spec
 spec_api =
