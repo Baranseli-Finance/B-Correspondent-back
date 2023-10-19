@@ -25,12 +25,15 @@ import Servant.API.Generic (Generic)
 import qualified Servant.Auth.Server as SA
 import Servant.API.WebSocket (WebSocketPending)
 import Servant.Swagger.Internal.Extended ()
+import RateLimit (RateLimit, FixedWindow, KeyPolicy)
+import Data.Time.TypeLevel (TimePeriod (Second))
 
 data UserApi route = UserApi
   { _userApiIntTimelineHistory ::
       route
         :- "history"
           :> "timeline"
+          :> RateLimit (FixedWindow (Second 1) 50) (KeyPolicy "Token")
           :> SA.Auth '[JWT] (AuthenticatedUser 'Reader)
           :> QueryParam' '[Required, Strict] "date" HistoryDate
           :> Get '[JSON] (Response HistoryTimeline),
@@ -38,6 +41,7 @@ data UserApi route = UserApi
       route
         :- "history"
           :> "timeline"
+          :> RateLimit (FixedWindow (Second 1) 50) (KeyPolicy "Token")
           :> Capture "year" Int
           :> Capture "month" Int
           :> Capture "day" Int
@@ -49,6 +53,7 @@ data UserApi route = UserApi
       route
         :- "dashboard"
           :> "init"
+          :> RateLimit (FixedWindow (Second 1) 50) (KeyPolicy "Token")
           :> SA.Auth '[JWT] (AuthenticatedUser 'Reader)
           :> Get '[JSON] (Response InitDashboard),
     _userApiFetchGap ::
@@ -56,6 +61,7 @@ data UserApi route = UserApi
         :- "dashboard"
           :> "daily-balance-sheet"
           :> "gap"
+          :> RateLimit (FixedWindow (Second 1) 50) (KeyPolicy "Token")
           :> SA.Auth '[JWT] (AuthenticatedUser 'Reader)
           :> QueryParam' '[Required, Strict] "from" GapItemTime
           :> QueryParam' '[Required, Strict] "to" GapItemTime
@@ -65,6 +71,7 @@ data UserApi route = UserApi
         :- "dashboard"
           :> "daily-balance-sheet"
           :> "timeline"
+          :> RateLimit (FixedWindow (Second 1) 50) (KeyPolicy "Token")
           :> SA.Auth '[JWT] (AuthenticatedUser 'Reader)
           :> Capture "direction" TimelineDirection
           :> QueryParam' '[Required, Strict] "point" GapItemTime
@@ -85,6 +92,7 @@ data UserApi route = UserApi
     _userApiMakeProcuratory ::
       route
         :- "procuratory"
+          :> RateLimit (FixedWindow (Second 1) 1) (KeyPolicy "Token")
           :> SA.Auth '[JWT] (AuthenticatedUser 'Writer)
           :> ReqBody '[JSON] ProcuratoryRequest
           :> Put '[JSON] (Response ()),
@@ -93,6 +101,7 @@ data UserApi route = UserApi
         :- "dashboard"
           :> "timeline"
           :> "transaction"
+          :> RateLimit (FixedWindow (Second 1) 50) (KeyPolicy "Token")
           :> SA.Auth '[JWT] (AuthenticatedUser 'Reader)
           :> Capture "ident" (Id "transaction")
           :> Get '[JSON] (Response TimelineTransactionResponse)

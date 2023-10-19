@@ -31,7 +31,7 @@ data FiatApi route =
          route
           :- "withdraw"
           :> "init"
-          :> RateLimit (FixedWindow (Second 1) 1) (KeyPolicy "Token")
+          :> RateLimit (FixedWindow (Second 1) 50) (KeyPolicy "Token")
           :> SA.Auth '[JWT] (AuthenticatedUser 'Reader)
           :> Get '[JSON] (Response InitWithdrawal),
       _fiatApiGetWithdrawalHistoryPage ::
@@ -39,7 +39,7 @@ data FiatApi route =
           :- "withdraw"
           :> "history"
           :> "page"
-          :> RateLimit (FixedWindow (Second 1) 1) (KeyPolicy "Token")
+          :> RateLimit (FixedWindow (Second 1) 50) (KeyPolicy "Token")
           :> SA.Auth '[JWT] (AuthenticatedUser 'Reader)
           :> QueryParam' '[Required, Strict] "page" Int
           :> Get '[JSON] (Response (Maybe WithdrawalHistory)),    
