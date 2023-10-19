@@ -10,7 +10,7 @@
 
 module BCorrespondent.Api.Handler.WS.Institution.Withdrawal (handle) where
 
-import BCorrespondent.Transport.Model.Institution (WithdrawalHistoryItem (..))
+import BCorrespondent.Transport.Model.Institution (WithdrawalHistory)
 import BCorrespondent.Auth (AuthenticatedUser (..), Role (..))
 import Katip.Handler (KatipHandlerM)
 import qualified Network.WebSockets.Connection as WS
@@ -22,9 +22,9 @@ import Data.String (fromString)
 import Data.Aeson.WithField (WithField (..))
 import Data.Int (Int64)
 
-type Item = WithField "inst_ident" Int64 WithdrawalHistoryItem
+type WithdrawalHistoryExt = WithField "institution" Int64 WithdrawalHistory
 
-type instance ListenPsql "withdrawal" Item = ()
+type instance ListenPsql "withdrawal" WithdrawalHistoryExt = ()
 
 handle :: AuthenticatedUser 'Reader -> WS.Connection -> KatipHandlerM ()
 handle AuthenticatedUser {institution = Nothing} conn = 
@@ -32,7 +32,8 @@ handle AuthenticatedUser {institution = Nothing} conn =
 handle AuthenticatedUser {ident, institution = Just inst_id} conn =
   withWS @Resource conn $ \db resource -> do 
     $(logTM) DebugS $ fromString $ $location <> " received " <> show resource
-    let mkResp (WithField id item)
-          | id == inst_id = Just item
+    let mkResp (WithField institution item)
+          | institution == inst_id = Just item
           | otherwise = Nothing
-    withResource @"Withdrawal" conn resource $ listenPsql @"withdrawal" @Item conn db ident mkResp
+    withResource @"Withdrawal" conn resource $ listenPsql @"withdrawal" @WithdrawalHistoryExt conn db ident mkResp
+    

@@ -238,9 +238,11 @@ declare
 begin
     select
       json_build_object(
+        'institution', tbl.ident,
         'total', tbl.total,
         'items', tbl.history :: jsonb[]) 
       :: jsonb
+    into result  
     from (
       select
         tmp.institution_id as ident,
@@ -268,7 +270,8 @@ begin
         on s.id = f.wallet_id
         inner join auth.user as u
         on f.user_id = u.id
-        where s.wallet_type = 'debit') as tmp
+        where s.wallet_type = 'debit'
+        and new.id = f.id) as tmp
       inner join (
         select
           s.institution_id,
@@ -289,5 +292,70 @@ end;
 $$ language 'plpgsql';
 
 create or replace trigger on_withdrawal_update
-after insert or update on institution.withdrawal
-for each row execute procedure notify_server_on_withdrawal();
+after update on institution.withdrawal
+for each row when (old is distinct from new) 
+execute procedure notify_server_on_withdrawal();
+
+
+create or replace function notify_server_on_withdrawal_new()
+returns trigger as
+$$
+declare
+  result jsonb;
+begin
+    select
+      json_build_object(
+        'institution', tbl.ident,
+        'total', tbl.total,
+        'items', tbl.history :: jsonb[]) 
+      :: jsonb
+    into result  
+    from (
+      select
+        tmp.institution_id as ident,
+        tmp2.total,
+        array_agg(
+          jsonb_build_object(
+           'initiator', tmp.initiator,
+           'ident', tmp.id,
+           'currency', tmp.currency,
+           'amount', tmp.amount,
+           'withdrawalStatus', tmp.status,
+           'created', cast(tmp.created_at as text) || 'Z')) 
+           as history   
+      from (
+        select 
+          s.institution_id,
+          u.login || '<' || u.email || '>' as initiator,
+          new.id,
+          s.currency,
+          new.amount,
+          new.status,
+          new.created_at
+        from institution.wallet as s
+        inner join auth.user as u
+        on new.wallet_id = s.id
+        where s.wallet_type = 'debit') as tmp
+      inner join (
+        select
+          s.institution_id,
+          count(*) as total
+        from institution.withdrawal as f 
+        inner join institution.wallet as s
+        on s.id = f.wallet_id
+        group by s.institution_id) as tmp2
+      on tmp.institution_id = tmp2.institution_id 
+      group by tmp.institution_id, tmp2.total) as tbl;
+  perform 
+    pg_notify(
+      'withdrawal' || '_' || u.id,
+      coalesce(result :: text, 'null' :: text))
+  from auth.user as u;
+  return new;
+end;
+$$ language 'plpgsql';
+
+create or replace trigger on_withdrawal_new
+after insert on institution.withdrawal
+for each row 
+execute procedure notify_server_on_withdrawal_new();
