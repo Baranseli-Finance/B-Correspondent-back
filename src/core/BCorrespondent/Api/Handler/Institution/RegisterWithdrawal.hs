@@ -16,9 +16,9 @@ import Control.Lens ((^.))
 
 handle :: Auth.AuthenticatedUser 'Auth.Writer -> Withdraw -> KatipHandlerM (Response I.WithdrawResult)
 handle user (Withdraw ident amount) = 
-  checkInstitution user $ \_ -> do
+  checkInstitution user $ \(user_id, _) -> do
     hasql <- fmap (^. katipEnv . hasqlDbPool) ask
     let mkResp NotEnoughFunds = WithdrawResult I.NotEnoughFunds Nothing
         mkResp (FrozenFunds amount) = WithdrawResult I.FrozenFunds $ Just amount
         mkResp Ok = WithdrawResult I.WithdrawalRegistered Nothing
-    fmap (`withError` mkResp) $ transactionM hasql $ statement registerWithdrawal (ident, amount)
+    fmap (`withError` mkResp) $ transactionM hasql $ statement registerWithdrawal (user_id, ident, amount)

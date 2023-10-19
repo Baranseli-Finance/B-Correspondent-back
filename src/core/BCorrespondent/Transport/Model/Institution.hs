@@ -36,6 +36,7 @@ import GHC.Generics (Generic)
 import Data.Int (Int64)
 import Data.Char (toLower)
 import Data.Time.Clock (UTCTime)
+import Data.Text (Text)
 
 data Withdraw = 
      Withdraw 
@@ -126,7 +127,8 @@ deriveToSchemaConstructorTag ''WithdrawalStatus [| map toLower |]
 
 data WithdrawalHistoryItem = 
      WithdrawalHistoryItem 
-     { withdrawalHistoryItemIdent :: !Int64,
+     { withdrawalHistoryItemInitiator :: Text,
+       withdrawalHistoryItemIdent :: !Int64,
        withdrawalHistoryItemCurrency :: Currency,
        withdrawalHistoryItemAmount :: !Double,
        withdrawalHistoryItemWithdrawalStatus :: !WithdrawalStatus,

@@ -222,8 +222,10 @@ refresh materialized view mv.invoice_and_transaction;
 
 create table institution.withdrawal (
   id bigserial primary key,
+  user_id bigserial not null,
   wallet_id bigserial not null,
   amount decimal(16, 2) not null,
   status text not null,
   created_at timestamp not null default now(),
-  constraint institution_withdrawal__wallet_id__fk foreign key (wallet_id) references institution.wallet(id));
+  constraint institution_withdrawal__wallet_id__fk foreign key (wallet_id) references institution.wallet(id),
+  constraint institution_withdrawal__user_id__fk foreign key (user_id) references auth.user(id));
