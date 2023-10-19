@@ -39,6 +39,8 @@ import qualified BCorrespondent.Api.Handler.Frontend.User.GetTimelineTransaction
 import qualified BCorrespondent.Api.Handler.Institution.RegisterWithdrawal as Institution.RegisterWithdrawal
 import qualified BCorrespondent.Api.Handler.Institution.InitWithdrawal as Institution.InitWithdrawal
 import qualified BCorrespondent.Api.Handler.Institution.GetWithdrawalHistoryPage as Institution.GetWithdrawalHistoryPage
+import qualified BCorrespondent.Api.Handler.WS.Institution.Withdrawal as WS.Institution.Withdrawal
+
 -- << end handlers
 import qualified BCorrespondent.Auth as Auth
 import Katip
@@ -241,20 +243,27 @@ fiat nm =
      auth `Auth.withAuth` \user ->
        flip logExceptionM ErrorS $
          katipAddNamespace
-         (Namespace ["fiat", "withdraw"])
+         (Namespace [nm, "fiat", "withdraw"])
          (Institution.RegisterWithdrawal.handle user req),
     _fiatApiInitWithdrawal = \auth ->
      auth `Auth.withAuth` \user ->
        flip logExceptionM ErrorS $
          katipAddNamespace
-         (Namespace ["fiat", "withdrawal", "init"]) $
+         (Namespace [nm, "fiat", "withdrawal", "init"]) $
          Institution.InitWithdrawal.handle user,
     _fiatApiGetWithdrawalHistoryPage = \auth page ->
      auth `Auth.withAuth` \user ->
        flip logExceptionM ErrorS $
          katipAddNamespace
-         (Namespace ["fiat", "withdrawal", "history", "page"]) $
+         (Namespace [nm, "fiat", "withdrawal", "history", "page"]) $
          Institution.GetWithdrawalHistoryPage.handle user page,
+    _fiatApiNotifyWithdrawRecord =
+       \(pend :: WS.PendingConnection) ->
+        pend `Auth.withWSAuth` \(ident, conn) ->
+          flip logExceptionM ErrorS
+          $ katipAddNamespace
+            (Namespace [nm, "withdraw", "item", "notify"])
+            (WS.Institution.Withdrawal.handle ident conn),  
     _fiatApiTransactionOrder = undefined
   }
 

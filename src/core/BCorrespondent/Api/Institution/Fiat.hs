@@ -17,6 +17,7 @@ import Servant.API.Generic (Generic)
 import qualified Servant.Auth.Server as SA
 import RateLimit (RateLimit, FixedWindow, KeyPolicy)
 import Data.Time.TypeLevel (TimePeriod (Second))
+import Servant.API.WebSocket (WebSocketPending)
 
 data FiatApi route = 
      FiatApi
@@ -49,6 +50,13 @@ data FiatApi route =
           :> "order"
           :> RateLimit (FixedWindow (Second 1) 1) (KeyPolicy "Token")
           :> SA.Auth '[JWT] (AuthenticatedUser 'Writer)
-          :> Post '[JSON] (Response ())
+          :> Post '[JSON] (Response ()),
+      _fiatApiNotifyWithdrawRecord ::
+        route
+          :- "withdraw"
+          :> "history"
+          :> "item"
+          :> "update"
+          :> WebSocketPending
      }
      deriving stock (Generic)

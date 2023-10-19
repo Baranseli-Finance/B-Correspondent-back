@@ -229,3 +229,65 @@ create table institution.withdrawal (
   created_at timestamp not null default now(),
   constraint institution_withdrawal__wallet_id__fk foreign key (wallet_id) references institution.wallet(id),
   constraint institution_withdrawal__user_id__fk foreign key (user_id) references auth.user(id));
+
+create or replace function notify_server_on_withdrawal()
+returns trigger as
+$$
+declare
+  result jsonb;
+begin
+    select
+      json_build_object(
+        'total', tbl.total,
+        'items', tbl.history :: jsonb[]) 
+      :: jsonb
+    from (
+      select
+        tmp.institution_id as ident,
+        tmp2.total,
+        array_agg(
+          jsonb_build_object(
+           'initiator', tmp.initiator,
+           'ident', tmp.id,
+           'currency', tmp.currency,
+           'amount', tmp.amount,
+           'withdrawalStatus', tmp.status,
+           'created', cast(tmp.created_at as text) || 'Z')) 
+           as history   
+      from (
+        select 
+          s.institution_id,
+          u.login || '<' || u.email || '>' as initiator,
+          f.id,
+          s.currency,
+          f.amount,
+          f.status,
+          f.created_at
+        from institution.withdrawal as f 
+        inner join institution.wallet as s
+        on s.id = f.wallet_id
+        inner join auth.user as u
+        on f.user_id = u.id
+        where s.wallet_type = 'debit') as tmp
+      inner join (
+        select
+          s.institution_id,
+          count(*) as total
+        from institution.withdrawal as f 
+        inner join institution.wallet as s
+        on s.id = f.wallet_id
+        group by s.institution_id) as tmp2
+      on tmp.institution_id = tmp2.institution_id 
+      group by tmp.institution_id, tmp2.total) as tbl;
+  perform 
+    pg_notify(
+      'withdrawal' || '_' || u.id,
+      coalesce(result :: text, 'null' :: text))
+  from auth.user as u;
+  return new;
+end;
+$$ language 'plpgsql';
+
+create or replace trigger on_withdrawal_update
+after insert or update on institution.withdrawal
+for each row execute procedure notify_server_on_withdrawal();

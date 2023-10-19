@@ -60,7 +60,7 @@ import Data.Aeson.Generic.DerivingVia
 import GHC.Generics (Generic)
 
 
-data Resource = Transaction | Wallet
+data Resource = Transaction | Wallet | Withdrawal
      deriving stock (Generic, Show)
      deriving
      (ToJSON, FromJSON)
