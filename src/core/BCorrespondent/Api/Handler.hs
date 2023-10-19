@@ -38,6 +38,7 @@ import qualified BCorrespondent.Api.Handler.WS.User.Wallet as WS.User.Wallet
 import qualified BCorrespondent.Api.Handler.Frontend.User.GetTimelineTransaction as Frontend.User.GetTimelineTransaction
 import qualified BCorrespondent.Api.Handler.Institution.RegisterWithdrawal as Institution.RegisterWithdrawal
 import qualified BCorrespondent.Api.Handler.Institution.InitWithdrawal as Institution.InitWithdrawal
+import qualified BCorrespondent.Api.Handler.Institution.GetWithdrawalHistoryPage as Institution.GetWithdrawalHistoryPage
 -- << end handlers
 import qualified BCorrespondent.Auth as Auth
 import Katip
@@ -248,6 +249,12 @@ fiat nm =
          katipAddNamespace
          (Namespace ["fiat", "withdrawal", "init"]) $
          Institution.InitWithdrawal.handle user,
+    _fiatApiGetWithdrawalHistoryPage = \auth page ->
+     auth `Auth.withAuth` \user ->
+       flip logExceptionM ErrorS $
+         katipAddNamespace
+         (Namespace ["fiat", "withdrawal", "history", "page"]) $
+         Institution.GetWithdrawalHistoryPage.handle user page,
     _fiatApiTransactionOrder = undefined
   }
 

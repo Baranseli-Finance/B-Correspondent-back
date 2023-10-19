@@ -20,7 +20,8 @@ module BCorrespondent.Transport.Model.Institution
          WithdrawalStatus (..),
          InitWithdrawal (..),
          WithdrawResult (..),
-         WithdrawResultStatus (..)
+         WithdrawResultStatus (..),
+         WithdrawalHistory (..)
        ) where
 
 import BCorrespondent.Transport.Model.Invoice (Currency)
@@ -147,11 +148,29 @@ data WithdrawalHistoryItem =
 
 deriveToSchemaFieldLabelModifier ''WithdrawalHistoryItem [|firstLetterModify (Proxy @WithdrawalHistoryItem)|]
 
+data WithdrawalHistory = 
+     WithdrawalHistory
+     { withdrawalHistoryTotal :: !Int64,
+       withdrawalHistoryItems :: ![WithdrawalHistoryItem] 
+     }
+    deriving stock (Generic, Show)
+    deriving
+      (ToJSON, FromJSON)
+      via WithOptions 
+          '[FieldLabelModifier
+            '[UserDefined FirstLetterToLower,
+              UserDefined
+              (StripConstructor 
+               WithdrawalHistory)]]
+      WithdrawalHistory
+
+deriveToSchemaFieldLabelModifier ''WithdrawalHistory [|firstLetterModify (Proxy @WithdrawalHistory)|]
+
 data InitWithdrawal = 
      InitWithdrawal 
      {
       initWithdrawalWalletBalances :: ![Balance],
-      initWithdrawalHistory :: ![WithdrawalHistoryItem]
+      initWithdrawalHistory :: !WithdrawalHistory
      }
     deriving stock (Generic, Show)
     deriving

@@ -19,4 +19,4 @@ handle user =
       hasql <- fmap (^. katipEnv . hasqlDbPool) ask
       fmap (flip withError (uncurry InitWithdrawal)) $ 
         transactionM hasql $
-          statement initWithdrawal institution_id
+          statement initWithdrawal (institution_id, 10)

@@ -13,31 +13,34 @@
 
 module BCorrespondent.Statement.Institution 
        ( initWithdrawal, 
-         registerWithdrawal, 
+         registerWithdrawal,
+         getWithdrawalPage,
          WithdrawResult (..)
        ) where
 
 import BCorrespondent.Transport.Model.Institution 
-       (Balance, WithdrawalHistoryItem, WithdrawalStatus (Registered))
+       (Balance, WithdrawalHistory, WithdrawalStatus (Registered))
 import BCorrespondent.Transport.Model.Frontend (WalletType (..))
 import qualified Hasql.Statement as HS
 import Control.Lens (dimap)
 import Hasql.TH
-import Data.Int (Int64)
+import Data.Int (Int64, Int32)
 import Data.Aeson (eitherDecode, encode, toJSON, FromJSON, Value)
 import qualified Data.Vector as V
-import Data.Maybe (fromMaybe)
 import Data.Aeson.Generic.DerivingVia
 import GHC.Generics
 import Data.Tuple.Extended (snocT)
 
-initWithdrawal :: HS.Statement Int64 (Either String ([Balance], [WithdrawalHistoryItem]))
+initWithdrawal :: HS.Statement (Int64, Int32) (Either String ([Balance], WithdrawalHistory))
 initWithdrawal = 
-  dimap (\x -> (x, toJSON Debit)) decode
+  dimap (snocT (toJSON Debit)) decode
   [singletonStatement|
     select
       f.wallets :: jsonb[],
-      s.history :: jsonb[]?
+      json_build_object(
+        'total', s.total,
+        'items', s.history :: jsonb[]?) 
+      :: jsonb
     from (
       select
         institution_id as ident,
@@ -47,34 +50,55 @@ initWithdrawal =
            'currency', currency,
            'amount', amount)) as wallets
       from institution.wallet
-      where wallet_type = ($2 :: jsonb) #>> '{}'
+      where wallet_type = ($3 :: jsonb) #>> '{}'
       group by institution_id) as f
     left join (
       select 
-        s.institution_id as ident,
+        tmp.institution_id as ident,
+        tmp2.total,
         array_agg(
           jsonb_build_object(
-           'initiator', 
-             u.login || '<' || u.email || '>',
-           'ident', f.id,
-           'currency', s.currency,
-           'amount', f.amount,
-           'withdrawalStatus', f.status,
-           'created', cast(f.created_at as text) || 'Z')
-          order by f.created_at desc) as history
-      from institution.withdrawal as f 
-      inner join institution.wallet as s
-      on s.id = f.wallet_id
-      inner join auth.user as u
-      on f.user_id = u.id
-      where s.wallet_type = ($2 :: jsonb) #>> '{}'
-      group by s.institution_id) as s
+           'initiator', tmp.initiator,
+           'ident', tmp.id,
+           'currency', tmp.currency,
+           'amount', tmp.amount,
+           'withdrawalStatus', tmp.status,
+           'created', cast(tmp.created_at as text) || 'Z')) 
+           as history   
+      from (
+        select 
+          s.institution_id,
+          u.login || '<' || u.email || '>' as initiator,
+          f.id,
+          s.currency,
+          f.amount,
+          f.status,
+          f.created_at
+        from institution.withdrawal as f 
+        inner join institution.wallet as s
+        on s.id = f.wallet_id
+        inner join auth.user as u
+        on f.user_id = u.id
+        where s.wallet_type = ($3 :: jsonb) #>> '{}'
+        order by f.created_at desc
+        limit $2 :: int) as tmp
+      inner join (
+        select
+          s.institution_id,
+          count(*) as total
+        from institution.withdrawal as f 
+        inner join institution.wallet as s
+        on s.id = f.wallet_id
+        where s.institution_id = $1 :: int8
+        group by s.institution_id) as tmp2
+      on tmp.institution_id = tmp2.institution_id 
+      group by tmp.institution_id, tmp2.total) as s
     on f.ident = s.ident    
     where f.ident = $1 :: int8|]
   where 
     transform :: forall a . FromJSON a => V.Vector Value -> Either String [a]
     transform = sequence . map (eitherDecode @a . encode) . V.toList 
-    decode (xs, ys) = (,) <$> transform @Balance xs <*> fromMaybe (Right []) (fmap (transform @WithdrawalHistoryItem) ys)
+    decode (xs, history) = (,) <$> transform @Balance xs <*> (eitherDecode @WithdrawalHistory . encode) history
 
 data WithdrawResult = NotEnoughFunds | Ok | FrozenFunds Double
      deriving stock (Generic, Show)
@@ -130,3 +154,56 @@ registerWithdrawal =
      from frozen_funds as f
      left join withdrawal s
      on f.id = s.wallet_id|]
+
+getWithdrawalPage :: HS.Statement (Int64, Int32, Int32) (Either String (Maybe WithdrawalHistory))
+getWithdrawalPage =
+  dimap (snocT (toJSON Debit)) (sequence . fmap (eitherDecode @WithdrawalHistory . encode))
+  [maybeStatement|
+    select
+      json_build_object(
+        'total', tbl.total,
+        'items', tbl.history :: jsonb[]?) 
+      :: jsonb
+    from (
+      select
+        tmp.institution_id as ident,
+        tmp2.total,
+        array_agg(
+          jsonb_build_object(
+           'initiator', tmp.initiator,
+           'ident', tmp.id,
+           'currency', tmp.currency,
+           'amount', tmp.amount,
+           'withdrawalStatus', tmp.status,
+           'created', cast(tmp.created_at as text) || 'Z')) 
+           as history   
+      from (
+        select 
+          s.institution_id,
+          u.login || '<' || u.email || '>' as initiator,
+          f.id,
+          s.currency,
+          f.amount,
+          f.status,
+          f.created_at
+        from institution.withdrawal as f 
+        inner join institution.wallet as s
+        on s.id = f.wallet_id
+        inner join auth.user as u
+        on f.user_id = u.id
+        where s.wallet_type = ($4 :: jsonb) #>> '{}'
+        order by f.created_at desc
+        offset (($3 :: int4 - 1) * 10) 
+        limit $2 :: int4) as tmp
+      inner join (
+        select
+          s.institution_id,
+          count(*) as total
+        from institution.withdrawal as f 
+        inner join institution.wallet as s
+        on s.id = f.wallet_id
+        where s.institution_id = $1 :: int8
+        group by s.institution_id) as tmp2
+      on tmp.institution_id = tmp2.institution_id
+      where tmp.institution_id = $1 :: int8 
+      group by tmp.institution_id, tmp2.total) as tbl|]

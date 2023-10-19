@@ -8,7 +8,8 @@
 
 module BCorrespondent.Api.Institution.Fiat (FiatApi (..)) where
 
-import BCorrespondent.Transport.Model.Institution (Withdraw, InitWithdrawal, WithdrawResult)
+import BCorrespondent.Transport.Model.Institution 
+       (Withdraw, InitWithdrawal, WithdrawResult, WithdrawalHistory)
 import BCorrespondent.Transport.Response (Response)
 import BCorrespondent.Auth (AuthenticatedUser, JWT, Role (..))
 import Servant.API.Extended
@@ -33,6 +34,15 @@ data FiatApi route =
           :> RateLimit (FixedWindow (Second 1) 1) (KeyPolicy "Token")
           :> SA.Auth '[JWT] (AuthenticatedUser 'Reader)
           :> Get '[JSON] (Response InitWithdrawal),
+      _fiatApiGetWithdrawalHistoryPage ::
+         route
+          :- "withdraw"
+          :> "history"
+          :> "page"
+          :> RateLimit (FixedWindow (Second 1) 1) (KeyPolicy "Token")
+          :> SA.Auth '[JWT] (AuthenticatedUser 'Reader)
+          :> QueryParam' '[Required, Strict] "page" Int
+          :> Get '[JSON] (Response (Maybe WithdrawalHistory)),    
        _fiatApiTransactionOrder ::
          route
           :- "transaction"
