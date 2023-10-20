@@ -114,9 +114,9 @@ begin
       on u.id = iu.user_id
       inner join institution.invoice as inv
       on iu.institution_id = inv.institution_id
-      where inv.status = 'ForwardedToPaymentProvider' or 
-      inv.status = 'Confirmed' or 
-      inv.status = 'Declined'
+      where (new.status = 'ForwardedToPaymentProvider' or 
+      new.status = 'Confirmed' or 
+      new.status = 'Declined')
       and new.id = inv.id) as tmp;
   perform 
     pg_notify(
