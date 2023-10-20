@@ -80,7 +80,7 @@ data JWT
 data Role = 
        Writer 
      | Reader 
-     | Admin 
+     | Admin
      | None
       -- any entity that can initiate an invoice query 
      | Source
@@ -99,6 +99,9 @@ instance KnownRole 'Writer where
 
 instance KnownRole 'Source where
   roleSing = UnsafeRRole Source
+
+instance KnownRole 'Admin where
+  roleSing = UnsafeRRole Admin
 
 instance KnownRole 'BCorrespondent.Auth.None where
   roleSing = UnsafeRRole BCorrespondent.Auth.None

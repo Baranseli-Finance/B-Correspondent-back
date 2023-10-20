@@ -11,7 +11,8 @@ module BCorrespondent.Api.Map
     module Foreign,
     module Frontend,
     module Institution,
-    module Fs
+    module Fs,
+    module Admin
   )
 where
 
@@ -19,7 +20,8 @@ import BCorrespondent.Api.Foreign as Foreign
 import BCorrespondent.Api.Auth as Auth
 import BCorrespondent.Api.Frontend as Frontend
 import BCorrespondent.Api.Institution as Institution  
-import  BCorrespondent.Api.Fs as Fs
+import BCorrespondent.Api.Fs as Fs
+import BCorrespondent.Api.Admin as Admin
 import Servant.API
 import Servant.API.Generic
 import Servant.Swagger.Tags
@@ -49,6 +51,11 @@ data HttpApi route = HttpApi
       route
         :- Tags "File"
           :> "file"
-          :> ToServant FileApi AsApi 
+          :> ToServant FileApi AsApi,
+    _httpApiAdmin ::
+      route
+        :- Tags "Admin"
+          :> "admin"
+          :> ToServant AdminApi AsApi
   }
   deriving stock (Generic)

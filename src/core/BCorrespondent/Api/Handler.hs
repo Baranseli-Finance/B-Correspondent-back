@@ -40,7 +40,7 @@ import qualified BCorrespondent.Api.Handler.Institution.RegisterWithdrawal as In
 import qualified BCorrespondent.Api.Handler.Institution.InitWithdrawal as Institution.InitWithdrawal
 import qualified BCorrespondent.Api.Handler.Institution.GetWithdrawalHistoryPage as Institution.GetWithdrawalHistoryPage
 import qualified BCorrespondent.Api.Handler.WS.Institution.Withdrawal as WS.Institution.Withdrawal
-
+import qualified BCorrespondent.Api.Handler.Admin.CreateUser as Admin.CreateUser
 -- << end handlers
 import qualified BCorrespondent.Auth as Auth
 import Katip
@@ -62,8 +62,8 @@ httpApi =
       _httpApiForeign = toServant _foreign,
       _httpApiFrontend = toServant frontend,
       _httpApiInstitution = toServant institution,
-      _httpApiFile = toServant file
-
+      _httpApiFile = toServant file,
+      _httpApiAdmin = toServant admin
     }
 
 auth :: AuthApi (AsServerT KatipHandlerM)
@@ -281,4 +281,15 @@ file =
       katipAddNamespace
       (Namespace ["file", "download"])
       (Fs.Download.handle userIdent fileIdent) 
+  }
+
+admin :: AdminApi (AsServerT KatipHandlerM)
+admin = 
+  AdminApi
+  { _adminApiCreateUser = \auth user ->
+      auth `Auth.withAuth` \_ ->
+       flip logExceptionM ErrorS $
+         katipAddNamespace
+         (Namespace ["admin", "user", "put"])
+         (Admin.CreateUser.handle user)
   }
