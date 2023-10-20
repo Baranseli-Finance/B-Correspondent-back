@@ -96,13 +96,14 @@ declare
 begin
     select
         json_build_object(
+        'ident', tmp.id,
         'user', tmp.user,
-        'dayOfYear', cast(extract('doy' from tmp.appearance_on_timeline) as int),
-        'hour', cast(extract('hour' from tmp.appearance_on_timeline) as int),
-        'min', cast(extract('min' from tmp.appearance_on_timeline) as int),
+        'dayOfYear', cast(extract('doy' from new.appearance_on_timeline) as int),
+        'hour', cast(extract('hour' from new.appearance_on_timeline) as int),
+        'min', cast(extract('min' from new.appearance_on_timeline) as int),
         'textualIdent', tmp.textual_view,
-        'status', tmp.status)
-        :: jsonb
+        'status', new.status,
+        'tm', cast(new.appearance_on_timeline as text)) :: jsonb
     into result
     from (
       select
@@ -116,8 +117,7 @@ begin
       where inv.status = 'ForwardedToPaymentProvider' or 
       inv.status = 'Confirmed' or 
       inv.status = 'Declined'
-      and (extract('doy' from inv.appearance_on_timeline) = extract('doy' from now())))
-      as tmp;
+      and new.id = inv.id) as tmp;
   perform 
     pg_notify(
       'timeline_transaction' || '_' || u.id,
@@ -152,7 +152,8 @@ begin
       inner join institution.user as iu
       on u.id = iu.user_id
       inner join institution.wallet as inw
-      on iu.institution_id = inw.institution_id)
+      on iu.institution_id = inw.institution_id
+      where new.id = inw.id)
       as tmp;
   perform 
     pg_notify(

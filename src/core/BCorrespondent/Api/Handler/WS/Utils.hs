@@ -120,8 +120,16 @@ withWS conn go = do
 
 type family ListenPsql (s :: Symbol) (b :: Type) :: Constraint
 
-listenPsql :: forall s a b . (KnownSymbol s, ListenPsql s a, FromJSON a, ToJSON b) => WS.Connection -> Hasql.Connection -> Int64 -> (a -> Maybe b) -> IO ()
-listenPsql c db userIdent modify = do
+listenPsql 
+  :: forall s a b . 
+  (KnownSymbol s, ListenPsql s a, FromJSON a, ToJSON b, Show a) 
+  => WS.Connection 
+  -> Hasql.Connection 
+  -> Int64 
+  -> (a -> Maybe b) 
+  -> (Severity -> LogStr -> IO ()) 
+  -> IO ()
+listenPsql c db userIdent modify log = do
   let channel =  toS (symbolVal (Proxy @s)) <> "_" <> toS (show userIdent)
   let channelToListen = Hasql.toPgIdentifier channel
   Hasql.listen db channelToListen
@@ -129,15 +137,24 @@ listenPsql c db userIdent modify = do
     flip Hasql.waitForNotifications db $ 
       \channel payload -> do 
         let resp = eitherDecode @a $ payload^.from bytesLazy
+        log InfoS $ fromString $ $location <> " ws data ---> " <> show resp
         for_ (sequence (fmap modify resp)) $ \x -> 
-          WS.sendDataMessage c (WS.Text (encode (withError x id)) Nothing)
+          WS.sendDataMessage c $ 
+            WS.Text (encode (withError x id)) Nothing
 
 sendError :: WS.Connection -> Text -> IO ()
 sendError c msg = WS.sendDataMessage c (WS.Text (encode @(Response ()) (Error Nothing (asError msg))) Nothing)
 
-withResource :: forall r . KnownSymbol r => WS.Connection -> Resource -> IO () -> KatipHandlerM ()
-withResource conn resource callback 
-  | show resource == toS (symbolVal (Proxy @r)) = liftIO callback
+withResource 
+  :: forall r . KnownSymbol r 
+  => WS.Connection 
+  -> Resource 
+  -> ((Severity -> LogStr -> IO ()) -> IO ()) 
+  -> KatipHandlerM ()
+withResource conn resource  callback
+  | show resource == toS (symbolVal (Proxy @r)) = askLoggerIO >>= liftIO . callback
   | otherwise = 
-      let err = Error Nothing $ asError @Text "wrong resource" 
+      let err = 
+            Error Nothing $ 
+              asError @Text "wrong resource" 
       in liftIO $ WS.sendDataMessage conn (WS.Text (encode @(Response ()) err) Nothing)

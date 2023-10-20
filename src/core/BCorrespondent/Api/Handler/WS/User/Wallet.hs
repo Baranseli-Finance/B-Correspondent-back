@@ -29,7 +29,7 @@ data Wallet =
      { walletIdent :: Int,
        walletAmount :: Double
      }
-    deriving stock (Generic)
+    deriving stock (Generic, Show)
      deriving
      (FromJSON, ToJSON)
      via WithOptions

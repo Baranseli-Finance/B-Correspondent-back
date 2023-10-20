@@ -33,9 +33,11 @@ data Transaction =
      { transactionDayOfYear :: Int,
        transactionHour :: Int,
        transactionMin :: Int,
-       transactionTextualIdent :: Text
+       transactionTextualIdent :: Text,
+       transactionTm :: Text,
+       transactionIdent :: Int64
      }
-    deriving stock (Generic)
+    deriving stock (Generic, Show)
      deriving
      (FromJSON, ToJSON)
      via WithOptions
@@ -53,10 +55,10 @@ handle :: AuthenticatedUser 'Reader -> WS.Connection -> KatipHandlerM ()
 handle AuthenticatedUser {institution = Nothing} conn = 
   liftIO $ sendError conn "you haven't an institution assigned to to"
 handle AuthenticatedUser {ident, institution = Just _} conn =
-  withWS @Resource conn $ \db resource -> do 
+  withWS @Resource conn $ \db resource -> do
      $(logTM) DebugS $ fromString $ $location <> " received " <> show resource
      let mkResp (Just (WithField dbUser x)) 
            | dbUser == ident = Just $ first mkStatus x
            | otherwise = Nothing
-         mkResp _ = Nothing  
+         mkResp _ = Nothing    
      withResource @"Transaction" conn resource $ listenPsql @"timeline_transaction" @TransactionExt conn db ident mkResp
