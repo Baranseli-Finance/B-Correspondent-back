@@ -9,12 +9,14 @@
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE TupleSections #-}
 {-# OPTIONS_GHC -fno-warn-unused-top-binds #-}
 
 module BCorrespondent.Statement.Institution 
        ( initWithdrawal, 
          registerWithdrawal,
          getWithdrawalPage,
+         updateWallet,
          WithdrawResult (..)
        ) where
 
@@ -22,7 +24,7 @@ import BCorrespondent.Transport.Model.Institution
        (Balance, WithdrawalHistory, WithdrawalStatus (Registered))
 import BCorrespondent.Transport.Model.Frontend (WalletType (..))
 import qualified Hasql.Statement as HS
-import Control.Lens (dimap)
+import Control.Lens (dimap, lmap)
 import Hasql.TH
 import Data.Int (Int64, Int32)
 import Data.Aeson (eitherDecode, encode, toJSON, FromJSON, Value)
@@ -209,3 +211,35 @@ getWithdrawalPage =
       on tmp.institution_id = tmp2.institution_id
       where tmp.institution_id = $1 :: int8 
       group by tmp.institution_id, tmp2.total) as tbl|]
+
+updateWallet :: HS.Statement [Int64] Int64
+updateWallet =
+  lmap ((,toJSON Debit) . V.fromList)
+  [rowsAffectedStatement|
+    update institution.wallet
+    set amount = w.amount + wallet.amount,
+        modified_at = now()
+    from (
+      select
+        w.wallet_ident,
+        w.amount,
+        w.currency
+      from unnest($1 :: int8[]) 
+        as list(invoice_ident)
+      inner join (
+        select
+          w.id as wallet_ident,
+          inv.id as invoice_ident,
+          w.currency,
+          tr.amount
+        from institution.wallet as w
+        inner join auth.institution as i
+        on w.institution_id = i.id
+        inner join institution.invoice as inv
+        on i.id = inv.institution_id
+        inner join institution.transaction as tr
+        on inv.id = tr.invoice_id
+        and w.wallet_type = ($2 :: jsonb) #>> '{}'
+        and tr.currency = w.currency) as w
+      on list.invoice_ident = w.invoice_ident) as w
+    where id = w.wallet_ident|]

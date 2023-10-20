@@ -14,6 +14,7 @@ import BCorrespondent.Statement.Invoice
         Status (ForwardedToPaymentProvider, Confirmed, Declined),
         Validation (..)
        )
+import BCorrespondent.Statement.Institution (updateWallet)  
 import BCorrespondent.Job.Utils (withElapsedTime)
 import BCorrespondent.ServerM
 import BCorrespondent.Transport.Model.Invoice (InvoiceToPaymentProvider, Fee (..))
@@ -32,6 +33,7 @@ import qualified Control.Concurrent.Async.Lifted as Async
 import Data.Aeson.WithField (WithField (..))
 import qualified Request as Request
 import Data.Int (Int64)
+
 
 forwardToPaymentProvider :: Int -> KatipContextT ServerM ()
 forwardToPaymentProvider freq =
@@ -71,7 +73,13 @@ validateAgainstTransaction freq =
       case res of
         Right xs -> do
           hasql <- fmap (^. hasqlDbPool) ask
-          transactionM hasql $ statement updateStatus $ map validate xs
+          recordsUpdated <- 
+            transactionM hasql $ do
+              let ys = map validate xs
+              statement updateStatus ys
+              let zs = flip filter ys $ \(_, s) -> s == Confirmed
+              statement updateWallet $ fst $ unzip zs
+          $(logTM) InfoS $ logStr @T.Text $ $location <> " there are " <> T.pack (show recordsUpdated) <> " wallets updated"   
         Left err -> $(logTM) CriticalS $ logStr @T.Text $ $location <> ":validateAgainstTransaction: decode error ---> " <> toS err
 
 validate :: Validation -> (Int64, Status)
