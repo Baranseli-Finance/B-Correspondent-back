@@ -46,8 +46,9 @@ sendCredToEmail email login pass = do
     let msg = 
              "The new user has been registered \
              \ on B-Correspondent under the temporary password: \
-             \ login " <> login <> ", password: " <> pass <> 
-             ". We recommend setting a new password while logged in"
+             \ login " <> login <> ", password: " <> pass <>
+             ". We recommend setting a new password \
+             \ once you have been logged in. link: https://b-correspondent.app" 
     let reqBody =
           mkPOSTMailSendRequestBody 
           [mkPOSTMailSendRequestBodyContentsendgrid "text/plain" msg]
