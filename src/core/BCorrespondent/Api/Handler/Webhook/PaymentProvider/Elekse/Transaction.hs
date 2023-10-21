@@ -5,7 +5,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NumericUnderscores #-}
 
-module BCorrespondent.Api.Handler.Webhook.PaymentProvider.Elekse (handle) where
+module BCorrespondent.Api.Handler.Webhook.PaymentProvider.Elekse.Transaction (handle) where
 
 import BCorrespondent.Transport.Model.Transaction 
        (TransactionFromPaymentProvider (..))

@@ -23,7 +23,8 @@ module BCorrespondent.Transport.Model.Institution
          WithdrawResultStatus (..),
          WithdrawalHistory (..),
          WithdrawalPaymentProviderRequest 
-           (WithdrawalPaymentProviderRequest)
+           (WithdrawalPaymentProviderRequest),
+         WithdrawalPaymentProviderResponse (..)
        ) where
 
 import BCorrespondent.Transport.Model.Invoice (Currency)
@@ -34,7 +35,7 @@ import Data.Swagger.Schema.Extended
         firstLetterModify, 
         deriveToSchemaConstructorTag
       )
-import Data.Aeson (ToJSON, FromJSON, toJSON)
+import Data.Aeson (ToJSON, FromJSON, toJSON, parseJSON, withObject, (.:))
 import GHC.Generics (Generic)
 import Data.Int (Int64)
 import Data.Char (toLower)
@@ -208,3 +209,27 @@ data WithdrawalPaymentProviderRequest =
                WithdrawalPaymentProviderRequest)]]
       WithdrawalPaymentProviderRequest
     
+data WithdrawalPaymentProviderResponseStatus = 
+         WithdrawalPaymentProviderResponseStatusOk
+       | WithdrawalPaymentProviderResponseStatusDeclined
+     deriving stock (Generic, Show)
+     deriving
+     (ToJSON, FromJSON)
+     via WithOptions
+          '[SumEnc UntaggedVal,
+            ConstructorTagModifier
+            '[UserDefined FirstLetterToLower,
+              UserDefined 
+              (StripConstructorNullary 
+                WithdrawalPaymentProviderResponseStatus)]]
+         WithdrawalPaymentProviderResponseStatus
+
+newtype WithdrawalPaymentProviderResponse = 
+        WithdrawalPaymentProviderResponse 
+        { status :: WithdrawalPaymentProviderResponseStatus }
+
+instance FromJSON WithdrawalPaymentProviderResponse where
+  parseJSON = 
+    withObject "WithdrawalPaymentProviderResponse" $ \o -> do
+      status <- o .: "status"
+      fmap WithdrawalPaymentProviderResponse $ parseJSON status

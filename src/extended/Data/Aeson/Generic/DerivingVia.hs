@@ -151,6 +151,7 @@ module Data.Aeson.Generic.DerivingVia
     type UnwrapUnaryRecords,
     type TagSingleConstructors,
     StripConstructor,
+    StripConstructorNullary,
     ToLower,
     FirstLetterToLower,
     StripConstructorParamType,
@@ -335,6 +336,13 @@ instance Typeable a => Reifies (StripConstructor a) (String -> String) where
   reflect _ = \s ->
     let (head : tail) = show (typeRep (Proxy @a))
      in fromMaybe s $ stripPrefix (toLower head : tail) s
+
+data StripConstructorNullary a
+
+instance Typeable a => Reifies (StripConstructorNullary a) (String -> String) where
+  reflect _ = \s ->
+    let prefix = show (typeRep (Proxy @a))
+     in fromMaybe s $ stripPrefix prefix s
 
 data ToLower
 
