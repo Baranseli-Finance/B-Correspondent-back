@@ -107,6 +107,9 @@ explainTests =
     [
       "initWithdrawal" =>> BCorrespondent.Statement.Institution.initWithdrawal,
       "registerWithdrawal" =>> BCorrespondent.Statement.Institution.registerWithdrawal,
-      "getWithdrawalPage" =>> BCorrespondent.Statement.Institution.getWithdrawalPage
-    ] 
+      "getWithdrawalPage" =>> BCorrespondent.Statement.Institution.getWithdrawalPage,
+      "updateWallet" =>> BCorrespondent.Statement.Institution.updateWallet,
+      "fetchWithdrawals" =>> BCorrespondent.Statement.Institution.fetchWithdrawals,
+      "updateWithdrawalStatus" =>> BCorrespondent.Statement.Institution.updateWithdrawalStatus
+    ]
   ]
