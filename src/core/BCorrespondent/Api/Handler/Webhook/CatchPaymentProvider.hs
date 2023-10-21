@@ -32,7 +32,7 @@ catch Elekse payload = do
     Elekse.WithdrawalPayload body -> 
       Elekse.Withdrawal.handle body
   fmap (const (Ok ())) $ for_ resp $ \e -> 
-    $(logTM) ErrorS $ 
+    $(logTM) ErrorS $
       fromString $ 
         $location <> "error ---> " <> 
         e <> ", payload: " <> show payload

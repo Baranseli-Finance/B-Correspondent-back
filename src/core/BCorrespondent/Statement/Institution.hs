@@ -19,6 +19,7 @@ module BCorrespondent.Statement.Institution
          updateWallet,
          fetchWithdrawals,
          updateWithdrawalStatus,
+         modifyWalletAfterWebhook,
          WithdrawResult (..)
        ) where
 
@@ -269,3 +270,32 @@ updateWithdrawalStatus =
     update institution.withdrawal
     set status = ($1 :: jsonb) #>> '{}'
     where id = any($2 :: int8[])|]
+
+modifyWalletAfterWebhook :: HS.Statement (WithdrawalStatus, Bool, UUID) ()
+modifyWalletAfterWebhook = 
+  lmap (app1 toJSON)
+  [resultlessStatement|
+    with withdrawal as (
+      update institution.withdrawal
+      set status = ($1 :: jsonb) #>> '{}'
+      where external_id = $3 :: uuid)
+    update institution.wallet 
+    set modified_at = tbl.tm,
+        amount = tbl.amount
+    from (
+      select
+        s.id as ident,
+        case
+          when $2 :: bool 
+          then s.amount - f.amount
+          else s.amount
+        end as amount,
+        case 
+          when $2 :: bool
+          then now()
+          else null
+        end as tm      
+      from institution.withdrawal as f
+      inner join institution.wallet as s
+      on f.wallet_id = s.id) as tbl
+    where id = tbl.ident|]

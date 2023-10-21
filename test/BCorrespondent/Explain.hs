@@ -110,6 +110,7 @@ explainTests =
       "getWithdrawalPage" =>> BCorrespondent.Statement.Institution.getWithdrawalPage,
       "updateWallet" =>> BCorrespondent.Statement.Institution.updateWallet,
       "fetchWithdrawals" =>> BCorrespondent.Statement.Institution.fetchWithdrawals,
-      "updateWithdrawalStatus" =>> BCorrespondent.Statement.Institution.updateWithdrawalStatus
+      "updateWithdrawalStatus" =>> BCorrespondent.Statement.Institution.updateWithdrawalStatus,
+      "modifyWalletAfterWebhook" =>> BCorrespondent.Statement.Institution.modifyWalletAfterWebhook
     ]
   ]

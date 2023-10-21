@@ -24,7 +24,8 @@ module BCorrespondent.Transport.Model.Institution
          WithdrawalHistory (..),
          WithdrawalPaymentProviderRequest 
            (WithdrawalPaymentProviderRequest),
-         WithdrawalPaymentProviderResponse (..)
+         WithdrawalPaymentProviderResponse (..),
+         WithdrawalPaymentProviderResponseStatus (..)
        ) where
 
 import BCorrespondent.Transport.Model.Invoice (Currency)
@@ -35,7 +36,7 @@ import Data.Swagger.Schema.Extended
         firstLetterModify, 
         deriveToSchemaConstructorTag
       )
-import Data.Aeson (ToJSON, FromJSON, toJSON, parseJSON, withObject, (.:))
+import Data.Aeson (ToJSON, FromJSON, toJSON)
 import GHC.Generics (Generic)
 import Data.Int (Int64)
 import Data.Char (toLower)
@@ -214,7 +215,7 @@ data WithdrawalPaymentProviderRequest =
 data WithdrawalPaymentProviderResponseStatus = 
          WithdrawalPaymentProviderResponseStatusOk
        | WithdrawalPaymentProviderResponseStatusDeclined
-     deriving stock (Generic, Show)
+     deriving stock (Generic, Show, Eq)
      deriving
      (ToJSON, FromJSON)
      via WithOptions
@@ -226,12 +227,19 @@ data WithdrawalPaymentProviderResponseStatus =
                 WithdrawalPaymentProviderResponseStatus)]]
          WithdrawalPaymentProviderResponseStatus
 
-newtype WithdrawalPaymentProviderResponse = 
+data WithdrawalPaymentProviderResponse = 
         WithdrawalPaymentProviderResponse 
-        { status :: WithdrawalPaymentProviderResponseStatus }
-
-instance FromJSON WithdrawalPaymentProviderResponse where
-  parseJSON = 
-    withObject "WithdrawalPaymentProviderResponse" $ \o -> do
-      status <- o .: "status"
-      fmap WithdrawalPaymentProviderResponse $ parseJSON status
+        { withdrawalPaymentProviderResponseStatus 
+            :: !WithdrawalPaymentProviderResponseStatus,
+          withdrawalPaymentProviderResponseExternalId :: !UUID
+        }
+    deriving stock (Generic, Show)
+    deriving
+      (FromJSON)
+      via WithOptions 
+          '[FieldLabelModifier
+            '[UserDefined FirstLetterToLower,
+              UserDefined
+              (StripConstructor 
+               WithdrawalPaymentProviderResponse)]]
+      WithdrawalPaymentProviderResponse
