@@ -52,6 +52,7 @@ module BCorrespondent.Transport.Model.Frontend
         HistoryDate (..),
         HistoryTimeline (..),
         Notifications (..),
+        Notification,
         Issue,
         encodeHistoryDate
        ) where

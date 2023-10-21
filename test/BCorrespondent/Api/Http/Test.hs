@@ -21,10 +21,10 @@ import BCorrespondent.Transport.Model.Frontend
         GapItemUnit, GapItemUnitStatus, GapItemTime, 
         InvoiceSince, GapItemAmount, HistoryTimeline, InitDashboard, 
         WalletType, Wallet, FetchGap, TimelineTransactionResponse,
-        TimelineTransaction)
+        TimelineTransaction, Notifications, Notification, Issue)
 import BCorrespondent.Transport.Model.Institution 
        (Withdraw, InitWithdrawal, Balance, WithdrawalHistoryItem, 
-        WithdrawalStatus, WithdrawalHistory, WithdrawResult, WithdrawResultStatus,
+        WithdrawalHistory, WithdrawResult, WithdrawResultStatus,
         WithdrawalHistoryItem)
 
 import Servant.API.Generic
@@ -62,11 +62,13 @@ mkArbitrary ''AuthCode
 mkArbitrary ''Balance
 mkArbitrary ''Withdraw
 mkArbitrary ''WithdrawResultStatus
-mkArbitrary ''WithdrawalStatus
 mkArbitrary ''WithdrawalHistoryItem
 mkArbitrary ''WithdrawalHistory
 mkArbitrary ''WithdrawResult
 mkArbitrary ''InitWithdrawal
+mkArbitrary ''Notification
+mkArbitrary ''Notifications
+mkArbitrary ''Issue
 
 spec_api :: Spec
 spec_api =

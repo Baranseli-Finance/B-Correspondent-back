@@ -69,7 +69,7 @@ mkToSchemaAndDefJSON name = do
       ( defaultOptions
           { tagSingleConstructors = True
           }
-      )
+      ) 
       name
   y <- deriveToSchemaDef name
   return $ x ++ y

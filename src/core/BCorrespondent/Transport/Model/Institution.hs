@@ -44,6 +44,7 @@ import Data.Time.Clock (UTCTime)
 import Data.Text (Text)
 import Database.Transaction (ParamsShow (..))
 import Data.UUID (UUID)
+import TH.Mk (mkArbitrary)
 
 data Withdraw = 
      Withdraw 
@@ -134,6 +135,8 @@ deriveToSchemaConstructorTag ''WithdrawalStatus [| map toLower |]
 
 instance ParamsShow WithdrawalStatus where
   render = show . toJSON
+
+mkArbitrary ''WithdrawalStatus
 
 data WithdrawalHistoryItem = 
      WithdrawalHistoryItem 
