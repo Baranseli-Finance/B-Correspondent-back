@@ -41,6 +41,7 @@ import qualified BCorrespondent.Api.Handler.Institution.InitWithdrawal as Instit
 import qualified BCorrespondent.Api.Handler.Institution.GetWithdrawalHistoryPage as Institution.GetWithdrawalHistoryPage
 import qualified BCorrespondent.Api.Handler.WS.Institution.Withdrawal as WS.Institution.Withdrawal
 import qualified BCorrespondent.Api.Handler.Admin.CreateUser as Admin.CreateUser
+import qualified BCorrespondent.Api.Handler.Frontend.User.GetNotifications as User.GetNotifications 
 -- << end handlers
 import qualified BCorrespondent.Auth as Auth
 import Katip
@@ -214,8 +215,13 @@ user nm =
          flip logExceptionM ErrorS $
            katipAddNamespace
            (Namespace [nm, "balanceSheet", "timeline", "transaction"])
-           (Frontend.User.GetTimelineTransaction.handle user ident)
-
+           (Frontend.User.GetTimelineTransaction.handle user ident),
+    _userApiGetNotifications = \auth ->
+       auth `Auth.withAuth` \user ->
+         flip logExceptionM ErrorS $
+           katipAddNamespace
+           (Namespace [nm, "notification"]) $
+           User.GetNotifications.handle user
   }
 
 institution :: InstitutionApi (AsServerT KatipHandlerM)

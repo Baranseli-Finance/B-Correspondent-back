@@ -51,6 +51,7 @@ module BCorrespondent.Transport.Model.Frontend
         -- * history endpoint
         HistoryDate (..),
         HistoryTimeline (..),
+        Notifications (..),
         encodeHistoryDate
        ) where
 
@@ -469,3 +470,35 @@ data HistoryTimeline =
       HistoryTimeline
 
 deriveToSchemaFieldLabelModifier ''HistoryTimeline [|firstLetterModify (Proxy @HistoryTimeline)|]
+
+data Notification = Notification { notificationText :: Text }
+    deriving stock (Generic, Show)
+    deriving
+      (ToJSON, FromJSON)
+      via WithOptions 
+          '[FieldLabelModifier
+            '[UserDefined FirstLetterToLower,
+              UserDefined 
+              (StripConstructor 
+               Notification)]]
+      Notification
+
+deriveToSchemaFieldLabelModifier ''Notification [|firstLetterModify (Proxy @Notification)|]
+
+data Notifications = 
+     Notifications
+     { notificationsCount :: Int,
+       notificationsItems :: [Notification]
+     }
+    deriving stock (Generic, Show)
+    deriving
+      (ToJSON, FromJSON)
+      via WithOptions 
+          '[FieldLabelModifier
+            '[UserDefined FirstLetterToLower,
+              UserDefined 
+              (StripConstructor 
+               Notifications)]]
+      Notifications
+
+deriveToSchemaFieldLabelModifier ''Notifications [|firstLetterModify (Proxy @Notifications)|]

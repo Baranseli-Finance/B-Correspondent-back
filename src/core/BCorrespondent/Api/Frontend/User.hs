@@ -16,7 +16,8 @@ import BCorrespondent.Transport.Model.Frontend
         GapItemTime, 
         TimelineDirection, 
         TimelineTransactionResponse,
-        HistoryDate
+        HistoryDate,
+        Notifications
        )
 import BCorrespondent.Transport.Id (Id)       
 import BCorrespondent.Auth (AuthenticatedUser, JWT, Role (..))
@@ -104,6 +105,12 @@ data UserApi route = UserApi
           :> RateLimit (FixedWindow (Second 1) 50) (KeyPolicy "Token")
           :> SA.Auth '[JWT] (AuthenticatedUser 'Reader)
           :> Capture "ident" (Id "transaction")
-          :> Get '[JSON] (Response TimelineTransactionResponse)
+          :> Get '[JSON] (Response TimelineTransactionResponse),
+    _userApiGetNotifications ::
+      route
+        :- "notifications"
+          :> RateLimit (FixedWindow (Second 1) 50) (KeyPolicy "Token")
+          :> SA.Auth '[JWT] (AuthenticatedUser 'Reader)
+          :> Get '[JSON] (Response Notifications)
   }
   deriving stock (Generic)
