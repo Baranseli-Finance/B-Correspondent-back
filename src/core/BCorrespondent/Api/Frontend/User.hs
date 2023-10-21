@@ -17,7 +17,8 @@ import BCorrespondent.Transport.Model.Frontend
         TimelineDirection, 
         TimelineTransactionResponse,
         HistoryDate,
-        Notifications
+        Notifications,
+        Issue
        )
 import BCorrespondent.Transport.Id (Id)       
 import BCorrespondent.Auth (AuthenticatedUser, JWT, Role (..))
@@ -111,6 +112,13 @@ data UserApi route = UserApi
         :- "notifications"
           :> RateLimit (FixedWindow (Second 1) 50) (KeyPolicy "Token")
           :> SA.Auth '[JWT] (AuthenticatedUser 'Reader)
-          :> Get '[JSON] (Response Notifications)
+          :> Get '[JSON] (Response Notifications),
+    _userApiSubmitIssue ::
+      route
+        :- "issue"
+          :> RateLimit (FixedWindow (Second 1) 1) (KeyPolicy "Token")
+          :> SA.Auth '[JWT] (AuthenticatedUser 'None)
+          :> ReqBody '[JSON] Issue
+          :> Put '[JSON] (Response ())
   }
   deriving stock (Generic)

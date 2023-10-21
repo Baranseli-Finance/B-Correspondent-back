@@ -41,7 +41,8 @@ import qualified BCorrespondent.Api.Handler.Institution.InitWithdrawal as Instit
 import qualified BCorrespondent.Api.Handler.Institution.GetWithdrawalHistoryPage as Institution.GetWithdrawalHistoryPage
 import qualified BCorrespondent.Api.Handler.WS.Institution.Withdrawal as WS.Institution.Withdrawal
 import qualified BCorrespondent.Api.Handler.Admin.CreateUser as Admin.CreateUser
-import qualified BCorrespondent.Api.Handler.Frontend.User.GetNotifications as User.GetNotifications 
+import qualified BCorrespondent.Api.Handler.Frontend.User.GetNotifications as User.GetNotifications
+import qualified BCorrespondent.Api.Handler.Frontend.User.SubmitIssue as User.SubmitIssue 
 -- << end handlers
 import qualified BCorrespondent.Auth as Auth
 import Katip
@@ -221,7 +222,13 @@ user nm =
          flip logExceptionM ErrorS $
            katipAddNamespace
            (Namespace [nm, "notification"]) $
-           User.GetNotifications.handle user
+           User.GetNotifications.handle user,
+    _userApiSubmitIssue = \auth req ->
+       auth `Auth.withAuth` \_ ->
+         flip logExceptionM ErrorS $
+           katipAddNamespace
+           (Namespace [nm, "issue"]) $
+           User.SubmitIssue.handle req
   }
 
 institution :: InstitutionApi (AsServerT KatipHandlerM)
