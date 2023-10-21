@@ -281,14 +281,14 @@ modifyWalletAfterWebhook =
       where external_id = $3 :: uuid)
     update institution.wallet 
     set modified_at = tbl.tm,
-        amount = tbl.amount
+        amount = wallet.amount - coalesce(tbl.amount, 0)
     from (
       select
         s.id as ident,
         case
-          when $2 :: bool 
-          then s.amount - f.amount
-          else s.amount
+          when $2 :: bool
+          then f.amount
+          else null
         end as amount,
         case 
           when $2 :: bool
@@ -297,5 +297,6 @@ modifyWalletAfterWebhook =
         end as tm      
       from institution.withdrawal as f
       inner join institution.wallet as s
-      on f.wallet_id = s.id) as tbl
+      on f.wallet_id = s.id
+      where f.external_id = $3 :: uuid) as tbl
     where id = tbl.ident|]
