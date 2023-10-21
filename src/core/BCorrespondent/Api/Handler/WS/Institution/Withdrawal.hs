@@ -22,7 +22,7 @@ import Data.String (fromString)
 import Data.Aeson.WithField (WithField (..))
 import Data.Int (Int64)
 
-type WithdrawalHistoryExt = WithField "institution" Int64 WithdrawalHistory
+type WithdrawalHistoryExt = WithField "user" Int64 (WithField "institution" Int64 WithdrawalHistory)
 
 type instance ListenPsql "withdrawal" WithdrawalHistoryExt = ()
 
@@ -32,8 +32,10 @@ handle AuthenticatedUser {institution = Nothing} conn =
 handle AuthenticatedUser {ident, institution = Just inst_id} conn =
   withWS @Resource conn $ \db resource -> do 
     $(logTM) DebugS $ fromString $ $location <> " received " <> show resource
-    let mkResp (WithField institution item)
-          | institution == inst_id = Just item
+    let mkResp (WithField user (WithField institution item))
+          | institution == inst_id && 
+            ident == user = 
+              Just item
           | otherwise = Nothing
     withResource @"Withdrawal" conn resource $ listenPsql @"withdrawal" @WithdrawalHistoryExt conn db ident mkResp
     

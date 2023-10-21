@@ -242,6 +242,7 @@ declare
 begin
     select
       json_build_object(
+        'user', tbl.user_ident,
         'institution', tbl.ident,
         'total', tbl.total,
         'items', tbl.history :: jsonb[]) 
@@ -249,9 +250,11 @@ begin
     into result  
     from (
       select
+        iu.user_id as user_ident,
         tmp.institution_id as ident,
         tmp2.total,
         array_agg(
+          distinct
           jsonb_build_object(
            'initiator', tmp.initiator,
            'ident', tmp.id,
@@ -269,7 +272,7 @@ begin
           f.amount,
           f.status,
           f.created_at
-        from institution.withdrawal as f 
+        from institution.withdrawal as f
         inner join institution.wallet as s
         on s.id = f.wallet_id
         inner join auth.user as u
@@ -284,8 +287,10 @@ begin
         inner join institution.wallet as s
         on s.id = f.wallet_id
         group by s.institution_id) as tmp2
-      on tmp.institution_id = tmp2.institution_id 
-      group by tmp.institution_id, tmp2.total) as tbl;
+      on tmp.institution_id = tmp2.institution_id
+      inner join institution.user as iu
+      on iu.institution_id = tmp.institution_id
+      group by tmp.institution_id, tmp2.total, iu.user_id) as tbl;
   perform 
     pg_notify(
       'withdrawal' || '_' || u.id,
@@ -309,6 +314,7 @@ declare
 begin
     select
       json_build_object(
+        'user', tbl.user_ident,
         'institution', tbl.ident,
         'total', tbl.total,
         'items', tbl.history :: jsonb[]) 
@@ -316,9 +322,11 @@ begin
     into result  
     from (
       select
+        iu.user_id as user_ident,
         tmp.institution_id as ident,
         tmp2.total,
         array_agg(
+          distinct
           jsonb_build_object(
            'initiator', tmp.initiator,
            'ident', tmp.id,
@@ -336,10 +344,13 @@ begin
           new.amount,
           new.status,
           new.created_at
-        from institution.wallet as s
+        from institution.withdrawal as w
         inner join auth.user as u
-        on new.wallet_id = s.id
-        where s.wallet_type = 'debit') as tmp
+        on w.user_id = u.id
+        inner join institution.wallet as s
+        on s.id = w.wallet_id
+        where s.wallet_type = 'debit' 
+        and new.id = w.id) as tmp
       inner join (
         select
           s.institution_id,
@@ -348,8 +359,10 @@ begin
         inner join institution.wallet as s
         on s.id = f.wallet_id
         group by s.institution_id) as tmp2
-      on tmp.institution_id = tmp2.institution_id 
-      group by tmp.institution_id, tmp2.total) as tbl;
+      on tmp.institution_id = tmp2.institution_id
+      inner join institution.user as iu
+      on iu.institution_id = tmp.institution_id
+      group by tmp.institution_id, tmp2.total, iu.user_id) as tbl;
   perform 
     pg_notify(
       'withdrawal' || '_' || u.id,
