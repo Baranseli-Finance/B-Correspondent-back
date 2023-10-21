@@ -229,8 +229,10 @@ create table institution.withdrawal (
   amount decimal(16, 2) not null,
   status text not null,
   created_at timestamp not null default now(),
+  external_id uuid default uuid_generate_v4(),
   constraint institution_withdrawal__wallet_id__fk foreign key (wallet_id) references institution.wallet(id),
-  constraint institution_withdrawal__user_id__fk foreign key (user_id) references auth.user(id));
+  constraint institution_withdrawal__user_id__fk foreign key (user_id) references auth.user(id),
+  constraint institution__withdrawal__external_id_unique unique (external_id));
 
 create or replace function notify_server_on_withdrawal()
 returns trigger as

@@ -35,6 +35,7 @@ import Data.Aeson.Generic.DerivingVia
 import GHC.Generics
 import Data.Tuple.Extended (snocT, app1, app2)
 import Data.Text (Text)
+import Data.UUID (UUID)
 
 
 initWithdrawal :: HS.Statement (Int64, Int32) (Either String ([Balance], WithdrawalHistory))
@@ -247,14 +248,15 @@ updateWallet =
       on list.invoice_ident = w.invoice_ident) as w
     where id = w.wallet_ident|]
 
-fetchWithdrawals :: HS.Statement () [(Int64, Text, Double)]
+fetchWithdrawals :: HS.Statement () [(Int64, Text, Double, UUID)]
 fetchWithdrawals =
   dimap (const (toJSON Registered)) V.toList 
   [vectorStatement|
      select
        f.id :: int8,
        s.payment_provider_ident :: text,
-       f.amount :: float8
+       f.amount :: float8,
+       f.external_id :: uuid
      from institution.withdrawal as f
      inner join institution.wallet as s
      on f.wallet_id = s.id

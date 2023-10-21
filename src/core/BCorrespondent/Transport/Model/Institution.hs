@@ -42,6 +42,7 @@ import Data.Char (toLower)
 import Data.Time.Clock (UTCTime)
 import Data.Text (Text)
 import Database.Transaction (ParamsShow (..))
+import Data.UUID (UUID)
 
 data Withdraw = 
      Withdraw 
@@ -196,7 +197,8 @@ deriveToSchemaFieldLabelModifier ''InitWithdrawal [|firstLetterModify (Proxy @In
 data WithdrawalPaymentProviderRequest =
      WithdrawalPaymentProviderRequest
      { withdrawalPaymentProviderRequestIdentificator :: !Text,
-       withdrawalPaymentProviderRequestAmount :: !Double 
+       withdrawalPaymentProviderRequestAmount :: !Double,
+       withdrawalPaymentProviderRequestExternalId :: !UUID
      }
     deriving stock (Generic, Show)
     deriving

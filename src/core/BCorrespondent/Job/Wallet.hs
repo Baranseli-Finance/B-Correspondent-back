@@ -21,7 +21,7 @@ import Database.Transaction (statement, transactionM)
 import Katip.Handler
 import qualified Control.Concurrent.Async.Lifted as Async
 import qualified Request as Request
-import Data.Tuple.Extended (del1)
+import Data.Tuple.Extended (del1, uncurryT)
 import Data.Either (partitionEithers)
 import Data.Foldable (for_)
 import Data.String.Conv (toS)
@@ -38,7 +38,7 @@ withdraw freq =
       manager <- fmap (^.httpReqManager) ask
       xs <- transactionM hasql $ statement fetchWithdrawals ()
       ys <- Async.forConcurrently xs $ \x -> do
-        let req = Left $ Just $ uncurry WithdrawalPaymentProviderRequest $ del1 x
+        let req = Left $ Just $ uncurryT WithdrawalPaymentProviderRequest $ del1 x
         _ <- Request.make @WithdrawalPaymentProviderRequest undefined manager [] Request.methodPost req
         undefined
       let (es, os) = partitionEithers ys
