@@ -21,7 +21,9 @@ module BCorrespondent.Transport.Model.Institution
          InitWithdrawal (..),
          WithdrawResult (..),
          WithdrawResultStatus (..),
-         WithdrawalHistory (..)
+         WithdrawalHistory (..),
+         WithdrawalPaymentProviderRequest 
+           (WithdrawalPaymentProviderRequest)
        ) where
 
 import BCorrespondent.Transport.Model.Invoice (Currency)
@@ -32,12 +34,13 @@ import Data.Swagger.Schema.Extended
         firstLetterModify, 
         deriveToSchemaConstructorTag
       )
-import Data.Aeson (ToJSON, FromJSON)
+import Data.Aeson (ToJSON, FromJSON, toJSON)
 import GHC.Generics (Generic)
 import Data.Int (Int64)
 import Data.Char (toLower)
 import Data.Time.Clock (UTCTime)
 import Data.Text (Text)
+import Database.Transaction (ParamsShow (..))
 
 data Withdraw = 
      Withdraw 
@@ -126,6 +129,9 @@ data WithdrawalStatus =
 
 deriveToSchemaConstructorTag ''WithdrawalStatus [| map toLower |]
 
+instance ParamsShow WithdrawalStatus where
+  render = show . toJSON
+
 data WithdrawalHistoryItem = 
      WithdrawalHistoryItem 
      { withdrawalHistoryItemInitiator :: Text,
@@ -184,3 +190,21 @@ data InitWithdrawal =
       InitWithdrawal
 
 deriveToSchemaFieldLabelModifier ''InitWithdrawal [|firstLetterModify (Proxy @InitWithdrawal)|]
+
+
+data WithdrawalPaymentProviderRequest =
+     WithdrawalPaymentProviderRequest
+     { withdrawalPaymentProviderRequestIdentificator :: !Text,
+       withdrawalPaymentProviderRequestAmount :: !Double 
+     }
+    deriving stock (Generic, Show)
+    deriving
+      (ToJSON)
+      via WithOptions 
+          '[FieldLabelModifier
+            '[UserDefined FirstLetterToLower,
+              UserDefined
+              (StripConstructor 
+               WithdrawalPaymentProviderRequest)]]
+      WithdrawalPaymentProviderRequest
+    

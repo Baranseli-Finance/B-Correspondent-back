@@ -17,6 +17,8 @@ module BCorrespondent.Statement.Institution
          registerWithdrawal,
          getWithdrawalPage,
          updateWallet,
+         fetchWithdrawals,
+         updateWithdrawalStatus,
          WithdrawResult (..)
        ) where
 
@@ -31,7 +33,8 @@ import Data.Aeson (eitherDecode, encode, toJSON, FromJSON, Value)
 import qualified Data.Vector as V
 import Data.Aeson.Generic.DerivingVia
 import GHC.Generics
-import Data.Tuple.Extended (snocT)
+import Data.Tuple.Extended (snocT, app1, app2)
+import Data.Text (Text)
 
 
 initWithdrawal :: HS.Statement (Int64, Int32) (Either String ([Balance], WithdrawalHistory))
@@ -243,3 +246,24 @@ updateWallet =
         and tr.currency = w.currency) as w
       on list.invoice_ident = w.invoice_ident) as w
     where id = w.wallet_ident|]
+
+fetchWithdrawals :: HS.Statement () [(Int64, Text, Double)]
+fetchWithdrawals =
+  dimap (const (toJSON Registered)) V.toList 
+  [vectorStatement|
+     select
+       f.id :: int8,
+       s.payment_provider_ident :: text,
+       f.amount :: float8
+     from institution.withdrawal as f
+     inner join institution.wallet as s
+     on f.wallet_id = s.id
+     where f.status = ($1 :: jsonb) #>> '{}'|]
+
+updateWithdrawalStatus :: HS.Statement (WithdrawalStatus, [Int64]) ()
+updateWithdrawalStatus = 
+  lmap (app2 V.fromList . app1 toJSON)
+  [resultlessStatement|
+    update institution.withdrawal
+    set status = ($1 :: jsonb) #>> '{}'
+    where id = any($2 :: int8[])|]

@@ -78,6 +78,7 @@ create table institution.wallet (
     amount decimal(24, 2) not null default 0,
     wallet_type text not null,
     modified_at timestamptz null,
+    payment_provider_ident text not null,
     constraint institution_account__institution_id__fk foreign key (institution_id) references auth.institution(id),
     constraint institution__wallet_institution_id_currency_wallet_type__unique unique(institution_id, currency, wallet_type));
 
