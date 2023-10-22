@@ -27,7 +27,7 @@ handle user direction GapItemTime {gapItemTimeHour=hour, gapItemTimeMin=min} =
     date@(year, day) <- fmap (toOrdinalDate . utctDay) currentTime
     let params
           | direction == Backward = 
-              let start = 
+              let start =
                     UTCTime 
                     (uncurry fromOrdinalDate date) $
                     fromIntegral $

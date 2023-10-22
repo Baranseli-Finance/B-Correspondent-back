@@ -53,7 +53,7 @@ module BCorrespondent.Transport.Model.Frontend
         HistoryTimeline (..),
         Notifications (..),
         Notification,
-        Issue,
+        Issue (..),
         encodeHistoryDate
        ) where
 
@@ -508,13 +508,14 @@ deriveToSchemaFieldLabelModifier ''Notifications [|firstLetterModify (Proxy @Not
 data Issue = 
      Issue 
      { issueDescription :: !Text,
-       issueFiles :: ![Int64]
+       issueFiles :: !(Maybe [[Int64]])
      }
     deriving stock (Generic, Show)
     deriving
       (ToJSON, FromJSON)
       via WithOptions 
-          '[FieldLabelModifier
+          '[OmitNothingFields 'True,
+            FieldLabelModifier
             '[UserDefined FirstLetterToLower,
               UserDefined 
               (StripConstructor 

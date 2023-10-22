@@ -8,7 +8,8 @@
 module BCorrespondent.Api.Handler.Fs.Upload (handle) where
 
 import BCorrespondent.Api.Handler.Utils (withError)
-import BCorrespondent.Statement.Fs (insertFiles, InsertFile (..))
+import BCorrespondent.Statement.Fs (insertFiles)
+import qualified BCorrespondent.Statement.Fs as Fs
 import BCorrespondent.Transport.Response (Response)
 import BCorrespondent.Auth (AuthenticatedUser (..), Role (Writer))
 import BCorrespondent.Transport.Model.Fs (Bucket (..))
@@ -69,12 +70,12 @@ handle AuthenticatedUser {..} bucket files = do
                 coerce @_ @Text newBucket
           let err = "file server failed to respond"
           let file =
-                 InsertFile
-                 { insertFileHash = hash, 
-                   insertFileName = fileName, 
-                   insertFileMime = fileMime,
-                   insertFileBucket = newBucket,
-                   insertFileExts = fileExts
+                 Fs.File
+                 { fileHash = hash, 
+                   fileName = fileName, 
+                   fileMime = fileMime,
+                   fileBucket = newBucket,
+                   fileExts = fileExts
                  }
           liftIO $
             fmap (fmap (const file) . join . maybeToRight err) $

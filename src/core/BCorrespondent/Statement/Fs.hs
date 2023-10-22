@@ -7,7 +7,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# OPTIONS_GHC -fno-warn-unused-top-binds #-}
 
-module BCorrespondent.Statement.Fs (insertFiles, InsertFile (..)) where
+module BCorrespondent.Statement.Fs (insertFiles, fetchFiles, File (..)) where
 
 import qualified Hasql.Statement as HS
 import Hasql.TH
@@ -23,33 +23,33 @@ import Control.Lens
 import Data.Tuple.Extended (app5)
 import Data.Aeson (toJSON)
 
-data InsertFile = 
-     InsertFile 
-     { insertFileHash :: T.Text, 
-       insertFileName :: T.Text, 
-       insertFileMime :: T.Text, 
-       insertFileBucket :: T.Text, 
-       insertFileExts :: [T.Text]
+data File = 
+     File 
+     { fileHash :: T.Text, 
+       fileName :: T.Text, 
+       fileMime :: T.Text, 
+       fileBucket :: T.Text, 
+       fileExts :: [T.Text]
      }
      deriving (Generic, Show)
 
-mkEncoder ''InsertFile
-mkArbitrary ''InsertFile
+mkEncoder ''File
+mkArbitrary ''File
 
-encodeInsertFile = 
-    fromMaybe (error "cannot encode InsertFile") 
-  . mkEncoderInsertFile
+encodeFile = 
+    fromMaybe (error "cannot encode File") 
+  . mkEncoderFile
 
-instance ParamsShow InsertFile where
-  render = render . encodeInsertFile
+instance ParamsShow File where
+  render = render . encodeFile
 
-insertFiles :: HS.Statement [InsertFile] [Int64]
+insertFiles :: HS.Statement [File] [Int64]
 insertFiles = 
   dimap (
       V.unzip5 
     . V.map (
           app5 toJSON 
-        . encodeInsertFile) 
+        . encodeFile) 
     . V.fromList) 
     V.toList 
   [vectorStatement|
@@ -62,3 +62,6 @@ insertFiles =
       $5 :: json[]) 
       as x(hash, title, mime, bucket, exts)
     returning id :: int8|]
+
+fetchFiles :: HS.Statement [Int64] [File]
+fetchFiles = undefined

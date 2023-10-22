@@ -10,7 +10,7 @@ module BCorrespondent.Api.Handler.Webhook.PaymentProvider.Elekse.Transaction (ha
 import BCorrespondent.Transport.Model.Transaction 
        (TransactionFromPaymentProvider (..))
 import BCorrespondent.Statement.Transaction (create)
-import BCorrespondent.Statement.Fs (InsertFile (..), insertFiles)
+import BCorrespondent.Statement.Fs (File (..), insertFiles)
 import BCorrespondent.Transport.Response (Response (Ok))
 import Katip.Handler (KatipHandlerM, hasqlDbPool, katipEnv, ask, Minio (..), minio)
 import Database.Transaction (transactionM, statement)
@@ -76,12 +76,12 @@ commitSwiftMessage fileName s = do
     let bucket = "transaction"
     let fileMime = "application/octet-stream"
     let file =
-          InsertFile
-          { insertFileHash = hash, 
-            insertFileName = fileName,
-            insertFileMime = fileMime,
-            insertFileBucket = bucket,
-            insertFileExts = []
+          File
+          { fileHash = hash, 
+            fileName = fileName,
+            fileMime = fileMime,
+            fileBucket = bucket,
+            fileExts = []
           }
     let err = "file server failed to respond"
     minioRes <- liftIO $  
