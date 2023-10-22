@@ -5,6 +5,8 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE DerivingVia #-}
 {-# OPTIONS_GHC -fno-warn-unused-top-binds #-}
 
 module BCorrespondent.Statement.Fs (insertFiles, fetchFiles, File (..)) where
@@ -21,17 +23,24 @@ import Data.Int (Int64)
 import qualified Data.Vector as V
 import Control.Lens
 import Data.Tuple.Extended (app5)
-import Data.Aeson (toJSON)
+import Data.Aeson (toJSON, eitherDecode, encode, ToJSON, FromJSON)
+import Data.Aeson.Generic.DerivingVia
 
 data File = 
      File 
      { fileHash :: T.Text, 
        fileName :: T.Text, 
-       fileMime :: T.Text, 
+       fileMime :: T.Text,
        fileBucket :: T.Text, 
        fileExts :: [T.Text]
      }
-     deriving (Generic, Show)
+     deriving stock (Generic, Show)
+     deriving (FromJSON, ToJSON)
+       via WithOptions
+          '[ FieldLabelModifier 
+            '[UserDefined FirstLetterToLower, 
+              UserDefined (StripConstructor File)]]
+          File
 
 mkEncoder ''File
 mkArbitrary ''File
@@ -63,5 +72,17 @@ insertFiles =
       as x(hash, title, mime, bucket, exts)
     returning id :: int8|]
 
-fetchFiles :: HS.Statement [Int64] [File]
-fetchFiles = undefined
+fetchFiles :: HS.Statement [Int64] (Either String [File])
+fetchFiles =
+  dimap V.fromList (sequence . map (eitherDecode @File . encode) . V.toList)
+  [vectorStatement|
+    select
+      json_build_object(
+        'hash', hash,
+        'name', title,
+        'mime', mime,
+        'bucket', bucket,
+        'exts', exts) :: jsonb
+    from storage.file
+    where id = any($1 :: int8[])|]
+
