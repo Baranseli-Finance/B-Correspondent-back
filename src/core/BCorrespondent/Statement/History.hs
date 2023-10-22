@@ -9,6 +9,7 @@
 
 module BCorrespondent.Statement.History (initTimeline, getLastRefreshTm, refreshMV, getHourShift) where
 
+import BCorrespondent.Statement.Types
 import BCorrespondent.Transport.Model.Frontend (HistoryDate, encodeHistoryDate)
 import BCorrespondent.Statement.Dashboard (TimelineGapsItem)
 import BCorrespondent.Statement.Invoice (Status (..))
@@ -18,13 +19,15 @@ import Hasql.TH
 import Hasql.Decoders (noResult)
 import Hasql.Encoders (noParams)
 import Data.Tuple.Extended (consT, snocT)
-import Data.Int (Int64, Int32)
-import Data.Tuple.Extended (mapPolyT)
+import Data.Int (Int64)
+import Data.Tuple.Extended (mapPolyT, app2, app3, app4, app5, app6)
 import qualified Data.Vector as V
 import qualified Data.Aeson as A (encode, eitherDecode)
 import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import Data.String.Conv (toS)
+import Data.Coerce (coerce)
+import Data.Word (Word8)
 
 
 initTimeline :: HS.Statement (Int64, Int64, HistoryDate) (Either String (Text, [TimelineGapsItem]))
@@ -102,12 +105,17 @@ getLastRefreshTm =
 refreshMV :: HS.Statement () ()
 refreshMV = HS.Statement [uncheckedSql|refresh materialized view mv.invoice_and_transaction|] noParams noResult True
 
-getHourShift :: HS.Statement (Int64, Int32, Int32, Int32, Int32, Int32) (Either String [TimelineGapsItem])
+getHourShift :: HS.Statement (Int64, Year, Month, Day, Hour, Hour) (Either String [TimelineGapsItem])
 getHourShift =
   dimap
    (snocT (toS (show Declined)) .
     snocT (toS (show Confirmed)) .
-    snocT (toS (show ForwardedToPaymentProvider)))
+    snocT (toS (show ForwardedToPaymentProvider)) .
+    app2 (fromIntegral @Word8 . coerce) . 
+    app3 (fromIntegral @Word8 . coerce) .
+    app4 (fromIntegral @Word8 . coerce) .
+    app5 (fromIntegral @Word8 . coerce) .
+    app6 (fromIntegral @Word8 . coerce) )
   (fromMaybe (Right []) . fmap (sequence . map (A.eitherDecode @TimelineGapsItem . A.encode) . V.toList))  
   [singletonStatement|
    with tbl as (

@@ -24,6 +24,7 @@ module BCorrespondent.Statement.Dashboard
 import BCorrespondent.Statement.Invoice (Status (..))
 import BCorrespondent.Transport.Model.Frontend (TimelineTransaction, Wallet)
 import BCorrespondent.Transport.Model.Invoice (Currency)
+import BCorrespondent.Statement.Types
 import qualified Hasql.Statement as HS
 import Hasql.TH
 import Data.Aeson.Generic.DerivingVia
@@ -33,10 +34,12 @@ import Data.Text (Text)
 import Data.Time.Clock (UTCTime)
 import Control.Lens (dimap, rmap)
 import qualified Data.Vector as V
-import Data.Tuple.Extended (snocT)
+import Data.Tuple.Extended (snocT, app2, app3, app4, app5)
 import Data.String.Conv (toS)
 import Data.Maybe (fromMaybe)
-import Data.Int (Int64, Int32)
+import Data.Int (Int64)
+import Data.Word (Word8)
+import Data.Coerce (coerce)
 
 
 data TimelineGapsItem = 
@@ -232,9 +235,14 @@ data Gap =
               UserDefined (StripConstructor Gap)]]
           Gap
 
-getGap :: HS.Statement (Int64, Int32, Int32, Int32, Int32) (Either String  [Gap])
+getGap :: HS.Statement (Int64, Hour, Min, Hour, Min) (Either String  [Gap])
 getGap = 
-  rmap (sequence . map (eitherDecode @Gap . encode) . V.toList)
+  dimap
+  ( app5 (fromIntegral @Word8 . coerce)
+  . app4 (fromIntegral @Word8 . coerce)
+  . app3 (fromIntegral @Word8 . coerce)
+  . app2 (fromIntegral @Word8 . coerce))
+  (sequence . map (eitherDecode @Gap . encode) . V.toList)
   [vectorStatement|
     select
       json_build_object(

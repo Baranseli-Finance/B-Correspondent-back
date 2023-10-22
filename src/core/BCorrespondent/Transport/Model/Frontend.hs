@@ -57,6 +57,7 @@ module BCorrespondent.Transport.Model.Frontend
         encodeHistoryDate
        ) where
 
+import BCorrespondent.Statement.Types
 import BCorrespondent.Transport.Model.Invoice (Currency)
 import Data.Text (Text, splitOn, unpack)
 import Data.Aeson (ToJSON, FromJSON)
@@ -90,6 +91,9 @@ import Data.UUID (UUID)
 import Data.Aeson.TH.Extended (deriveToJSON, defaultOptions)
 import Data.Maybe (fromMaybe)
 import Database.Transaction (ParamsShow (..))
+import Data.Coerce (coerce)
+import Data.Tuple.Extended (app1, app2, app3)
+import Data.Word (Word8)
 
 
 data ProcuratoryRequest = 
@@ -422,9 +426,9 @@ deriveToSchema ''TimelineTransactionResponse
 
 data HistoryDate = 
      HistoryDate 
-     { historyDateYear :: Int,
-       historyDateMonth :: Int,
-       historyDateDay :: Int
+     { historyDateYear :: Year,
+       historyDateMonth :: Month,
+       historyDateDay :: Day
      }
     deriving stock (Generic, Show, Ord, Eq)
     deriving
@@ -443,14 +447,20 @@ instance ToParamSchema HistoryDate where
 instance FromHttpApiData HistoryDate where
   parseUrlPiece s = 
     case map (read @Int . unpack) (splitOn "," s) of
-      [y, m, d] -> Right $ HistoryDate y m d
+      [y, m, d] -> Right $ HistoryDate (Year (fromIntegral y)) (Month (fromIntegral m)) (Day (fromIntegral d))
       _ -> Left $ "cannot parse " <> s <> " into HistoryDate"
 
 mkEncoder ''HistoryDate
 mkArbitrary ''HistoryDate
 
 encodeHistoryDate :: HistoryDate -> (Int, Int, Int)
-encodeHistoryDate = fromMaybe undefined . mkEncoderHistoryDate
+encodeHistoryDate = 
+  fromMaybe undefined .
+  fmap (
+    app1 (fromIntegral . coerce @_ @Word8) .
+    app2 (fromIntegral . coerce @_ @Word8) .
+    app3 (fromIntegral . coerce @_ @Word8)) .
+  mkEncoderHistoryDate
 
 instance ParamsShow HistoryDate where
   render = show . encodeHistoryDate

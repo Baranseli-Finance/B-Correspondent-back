@@ -5,6 +5,7 @@
 
 module BCorrespondent.Api.Handler.Frontend.User.ShiftTimelineHistory (handle) where
 
+import BCorrespondent.Statement.Types
 import BCorrespondent.Transport.Response (Response (Error))
 import BCorrespondent.Api.Handler.Frontend.User.InitDashboard (transform)
 import BCorrespondent.Statement.History (getHourShift)
@@ -47,7 +48,12 @@ handle user y m d direction hour
                  | otherwise = hour - 1
         let to | direction == Forward = hour + 1
                | otherwise = hour
-        let params = consT inst_ident $ mapPolyT fromIntegral (y, m, d, from, to)
+        let params = 
+              consT inst_ident $ 
+              consT (Year (fromIntegral y)) $
+              consT (Month (fromIntegral m)) $
+              consT (Day (fromIntegral d)) $
+              mapPolyT (Hour . fromIntegral) (from, to)
         $(logTM) DebugS $ fromString $ $location <> " params ---> " <> show params
         dbResp <- transactionM hasql $ statement getHourShift params
         pure $ withError dbResp transform
