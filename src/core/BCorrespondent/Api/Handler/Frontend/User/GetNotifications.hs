@@ -9,7 +9,7 @@ import qualified BCorrespondent.Auth as Auth
 import Katip.Handler (KatipHandlerM)
 
 handle :: Auth.AuthenticatedUser 'Auth.Reader  -> KatipHandlerM (Response Notifications) 
-handle _ = return $ Ok $ Notifications 45 $ map Notification xs
+handle _ = return $ Ok $ Notifications 45 $ zipWith Notification [1..] xs
 
 xs =
     [

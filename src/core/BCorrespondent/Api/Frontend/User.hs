@@ -113,6 +113,13 @@ data UserApi route = UserApi
           :> RateLimit (FixedWindow (Second 1) 50) (KeyPolicy "Token")
           :> SA.Auth '[JWT] (AuthenticatedUser 'Reader)
           :> Get '[JSON] (Response Notifications),
+    _userApiMarkNotificationRead ::
+      route
+        :- "notification"
+          :> RateLimit (FixedWindow (Second 1) 100) (KeyPolicy "Token")
+          :> SA.Auth '[JWT] (AuthenticatedUser 'Reader)
+          :> ReqBody '[JSON] (Id "NotificationIdent")
+          :> Post '[JSON] (Response ()),          
     _userApiSubmitIssue ::
       route
         :- "issue"

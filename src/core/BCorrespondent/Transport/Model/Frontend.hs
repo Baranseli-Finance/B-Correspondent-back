@@ -483,7 +483,11 @@ data HistoryTimeline =
 
 deriveToSchemaFieldLabelModifier ''HistoryTimeline [|firstLetterModify (Proxy @HistoryTimeline)|]
 
-data Notification = Notification { notificationText :: Text }
+data Notification = 
+     Notification 
+     { notificationIdent :: Int64,
+       notificationText :: Text 
+     }
     deriving stock (Generic, Show)
     deriving
       (ToJSON, FromJSON)

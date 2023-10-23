@@ -42,6 +42,7 @@ import qualified BCorrespondent.Api.Handler.Institution.GetWithdrawalHistoryPage
 import qualified BCorrespondent.Api.Handler.WS.Institution.Withdrawal as WS.Institution.Withdrawal
 import qualified BCorrespondent.Api.Handler.Admin.CreateUser as Admin.CreateUser
 import qualified BCorrespondent.Api.Handler.Frontend.User.GetNotifications as User.GetNotifications
+import qualified BCorrespondent.Api.Handler.Frontend.User.MarkNotificationRead as User.MarkNotificationRead
 import qualified BCorrespondent.Api.Handler.Frontend.User.SubmitIssue as User.SubmitIssue 
 -- << end handlers
 import qualified BCorrespondent.Auth as Auth
@@ -223,6 +224,12 @@ user nm =
            katipAddNamespace
            (Namespace [nm, "notification"]) $
            User.GetNotifications.handle user,
+    _userApiMarkNotificationRead = \auth ident ->
+       auth `Auth.withAuth` \user ->
+         flip logExceptionM ErrorS $
+           katipAddNamespace
+           (Namespace [nm, "notification", "read"]) $
+           User.MarkNotificationRead.handle user ident,
     _userApiSubmitIssue = \auth req ->
        auth `Auth.withAuth` \_ ->
          flip logExceptionM ErrorS $

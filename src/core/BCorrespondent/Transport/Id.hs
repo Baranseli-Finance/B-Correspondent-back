@@ -24,11 +24,15 @@ import GHC.Types
 import Servant.API
 import Test.QuickCheck (Arbitrary)
 import TextShow
+import Data.String.Conv (toS)
+import GHC.TypeLits (symbolVal, KnownSymbol)
+import Control.Lens
+import Data.Proxy (Proxy (..))
 
 -- | Type for ids that is shared across all the projects.
 -- user id is int64, so it's encrypted as "text" in json,
 -- otherwise js code may fail to work with it.
-newtype Id (a :: Symbol) = Id Int64
+newtype Id (s :: Symbol) = Id Int64
   deriving newtype (Show, Eq)
   deriving newtype (Arbitrary)
   deriving newtype (Binary)
@@ -47,6 +51,10 @@ newtype Id (a :: Symbol) = Id Int64
   deriving newtype (ToJSON)
   deriving newtype (FromJSON)
 
-instance ToSchema (Id a)
+instance KnownSymbol s => ToSchema (Id s) where
+  declareNamedSchema _ = do 
+    int <- declareSchemaRef (Proxy @Int64)
+    let ident = toS (symbolVal (Proxy @s))
+    pure $ NamedSchema (Just ident) $ mempty & type_ ?~ SwaggerInteger
 
 instance Default (Id a)
