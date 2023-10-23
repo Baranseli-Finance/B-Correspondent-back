@@ -235,7 +235,8 @@ user nm =
          flip logExceptionM ErrorS $
            katipAddNamespace
            (Namespace [nm, "issue"]) $
-           User.SubmitIssue.handle req
+           User.SubmitIssue.handle req,
+    _userApiInitBalancedBook = undefined
   }
 
 institution :: InstitutionApi (AsServerT KatipHandlerM)

@@ -18,7 +18,8 @@ import BCorrespondent.Transport.Model.Frontend
         TimelineTransactionResponse,
         HistoryDate,
         Notifications,
-        Issue
+        Issue,
+        BalancedBook
        )
 import BCorrespondent.Transport.Id (Id)       
 import BCorrespondent.Auth (AuthenticatedUser, JWT, Role (..))
@@ -126,6 +127,12 @@ data UserApi route = UserApi
           :> RateLimit (FixedWindow (Second 1) 1) (KeyPolicy "Token")
           :> SA.Auth '[JWT] (AuthenticatedUser 'None)
           :> ReqBody '[JSON] Issue
-          :> Put '[JSON] (Response ())
+          :> Put '[JSON] (Response ()),
+    _userApiInitBalancedBook ::
+      route
+        :- "balanced-book"
+          :> RateLimit (FixedWindow (Second 1) 50) (KeyPolicy "Token")
+          :> SA.Auth '[JWT] (AuthenticatedUser 'Reader)
+          :> Get '[JSON] (Response BalancedBook)
   }
   deriving stock (Generic)

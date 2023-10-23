@@ -54,6 +54,7 @@ module BCorrespondent.Transport.Model.Frontend
         Notifications (..),
         Notification (..),
         Issue (..),
+        BalancedBook,
         encodeHistoryDate
        ) where
 
@@ -537,3 +538,68 @@ data Issue =
       Issue
 
 deriveToSchemaFieldLabelModifier ''Issue [|firstLetterModify (Proxy @Issue)|]
+
+type DayOfWeek = Int
+
+data AmountInDayOfWeek = 
+     AmountInDayOfWeek
+     { amountInDayOfWeekValue :: !DayOfWeek, 
+       amountInDayOfWeekTotal :: !Int 
+     }
+    deriving stock (Generic, Show)
+    deriving
+      (ToJSON, FromJSON)
+      via WithOptions 
+          '[OmitNothingFields 'True,
+            FieldLabelModifier
+            '[UserDefined FirstLetterToLower,
+              UserDefined 
+              (StripConstructor 
+               AmountInDayOfWeek)]]
+      AmountInDayOfWeek
+
+deriveToSchemaFieldLabelModifier 
+  ''AmountInDayOfWeek 
+  [|firstLetterModify (Proxy @AmountInDayOfWeek)|]
+
+data WeekHourlyTransaction = 
+     WeekHourlyTransaction {
+      weekHourlyTransactionFrom :: !GapItemTime,
+      weekHourlyTransactionTo :: !GapItemTime,
+      weekOfDayTransactionAmountInDayOfWeek :: !AmountInDayOfWeek,
+      weekHourlyTransactionTotal :: !Double
+     }
+    deriving stock (Generic, Show)
+    deriving
+      (ToJSON, FromJSON)
+      via WithOptions 
+          '[OmitNothingFields 'True,
+            FieldLabelModifier
+            '[UserDefined FirstLetterToLower,
+              UserDefined 
+              (StripConstructor 
+               WeekHourlyTransaction)]]
+      WeekHourlyTransaction
+
+deriveToSchemaFieldLabelModifier 
+  ''WeekHourlyTransaction 
+  [|firstLetterModify (Proxy @WeekHourlyTransaction)|]
+
+data BalancedBook = 
+     BalancedBook
+     { balancedBookWeekHourlyTransactions 
+        :: ![WeekHourlyTransaction]
+     }
+    deriving stock (Generic, Show)
+    deriving
+      (ToJSON, FromJSON)
+      via WithOptions 
+          '[OmitNothingFields 'True,
+            FieldLabelModifier
+            '[UserDefined FirstLetterToLower,
+              UserDefined 
+              (StripConstructor 
+               BalancedBook)]]
+      BalancedBook
+
+deriveToSchemaFieldLabelModifier ''BalancedBook [|firstLetterModify (Proxy @BalancedBook)|]
