@@ -43,7 +43,8 @@ import qualified BCorrespondent.Api.Handler.WS.Institution.Withdrawal as WS.Inst
 import qualified BCorrespondent.Api.Handler.Admin.CreateUser as Admin.CreateUser
 import qualified BCorrespondent.Api.Handler.Frontend.User.GetNotifications as User.GetNotifications
 import qualified BCorrespondent.Api.Handler.Frontend.User.MarkNotificationRead as User.MarkNotificationRead
-import qualified BCorrespondent.Api.Handler.Frontend.User.SubmitIssue as User.SubmitIssue 
+import qualified BCorrespondent.Api.Handler.Frontend.User.SubmitIssue as User.SubmitIssue
+import qualified BCorrespondent.Api.Handler.Frontend.User.InitBalancedBook as User.InitBalancedBook
 -- << end handlers
 import qualified BCorrespondent.Auth as Auth
 import Katip
@@ -171,14 +172,14 @@ user nm =
       auth `Auth.withAuth` \user ->
          flip logExceptionM ErrorS $
            katipAddNamespace
-           (Namespace [nm, "balanceSheet", "gap"])
+           (Namespace [nm, "dashboard", "timeline", "gap"])
            (Frontend.User.FetchGap.handle user from to),
     _userApiNotifyTransactionUpdate =
       \(pend :: WS.PendingConnection) ->
         pend `Auth.withWSAuth` \(ident, conn) ->
           flip logExceptionM ErrorS
           $ katipAddNamespace
-            (Namespace [nm, "balanceSheet", "transaction"])
+            (Namespace [nm, "dashboard", "timeline", "transaction"])
             (WS.User.Transaction.handle ident conn),
     _userApiNotifyWalletUpdate =
       \(pend :: WS.PendingConnection) ->
@@ -210,13 +211,13 @@ user nm =
        auth `Auth.withAuth` \user ->
          flip logExceptionM ErrorS $
            katipAddNamespace
-             (Namespace [nm, "balanceSheet", "timeline"])
+             (Namespace [nm, "dashboard", "timeline", "gap"])
              (Frontend.User.FetchTimeline.handle user direction point),
     _userApiGetTimelineTransaction = \auth ident ->
        auth `Auth.withAuth` \user ->
          flip logExceptionM ErrorS $
            katipAddNamespace
-           (Namespace [nm, "balanceSheet", "timeline", "transaction"])
+           (Namespace [nm,  "dashboard", "timeline", "transaction"])
            (Frontend.User.GetTimelineTransaction.handle user ident),
     _userApiGetNotifications = \auth ->
        auth `Auth.withAuth` \user ->
@@ -236,7 +237,12 @@ user nm =
            katipAddNamespace
            (Namespace [nm, "issue"]) $
            User.SubmitIssue.handle req,
-    _userApiInitBalancedBook = undefined
+    _userApiInitBalancedBook = \auth ->
+       auth `Auth.withAuth` \user ->
+         flip logExceptionM ErrorS $
+           katipAddNamespace
+           (Namespace [nm, "balanced-book"]) $
+           User.InitBalancedBook.handle user
   }
 
 institution :: InstitutionApi (AsServerT KatipHandlerM)

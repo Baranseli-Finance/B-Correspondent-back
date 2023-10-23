@@ -54,7 +54,9 @@ module BCorrespondent.Transport.Model.Frontend
         Notifications (..),
         Notification (..),
         Issue (..),
-        BalancedBook,
+        BalancedBook (..),
+        WeekHourlyTransaction (..),
+        AmountInDayOfWeek (..),
         encodeHistoryDate
        ) where
 
@@ -94,7 +96,7 @@ import Data.Maybe (fromMaybe)
 import Database.Transaction (ParamsShow (..))
 import Data.Coerce (coerce)
 import Data.Tuple.Extended (app1, app2, app3)
-import Data.Word (Word8)
+import Data.Word (Word8, Word32)
 
 
 data ProcuratoryRequest = 
@@ -458,7 +460,7 @@ encodeHistoryDate :: HistoryDate -> (Int, Int, Int)
 encodeHistoryDate = 
   fromMaybe undefined .
   fmap (
-    app1 (fromIntegral . coerce @_ @Word8) .
+    app1 (fromIntegral . coerce @_ @Word32) .
     app2 (fromIntegral . coerce @_ @Word8) .
     app3 (fromIntegral . coerce @_ @Word8)) .
   mkEncoderHistoryDate
@@ -544,7 +546,7 @@ type DayOfWeek = Int
 data AmountInDayOfWeek = 
      AmountInDayOfWeek
      { amountInDayOfWeekValue :: !DayOfWeek, 
-       amountInDayOfWeekTotal :: !Int 
+       amountInDayOfWeekTotal :: !Int
      }
     deriving stock (Generic, Show)
     deriving
@@ -562,11 +564,11 @@ deriveToSchemaFieldLabelModifier
   ''AmountInDayOfWeek 
   [|firstLetterModify (Proxy @AmountInDayOfWeek)|]
 
-data WeekHourlyTransaction = 
+data WeekHourlyTransaction =
      WeekHourlyTransaction {
       weekHourlyTransactionFrom :: !GapItemTime,
       weekHourlyTransactionTo :: !GapItemTime,
-      weekOfDayTransactionAmountInDayOfWeek :: !AmountInDayOfWeek,
+      weekHourlyTransactionAmountInDayOfWeek :: ![AmountInDayOfWeek],
       weekHourlyTransactionTotal :: !Double
      }
     deriving stock (Generic, Show)
@@ -587,8 +589,9 @@ deriveToSchemaFieldLabelModifier
 
 data BalancedBook = 
      BalancedBook
-     { balancedBookWeekHourlyTransactions 
-        :: ![WeekHourlyTransaction]
+     { balancedBookInstitution :: !Text,
+       balancedBookWeekHourlyTransactions
+         :: ![WeekHourlyTransaction]
      }
     deriving stock (Generic, Show)
     deriving
