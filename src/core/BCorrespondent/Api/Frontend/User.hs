@@ -62,7 +62,7 @@ data UserApi route = UserApi
     _userApiFetchGap ::
       route
         :- "dashboard"
-          :> "daily-balance-sheet"
+          :> "timeline"
           :> "gap"
           :> RateLimit (FixedWindow (Second 1) 50) (KeyPolicy "Token")
           :> SA.Auth '[JWT] (AuthenticatedUser 'Reader)
@@ -72,7 +72,6 @@ data UserApi route = UserApi
     _userApiFetchOneHourTimeline ::
       route
         :- "dashboard"
-          :> "daily-balance-sheet"
           :> "timeline"
           :> RateLimit (FixedWindow (Second 1) 50) (KeyPolicy "Token")
           :> SA.Auth '[JWT] (AuthenticatedUser 'Reader)
@@ -82,7 +81,6 @@ data UserApi route = UserApi
     _userApiNotifyTransactionUpdate ::
       route
         :- "dashboard"
-        :> "daily-balance-sheet"
         :> "transaction"
         :> "update"
         :> WebSocketPending,
