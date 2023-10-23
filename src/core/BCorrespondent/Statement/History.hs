@@ -27,7 +27,7 @@ import Data.Maybe (fromMaybe)
 import Data.Text (Text)
 import Data.String.Conv (toS)
 import Data.Coerce (coerce)
-import Data.Word (Word8)
+import Data.Word (Word8, Word32)
 
 
 initTimeline :: HS.Statement (Int64, Int64, HistoryDate) (Either String (Text, [TimelineGapsItem]))
@@ -111,7 +111,7 @@ getHourShift =
    (snocT (toS (show Declined)) .
     snocT (toS (show Confirmed)) .
     snocT (toS (show ForwardedToPaymentProvider)) .
-    app2 (fromIntegral @Word8 . coerce) . 
+    app2 (fromIntegral @Word32 . coerce) . 
     app3 (fromIntegral @Word8 . coerce) .
     app4 (fromIntegral @Word8 . coerce) .
     app5 (fromIntegral @Word8 . coerce) .

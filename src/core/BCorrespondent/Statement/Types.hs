@@ -3,7 +3,7 @@
 
 module BCorrespondent.Statement.Types where
 
-import Data.Word (Word8)
+import Data.Word (Word8, Word32)
 import Test.QuickCheck.Extended (Arbitrary (..), chooseInt)
 import Database.Transaction (ParamsShow (..))
 import Data.Aeson (FromJSON, ToJSON)
@@ -38,7 +38,7 @@ instance ParamsShow Sec where
 instance Arbitrary Sec where
   arbitrary = fmap fromIntegral $ chooseInt (0, 59)
 
-newtype Year = Year Word8
+newtype Year = Year Word32
   deriving newtype (Num, ToJSON, FromJSON)
   deriving (Show, Ord, Eq)
 
