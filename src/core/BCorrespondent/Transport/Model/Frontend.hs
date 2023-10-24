@@ -58,6 +58,7 @@ module BCorrespondent.Transport.Model.Frontend
         DayOfWeeksHourly (..),
         AmountInDayOfWeek (..),
         DayOfWeeksHourlyTotalSum (..),
+        BalancedBookInstitution (..),
         encodeHistoryDate
        ) where
 
@@ -609,12 +610,30 @@ deriveToSchemaFieldLabelModifier
   ''DayOfWeeksHourly 
   [|firstLetterModify (Proxy @DayOfWeeksHourly)|]
 
+data BalancedBookInstitution = 
+     BalancedBookInstitution
+     { balancedBookInstitutionTitle :: !Text,
+       balancedBookInstitutionDayOfWeeksHourly :: ![DayOfWeeksHourly]
+     }
+    deriving stock (Generic, Show)
+    deriving
+      (ToJSON, FromJSON)
+      via WithOptions 
+          '[OmitNothingFields 'True,
+            FieldLabelModifier
+            '[UserDefined FirstLetterToLower,
+              UserDefined 
+              (StripConstructor 
+               BalancedBookInstitution)]]
+      BalancedBookInstitution
+
+deriveToSchemaFieldLabelModifier ''BalancedBookInstitution [|firstLetterModify (Proxy @BalancedBookInstitution)|]
+
 data BalancedBook = 
      BalancedBook
      { balancedBookFrom :: !Text,
        balancedBookTo :: !Text,
-       balancedBookInstitution :: !Text,
-       balancedBookDayOfWeeksHourly :: ![DayOfWeeksHourly]
+       balancedBookInstitutions :: ![BalancedBookInstitution]
      }
     deriving stock (Generic, Show)
     deriving

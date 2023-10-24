@@ -85,7 +85,7 @@ initBalancedBook =
       where id = $3 :: int8) as f
     left join (
       select
-        array_agg(json_build_object(
+        array_agg(jsonb_build_object(
           'start', f.start,
           'end', f.end,
           'days', f.xs :: jsonb[]?,
@@ -96,7 +96,7 @@ initBalancedBook =
           tbl.end,
           array_agg(jsonb_build_object(
             'day_of_week', tbl.day_of_week, 
-            'day_total, tbl.total')) :: jsonb[] as xs
+            'day_total', tbl.total)) :: jsonb[] as xs
         from (
           select
             tm.start,
@@ -126,7 +126,7 @@ initBalancedBook =
           tbl.end,
           array_agg(jsonb_build_object(
             'currency', tbl.currency, 
-            'currency_total, tbl.total')) :: jsonb[] as ys
+            'currency_total', tbl.total)) :: jsonb[] as ys
         from (
           select
             tm.start,

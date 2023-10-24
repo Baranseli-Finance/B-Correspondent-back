@@ -45,7 +45,7 @@ handle user =
     let to = fromString $ show $ weekLastDay Monday day
     hasql <- fmap (^. katipEnv . hasqlDbPool) ask
     dbResp <- transactionM hasql $ statement initBalancedBook (startDoy, endDoy, ident)
-    pure $ withError dbResp (uncurry (F.BalancedBook from to) . second (map transform))
+    pure $ withError dbResp (F.BalancedBook from to . (:[]) . uncurry F.BalancedBookInstitution . second (map transform))
 
 transform :: DayOfWeeksHourly -> F.DayOfWeeksHourly
 transform DayOfWeeksHourly {..} =
