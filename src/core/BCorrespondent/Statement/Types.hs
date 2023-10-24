@@ -67,3 +67,13 @@ instance ParamsShow Day where
 
 instance Arbitrary Day where
   arbitrary = fmap fromIntegral $ chooseInt (1, 31)
+
+newtype DoY = DoY Word32
+  deriving newtype (Num, ToJSON, FromJSON)
+  deriving (Show, Ord, Eq)
+
+instance ParamsShow DoY where
+  render (DoY x) = show x
+
+instance Arbitrary DoY where
+  arbitrary = fmap fromIntegral $ chooseInt (1, 365)

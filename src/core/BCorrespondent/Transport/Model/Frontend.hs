@@ -55,8 +55,9 @@ module BCorrespondent.Transport.Model.Frontend
         Notification (..),
         Issue (..),
         BalancedBook (..),
-        WeekHourlyTransaction (..),
+        DayOfWeeksHourly (..),
         AmountInDayOfWeek (..),
+        DayOfWeeksHourlyTotalSum (..),
         encodeHistoryDate
        ) where
 
@@ -564,12 +565,10 @@ deriveToSchemaFieldLabelModifier
   ''AmountInDayOfWeek 
   [|firstLetterModify (Proxy @AmountInDayOfWeek)|]
 
-data WeekHourlyTransaction =
-     WeekHourlyTransaction {
-      weekHourlyTransactionFrom :: !GapItemTime,
-      weekHourlyTransactionTo :: !GapItemTime,
-      weekHourlyTransactionAmountInDayOfWeek :: ![AmountInDayOfWeek],
-      weekHourlyTransactionTotal :: !Double
+data DayOfWeeksHourlyTotalSum = 
+     DayOfWeeksHourlyTotalSum
+     { dayOfWeeksHourlyTotalSumCurrency :: !Currency,
+       dayOfWeeksHourlyTotalSumAmount :: !Double 
      }
     deriving stock (Generic, Show)
     deriving
@@ -580,18 +579,42 @@ data WeekHourlyTransaction =
             '[UserDefined FirstLetterToLower,
               UserDefined 
               (StripConstructor 
-               WeekHourlyTransaction)]]
-      WeekHourlyTransaction
+               DayOfWeeksHourlyTotalSum)]]
+      DayOfWeeksHourlyTotalSum
 
 deriveToSchemaFieldLabelModifier 
-  ''WeekHourlyTransaction 
-  [|firstLetterModify (Proxy @WeekHourlyTransaction)|]
+  ''DayOfWeeksHourlyTotalSum 
+  [|firstLetterModify (Proxy @DayOfWeeksHourlyTotalSum)|]
+
+data DayOfWeeksHourly =
+     DayOfWeeksHourly {
+      dayOfWeeksHourlyFrom :: !GapItemTime,
+      dayOfWeeksHourlyTo :: !GapItemTime,
+      dayOfWeeksHourlyAmountInDayOfWeek :: ![AmountInDayOfWeek],
+      dayOfWeeksHourlyTotal :: ![DayOfWeeksHourlyTotalSum]
+     }
+    deriving stock (Generic, Show)
+    deriving
+      (ToJSON, FromJSON)
+      via WithOptions 
+          '[OmitNothingFields 'True,
+            FieldLabelModifier
+            '[UserDefined FirstLetterToLower,
+              UserDefined 
+              (StripConstructor 
+               DayOfWeeksHourly)]]
+      DayOfWeeksHourly
+
+deriveToSchemaFieldLabelModifier 
+  ''DayOfWeeksHourly 
+  [|firstLetterModify (Proxy @DayOfWeeksHourly)|]
 
 data BalancedBook = 
      BalancedBook
-     { balancedBookInstitution :: !Text,
-       balancedBookWeekHourlyTransactions
-         :: ![WeekHourlyTransaction]
+     { balancedBookFrom :: !Text,
+       balancedBookTo :: !Text,
+       balancedBookInstitution :: !Text,
+       balancedBookDayOfWeeksHourly :: ![DayOfWeeksHourly]
      }
     deriving stock (Generic, Show)
     deriving
