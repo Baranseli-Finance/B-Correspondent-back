@@ -358,5 +358,5 @@ data StripConstructorParamType a
 
 instance Typeable a => Reifies (StripConstructorParamType a) (String -> String) where
   reflect _ = \s ->
-    let (head : tail) = show $ typeRepTyCon (typeRep (Proxy @a))
-     in fromMaybe s $ stripPrefix (toLower head : tail) s
+    let constructor = show $ typeRepTyCon (typeRep (Proxy @a))
+     in fromMaybe s $ stripPrefix constructor s

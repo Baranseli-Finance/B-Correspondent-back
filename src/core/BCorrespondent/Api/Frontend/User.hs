@@ -19,7 +19,8 @@ import BCorrespondent.Transport.Model.Frontend
         HistoryDate,
         Notifications,
         Issue,
-        BalancedBook
+        BalancedBook,
+        BalancedBookDirection
        )
 import BCorrespondent.Transport.Id (Id)       
 import BCorrespondent.Auth (AuthenticatedUser, JWT, Role (..))
@@ -131,6 +132,16 @@ data UserApi route = UserApi
         :- "balanced-book"
           :> RateLimit (FixedWindow (Second 1) 50) (KeyPolicy "Token")
           :> SA.Auth '[JWT] (AuthenticatedUser 'Reader)
+          :> Get '[JSON] (Response BalancedBook),
+    _userApiFetchBalancedBook ::
+      route
+        :- "balanced-book"
+          :> RateLimit (FixedWindow (Second 1) 50) (KeyPolicy "Token")
+          :> SA.Auth '[JWT] (AuthenticatedUser 'Reader)
+          :> Capture "year" (Id "year")
+          :> Capture "month" (Id "month")
+          :> Capture "day" (Id "day")
+          :> Capture "direction" BalancedBookDirection
           :> Get '[JSON] (Response BalancedBook)
   }
   deriving stock (Generic)

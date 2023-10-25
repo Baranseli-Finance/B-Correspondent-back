@@ -242,7 +242,8 @@ user nm =
          flip logExceptionM ErrorS $
            katipAddNamespace
            (Namespace [nm, "balanced-book"]) $
-           User.InitBalancedBook.handle user
+           User.InitBalancedBook.handle user,
+    _userApiFetchBalancedBook = undefined
   }
 
 institution :: InstitutionApi (AsServerT KatipHandlerM)

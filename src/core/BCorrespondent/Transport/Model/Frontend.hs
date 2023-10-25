@@ -59,6 +59,7 @@ module BCorrespondent.Transport.Model.Frontend
         AmountInDayOfWeek (..),
         DayOfWeeksHourlyTotalSum (..),
         BalancedBookInstitution (..),
+        BalancedBookDirection (..),
         encodeHistoryDate
        ) where
 
@@ -648,3 +649,17 @@ data BalancedBook =
       BalancedBook
 
 deriveToSchemaFieldLabelModifier ''BalancedBook [|firstLetterModify (Proxy @BalancedBook)|]
+
+data BalancedBookDirection = BalancedBookDirectionForward | BalancedBookDirectionBackward
+    deriving stock (Generic, Show)
+    deriving
+      (ToJSON, FromJSON)
+      via WithOptions 
+          '[ConstructorTagModifier 
+            '[UserDefined FirstLetterToLower, 
+              UserDefined (StripConstructorParamType BalancedBookDirection)]]
+      BalancedBookDirection
+
+mkEnumConvertor ''BalancedBookDirection
+mkParamSchemaEnum ''BalancedBookDirection [|isoBalancedBookDirection . jsonb|]
+mkFromHttpApiDataEnum ''BalancedBookDirection [|from stext . from isoBalancedBookDirection . to Right|]
