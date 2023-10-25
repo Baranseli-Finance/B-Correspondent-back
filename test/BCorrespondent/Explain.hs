@@ -115,5 +115,7 @@ explainTests =
       "modifyWalletAfterWebhook" =>> BCorrespondent.Statement.Institution.modifyWalletAfterWebhook
     ]
   , "BCorrespondent.Statement.BalancedBook" ==>
-    [ "initBalancedBook" =>> BCorrespondent.Statement.BalancedBook.initBalancedBook ]  
+    [ "initBalancedBook" =>> BCorrespondent.Statement.BalancedBook.initBalancedBook,
+      "fetchBalancedBook" =>> BCorrespondent.Statement.BalancedBook.fetchBalancedBook  
+    ]  
   ]

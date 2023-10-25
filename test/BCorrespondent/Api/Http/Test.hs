@@ -21,7 +21,9 @@ import BCorrespondent.Transport.Model.Frontend
         GapItemUnit, GapItemUnitStatus, GapItemTime, 
         InvoiceSince, GapItemAmount, HistoryTimeline, InitDashboard, 
         WalletType, Wallet, FetchGap, TimelineTransactionResponse,
-        TimelineTransaction, Notifications, Notification, Issue)
+        TimelineTransaction, Notifications, Notification, Issue,
+        BalancedBook, BalancedBookInstitution, DayOfWeeksHourly, 
+        AmountInDayOfWeek, DayOfWeeksHourlyTotalSum)
 import BCorrespondent.Transport.Model.Institution 
        (Withdraw, InitWithdrawal, Balance, WithdrawalHistoryItem, 
         WithdrawalHistory, WithdrawResult, WithdrawResultStatus,
@@ -69,6 +71,11 @@ mkArbitrary ''InitWithdrawal
 mkArbitrary ''Notification
 mkArbitrary ''Notifications
 mkArbitrary ''Issue
+mkArbitrary ''DayOfWeeksHourlyTotalSum
+mkArbitrary ''AmountInDayOfWeek
+mkArbitrary ''DayOfWeeksHourly
+mkArbitrary ''BalancedBookInstitution
+mkArbitrary ''BalancedBook
 
 spec_api :: Spec
 spec_api =
