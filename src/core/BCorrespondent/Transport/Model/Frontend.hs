@@ -650,8 +650,10 @@ data BalancedBook =
 
 deriveToSchemaFieldLabelModifier ''BalancedBook [|firstLetterModify (Proxy @BalancedBook)|]
 
-data BalancedBookDirection = BalancedBookDirectionForward | BalancedBookDirectionBackward
-    deriving stock (Generic, Show)
+data BalancedBookDirection = 
+       BalancedBookDirectionForward 
+     | BalancedBookDirectionBackward
+    deriving stock (Generic, Show, Eq)
     deriving
       (ToJSON, FromJSON)
       via WithOptions 

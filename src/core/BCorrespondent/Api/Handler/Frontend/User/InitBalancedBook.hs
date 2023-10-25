@@ -3,12 +3,13 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE RecordWildCards #-}
 
-module BCorrespondent.Api.Handler.Frontend.User.InitBalancedBook (handle) where
+module BCorrespondent.Api.Handler.Frontend.User.InitBalancedBook (handle, initDayOfWeeksHourly, transform) where
 
 import qualified BCorrespondent.Transport.Model.Frontend as F
 import BCorrespondent.Transport.Response (Response)
 import BCorrespondent.Api.Handler.Frontend.User.Utils (checkInstitution)
-import BCorrespondent.Statement.BalancedBook (initBalancedBook, DayOfWeeksHourly (..), DayOfWeek (..), TotalOfWeekHourly (..))
+import BCorrespondent.Statement.BalancedBook 
+       (initBalancedBook, DayOfWeeksHourly (..), DayOfWeek (..), TotalOfWeekHourly (..))
 import BCorrespondent.Api.Handler.Utils (withError)
 import BCorrespondent.Statement.Types (DoY (..))
 import qualified BCorrespondent.Auth as Auth

@@ -45,6 +45,7 @@ import qualified BCorrespondent.Api.Handler.Frontend.User.GetNotifications as Us
 import qualified BCorrespondent.Api.Handler.Frontend.User.MarkNotificationRead as User.MarkNotificationRead
 import qualified BCorrespondent.Api.Handler.Frontend.User.SubmitIssue as User.SubmitIssue
 import qualified BCorrespondent.Api.Handler.Frontend.User.InitBalancedBook as User.InitBalancedBook
+import qualified BCorrespondent.Api.Handler.Frontend.User.FetchBalancedBook as User.FetchBalancedBook
 -- << end handlers
 import qualified BCorrespondent.Auth as Auth
 import Katip
@@ -243,7 +244,12 @@ user nm =
            katipAddNamespace
            (Namespace [nm, "balanced-book"]) $
            User.InitBalancedBook.handle user,
-    _userApiFetchBalancedBook = undefined
+    _userApiFetchBalancedBook = \auth y m d direction ->
+      auth `Auth.withAuth` \user ->
+         flip logExceptionM ErrorS $
+           katipAddNamespace
+           (Namespace [nm, "balanced-book", "fetch"]) $
+           User.FetchBalancedBook.handle user y m d direction
   }
 
 institution :: InstitutionApi (AsServerT KatipHandlerM)
