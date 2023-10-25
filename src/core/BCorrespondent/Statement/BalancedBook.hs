@@ -22,7 +22,7 @@ import Hasql.TH
 import Control.Lens (dimap)
 import Data.Coerce (coerce)
 import Data.Word (Word32)
-import Data.Tuple.Extended (app1, app2)
+import Data.Tuple.Extended (app1, app2, app3)
 import Data.Int (Int64)
 import Data.Aeson (FromJSON, encode, eitherDecode)
 import Data.Aeson.Generic.DerivingVia
@@ -68,11 +68,12 @@ data DayOfWeeksHourly =
          '[FieldLabelModifier '[CamelTo2 "_"]]
       DayOfWeeksHourly
 
-initBalancedBook :: HS.Statement (DoY, DoY, Int64) (Either String (Text, [DayOfWeeksHourly]))
+initBalancedBook :: HS.Statement (DoY, Maybe DoY, DoY, Int64) (Either String (Text, [DayOfWeeksHourly]))
 initBalancedBook =
   dimap 
   (app1 (fromIntegral @Word32 . coerce) . 
-   app2 (fromIntegral @Word32 . coerce))
+   app2 (fmap (fromIntegral @Word32 . coerce)) .
+   app3 (fromIntegral @Word32 . coerce))
   decode
   [singletonStatement|
     select 
@@ -82,7 +83,7 @@ initBalancedBook =
       select
         title 
       from auth.institution 
-      where id = $3 :: int8) as f
+      where id = $4 :: int8) as f
     left join (
       select
         array_agg(jsonb_build_object(
@@ -96,13 +97,15 @@ initBalancedBook =
           tbl.end,
           array_agg(jsonb_build_object(
             'day_of_week', tbl.day_of_week, 
-            'day_total', tbl.total)) :: jsonb[] as xs
+            'day_total', tbl.total) 
+          order by tbl.day_of_week) 
+          :: jsonb[] as xs
         from (
           select
             tm.start,
             tm.end,
             i.day_of_week,
-            count(*) as total
+            sum(i.count) as total
           from (
             select 
               el as start,
@@ -110,14 +113,26 @@ initBalancedBook =
             from generate_series(0, 23, 1) as el) as tm
           cross join (
             select
+              count(*),
               extract(dow from appearance_on_timeline) as day_of_week,
-              extract(hour from appearance_on_timeline) as start,
-              extract(hour from appearance_on_timeline) + 1 as end
+              extract(hour from appearance_on_timeline) as start_point,
+              extract(hour from appearance_on_timeline) + 1 as end_point
             from institution.invoice
+            where extract(doy from appearance_on_timeline) = $3 :: int
+            and institution_id = $4 :: int8
+            group by day_of_week, start_point, end_point
+            union 
+            select
+              count(*),
+              extract(dow from appearance_on_timeline) as day_of_week,
+              extract(hour from appearance_on_timeline) as start_point,
+              extract(hour from appearance_on_timeline) + 1 as end_point
+            from mv.invoice_and_transaction
             where extract(doy from appearance_on_timeline) >= $1 :: int
-            and extract(doy from appearance_on_timeline) <= $2 :: int
-            and institution_id = $3 :: int8) as i
-          where tm.start = i.start and tm.end = i.end
+            and coalesce(extract(doy from appearance_on_timeline) <= $2 :: int?, false)
+            and institution_id = $4 :: int8
+            group by day_of_week, start_point, end_point) as i
+          where tm.start = i.start_point and tm.end = i.end_point
           group by tm.start, tm.end, i.day_of_week) as tbl
         group by tbl.start, tbl.end) as f
       inner join (
@@ -145,14 +160,20 @@ initBalancedBook =
               extract(hour from appearance_on_timeline) as start,
               extract(hour from appearance_on_timeline) + 1 as end
             from institution.invoice
+            where extract(doy from appearance_on_timeline) = $3 :: int
+            and institution_id = $4 :: int8
+            union 
+            select
+              invoice_currency,
+              invoice_amount,
+              extract(hour from appearance_on_timeline) as start,
+              extract(hour from appearance_on_timeline) + 1 as end
+            from mv.invoice_and_transaction
             where extract(doy from appearance_on_timeline) >= $1 :: int
-            and extract(doy from appearance_on_timeline) <= $2 :: int
-            and institution_id = $3 :: int8) as i
+            and coalesce(extract(doy from appearance_on_timeline) <= $2 :: int?, false)
+            and institution_id = $4 :: int8) as i
           where tm.start = i.start and tm.end = i.end
           group by tm.start, tm.end, i.currency) as tbl
       group by tbl.start, tbl.end) as s
     on f.start = s.start and f.end = s.end) as s on true|]
-  where decode (title, xs) = 
-          fmap (title,) $ 
-            fromMaybe (Right []) $ 
-              fmap (sequence . map (eitherDecode @DayOfWeeksHourly . encode) .V.toList) xs
+  where decode (title, xs) = fmap (title,) $ fromMaybe (Right []) $ fmap (sequence . map (eitherDecode @DayOfWeeksHourly . encode) .V.toList) xs

@@ -14,48 +14,83 @@ import BCorrespondent.Statement.Types (DoY (..))
 import qualified BCorrespondent.Auth as Auth
 import Katip.Handler (KatipHandlerM, katipEnv, hasqlDbPool, ask)
 import Control.Monad.Time (currentTime)
-import Data.Time.Clock (UTCTime (utctDay))
+import Data.Time.Clock (UTCTime (utctDay), addUTCTime)
 import Data.Time.Calendar.OrdinalDate (toOrdinalDate)
-import Data.Time.Calendar (weekFirstDay, weekLastDay, DayOfWeek (Monday))
+import Data.Time.Calendar (weekFirstDay, weekLastDay, DayOfWeek (..))
 import Database.Transaction (transactionM, statement)
 import Control.Lens ((^.), (<&>))
 import Data.Bifunctor (second)
 import Katip (logTM, Severity (DebugS))
 import Data.String (fromString)
 import BuildInfo (location)
+import Data.List (find)
+import Data.Maybe
+
+-- 1 the current day is equal to weekFirstDay: we have only one day, there is no past
+-- 2 not: two parts: past (weekFirstDay, last), now: current day
 
 handle :: Auth.AuthenticatedUser 'Auth.Reader -> KatipHandlerM (Response F.BalancedBook) 
 handle user = 
   checkInstitution user $ \(_, ident) -> do
-    day <- fmap utctDay currentTime
-    let getDay f =
-          DoY . 
-          fromIntegral . 
-          snd . 
-          toOrdinalDate . 
-          f Monday
-    let startDoy =  getDay weekFirstDay day
-    let endDoy = getDay weekLastDay day
-    $(logTM) DebugS $
-      fromString $ 
-        $location <> " init balanced book from " <> 
-        show (weekFirstDay Monday day) <> " to " <> 
-        show (weekLastDay Monday day)
+    tm <-currentTime
+    let day = utctDay tm
+    let startDay = weekFirstDay Monday day
+    let prevDay = utctDay $ addUTCTime (-86400) tm 
+    let endDay | day == startDay = Nothing
+               | otherwise = Just prevDay
+
+    let getDoy = DoY . fromIntegral . snd . toOrdinalDate
+
+    let nowDoy = getDoy day 
+    let startDoy =  getDoy startDay
+    let endDoy = fmap getDoy endDay
+
+    let msg = 
+             " init balanced book from " <> 
+             show (weekFirstDay Monday day) <> " to " <> 
+             show (weekLastDay Monday day) <> ", past part: " <> 
+             show startDay <> " - " <> show endDay <> ", now part: " <> show day
+
+    $(logTM) DebugS $ fromString $ $location <> msg
+
     let from = fromString $ show $ weekFirstDay Monday day
     let to = fromString $ show $ weekLastDay Monday day
     hasql <- fmap (^. katipEnv . hasqlDbPool) ask
-    dbResp <- transactionM hasql $ statement initBalancedBook (startDoy, endDoy, ident)
-    pure $ withError dbResp (F.BalancedBook from to . (:[]) . uncurry F.BalancedBookInstitution . second (map transform))
+    let go = 
+             F.BalancedBook from to . 
+             (:[]) . 
+             uncurry F.BalancedBookInstitution . 
+             second (transform initDayOfWeeksHourly)
+    fmap (`withError` go) $ transactionM hasql $ statement initBalancedBook (startDoy, endDoy, nowDoy, ident)
+    
 
-transform :: DayOfWeeksHourly -> F.DayOfWeeksHourly
-transform DayOfWeeksHourly {..} =
-  F.DayOfWeeksHourly
-  { dayOfWeeksHourlyFrom = F.GapItemTime start 0,
-    dayOfWeeksHourlyTo = F.GapItemTime end 0,
-    dayOfWeeksHourlyAmountInDayOfWeek = 
-      days <&> \DayOfWeek {..} -> 
-        F.AmountInDayOfWeek dayOfWeek dayTotal,
-    dayOfWeeksHourlyTotal =
-      total <&> \TotalOfWeekHourly {..} -> 
-        F.DayOfWeeksHourlyTotalSum currency currencyTotal
-  }
+initDayOfWeeksHourly :: [DayOfWeeksHourly]
+initDayOfWeeksHourly = 
+  [ item 
+    | (s, e) <- zip [0 ..23] [1 .. 24],
+      let xs = map (`DayOfWeek` 0) [fromEnum Monday .. fromEnum Sunday],
+      let e' = if e == 24 then 0 else e,
+      let item = DayOfWeeksHourly s e' xs []
+  ]
+
+transform :: [DayOfWeeksHourly] -> [DayOfWeeksHourly] -> [F.DayOfWeeksHourly]
+transform xs ys = 
+  xs <&> \item@DayOfWeeksHourly {start = s, end = e, days = daysXs} ->
+    let y =
+          fromMaybe item $
+          flip find ys $ \x -> 
+            start x == start item && 
+            end x == end item
+    in F.DayOfWeeksHourly
+       { dayOfWeeksHourlyFrom = F.GapItemTime s 0,
+         dayOfWeeksHourlyTo = F.GapItemTime e 0,
+         dayOfWeeksHourlyAmountInDayOfWeek = 
+          daysXs <&> \item@DayOfWeek {dayOfWeek = dow} ->
+            let x = 
+                   fromMaybe item $ 
+                     flip find (days y) $ \x -> dayOfWeek x == dow
+            in F.AmountInDayOfWeek dow $ dayTotal x,
+         dayOfWeeksHourlyTotal = 
+          total y <&> \TotalOfWeekHourly {..} -> 
+            F.DayOfWeeksHourlyTotalSum currency currencyTotal
+       }

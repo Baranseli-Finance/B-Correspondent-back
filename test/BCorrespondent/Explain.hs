@@ -18,6 +18,7 @@ import qualified BCorrespondent.Statement.Fs
 import qualified BCorrespondent.Statement.Dashboard
 import qualified BCorrespondent.Statement.History
 import qualified BCorrespondent.Statement.Institution
+import qualified BCorrespondent.Statement.BalancedBook
 
 import Control.Lens
 import Control.Monad.IO.Class
@@ -113,4 +114,6 @@ explainTests =
       "updateWithdrawalStatus" =>> BCorrespondent.Statement.Institution.updateWithdrawalStatus,
       "modifyWalletAfterWebhook" =>> BCorrespondent.Statement.Institution.modifyWalletAfterWebhook
     ]
+  , "BCorrespondent.Statement.BalancedBook" ==>
+    [ "initBalancedBook" =>> BCorrespondent.Statement.BalancedBook.initBalancedBook ]  
   ]
