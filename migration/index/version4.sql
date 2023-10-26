@@ -221,6 +221,17 @@ create unique index invoice_and_transaction_uq on mv.invoice_and_transaction (in
 
 refresh materialized view mv.invoice_and_transaction;
 
+create materialized view mv.wallet
+as
+  select
+   *
+  from institution.wallet
+with no data;
+
+create unique index wallet_type_currency_institution_id_uq on mv.wallet (institution_id, currency, wallet_type);
+
+refresh materialized view mv.wallet;
+
 create table institution.withdrawal (
   id bigserial primary key,
   user_id bigserial not null,
@@ -384,14 +395,14 @@ declare
 begin
     select
       jsonb_build_object(
-        'user', iu.user_id,
-        'institution', iu.institution_id,
+        'user_ident', iu.user_id,
+        'institution_ident', iu.institution_id,
         'from', extract(hour from new.appearance_on_timeline),
         'to', extract(hour from new.appearance_on_timeline + interval '1 hour'),
         'amount', i.amount,
         'currency', i.currency,
         'dow', extract(dow from new.appearance_on_timeline),
-        'institution', ai.title
+        'institutionTitle', ai.title
       ) :: jsonb
     into result
     from institution.invoice as i
