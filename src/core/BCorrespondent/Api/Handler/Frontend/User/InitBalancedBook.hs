@@ -10,7 +10,8 @@ import qualified BCorrespondent.Transport.Model.Frontend as F
 import BCorrespondent.Transport.Response (Response)
 import BCorrespondent.Api.Handler.Frontend.User.Utils (checkInstitution)
 import BCorrespondent.Statement.BalancedBook 
-       (initBalancedBook, DayOfWeeksHourly (..), DayOfWeek (..), TotalOfWeekHourly (..))
+       (initFirstBalancedBook, initSecondBalancedBook, 
+        DayOfWeeksHourly (..), DayOfWeek (..), TotalOfWeekHourly (..))
 import BCorrespondent.Api.Handler.Utils (withError)
 import BCorrespondent.Statement.Types (DoY (..))
 import qualified BCorrespondent.Auth as Auth
@@ -58,12 +59,14 @@ handle user =
     let from = fromString $ show $ weekFirstDay Monday day
     let to = fromString $ show $ weekLastDay Monday day
     hasql <- fmap (^. katipEnv . hasqlDbPool) ask
-    let go tpl =
-            F.BalancedBook from to . (:[]) $ 
-              uncurryT F.BalancedBookInstitution $ 
-                app2 (transform initDayOfWeeksHourly) tpl
-    fmap (`withError` go) $ transactionM hasql $ statement initBalancedBook (startDoy, endDoy, nowDoy, ident)
-    
+    let go xs =
+            F.BalancedBook from to $ xs <&>
+              (uncurryT F.BalancedBookInstitution . 
+                app2 (transform initDayOfWeeksHourly))
+    fmap (`withError` go) $ transactionM hasql $ do
+      first <- statement initFirstBalancedBook (startDoy, endDoy, nowDoy, ident)
+      second <- statement initSecondBalancedBook (startDoy, endDoy, nowDoy, ident)
+      return $ sequence [first, second]
 
 initDayOfWeeksHourly :: [DayOfWeeksHourly]
 initDayOfWeeksHourly = 

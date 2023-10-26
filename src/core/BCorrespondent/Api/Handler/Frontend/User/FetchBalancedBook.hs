@@ -10,12 +10,12 @@ import qualified BCorrespondent.Auth as Auth
 import BCorrespondent.Transport.Model.Frontend (BalancedBook (..), BalancedBookDirection (..), BalancedBookInstitution (..))
 import BCorrespondent.Transport.Response (Response)
 import BCorrespondent.Transport.Id (Id (..))
-import BCorrespondent.Statement.BalancedBook (fetchBalancedBook)
+import BCorrespondent.Statement.BalancedBook (fetchFirstBalancedBook, fetchSecondBalancedBook)
 import BCorrespondent.Api.Handler.Utils (withError)
 import BCorrespondent.Statement.Types (DoY (..))
 import BCorrespondent.Api.Handler.Frontend.User.Utils (checkInstitution)
 import Katip.Handler (KatipHandlerM, katipEnv, hasqlDbPool, ask)
-import Control.Lens ((^.))
+import Control.Lens ((^.), (<&>))
 import Data.Time.Calendar.OrdinalDate (Day, toOrdinalDate)
 import Data.Time.Calendar (weekFirstDay, weekLastDay, addDays, DayOfWeek (..))
 import Database.Transaction (transactionM, statement)
@@ -48,10 +48,13 @@ handle user (Id y) (Id m) (Id d) direction =
           hasql <- fmap (^. katipEnv . hasqlDbPool) ask
           let from = fromString $ show $ weekFirstDay Monday day
           let to = fromString $ show $ weekLastDay Monday day
-          let go tpl =
-                   BalancedBook from to . (:[]) $ 
-                     uncurryT BalancedBookInstitution $ 
-                       app2 (transform initDayOfWeeksHourly) tpl
-          fmap (`withError` go) $ transactionM hasql $ statement fetchBalancedBook (startDoy, endDoy, ident)
+          let go xs =
+                   BalancedBook from to $ xs <&>
+                     (uncurryT BalancedBookInstitution . 
+                      app2 (transform initDayOfWeeksHourly))
+          fmap (`withError` go) $ transactionM hasql $ do 
+            first <- statement fetchFirstBalancedBook (startDoy, endDoy, ident)
+            second <- statement fetchSecondBalancedBook (startDoy, endDoy, ident)
+            return $ sequence [first, second]
 
     if doy >=startDoy && doy <= endDoy then InitBalancedBook.handle user else fetchPast

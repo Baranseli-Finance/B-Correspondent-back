@@ -10,8 +10,10 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module BCorrespondent.Statement.BalancedBook 
-       (initBalancedBook,
-        fetchBalancedBook,
+       (initFirstBalancedBook,
+        initSecondBalancedBook,
+        fetchFirstBalancedBook,
+        fetchSecondBalancedBook,
         DayOfWeeksHourly (..),
         TotalOfWeekHourly (..),
         DayOfWeek (..)
@@ -80,8 +82,8 @@ bookDecoder (title, xs, ys) = do
   ys' <- decodeG @BalancedBookWallet ys
   return (title, xs', ys')
 
-initBalancedBook :: HS.Statement (DoY, Maybe DoY, DoY, Int64) (Either String (Text, [DayOfWeeksHourly], [BalancedBookWallet]))
-initBalancedBook =
+initFirstBalancedBook :: HS.Statement (DoY, Maybe DoY, DoY, Int64) (Either String (Text, [DayOfWeeksHourly], [BalancedBookWallet]))
+initFirstBalancedBook =
   dimap 
   (app1 (fromIntegral @Word32 . coerce) . 
    app2 (fmap (fromIntegral @Word32 . coerce)) .
@@ -201,8 +203,11 @@ initBalancedBook =
       from institution.wallet
       where institution_id = $4 :: int8) as t on true|]
 
-fetchBalancedBook :: HS.Statement (DoY, DoY, Int64) (Either String (Text, [DayOfWeeksHourly], [BalancedBookWallet]))
-fetchBalancedBook =
+initSecondBalancedBook :: HS.Statement (DoY, Maybe DoY, DoY, Int64) (Either String (Text, [DayOfWeeksHourly], [BalancedBookWallet]))
+initSecondBalancedBook = undefined
+
+fetchFirstBalancedBook :: HS.Statement (DoY, DoY, Int64) (Either String (Text, [DayOfWeeksHourly], [BalancedBookWallet]))
+fetchFirstBalancedBook =
   dimap 
   (app1 (fromIntegral @Word32 . coerce) .
    app2 (fromIntegral @Word32 . coerce))
@@ -303,3 +308,6 @@ fetchBalancedBook =
       where institution_id = $3 :: int8
       and extract(doy from startpoint) = $1 :: int
       and extract(doy from endpoint) = $2 :: int) as t on true|]
+
+fetchSecondBalancedBook :: HS.Statement (DoY, DoY, Int64) (Either String (Text, [DayOfWeeksHourly], [BalancedBookWallet]))
+fetchSecondBalancedBook = undefined
