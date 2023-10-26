@@ -89,57 +89,56 @@ create table institution.user (
   constraint institution_user__user_id__fk foreign key (user_id) references auth.user(id),
   constraint institution_user__institution_id_user_id__unique unique (user_id, institution_id));
 
-create or replace function notify_server_on_transaction()
+create or replace function notify_server_on_dashboard_transaction()
 returns trigger as
 $$
 declare
   result jsonb;
 begin
     select
-        json_build_object(
-        'ident', tmp.id,
-        'user', tmp.user,
+        jsonb_build_object(
+        'ident', new.id,
+        'user', tbl.user,
         'dayOfYear', cast(extract('doy' from new.appearance_on_timeline) as int),
         'hour', cast(extract('hour' from new.appearance_on_timeline) as int),
         'min', cast(extract('min' from new.appearance_on_timeline) as int),
-        'textualIdent', tmp.textual_view,
+        'textualIdent', new.textual_view,
         'status', new.status,
         'tm', cast(new.appearance_on_timeline as text)) :: jsonb
     into result
     from (
       select
-       inv.*,
        u.id as user
       from auth.user as u
       inner join institution.user as iu
       on u.id = iu.user_id
       inner join institution.invoice as inv
       on iu.institution_id = inv.institution_id
-      where (new.status = 'ForwardedToPaymentProvider' or 
-      new.status = 'Confirmed' or 
-      new.status = 'Declined')
-      and new.id = inv.id) as tmp;
+      where (inv.status = 'ForwardedToPaymentProvider' or 
+      inv.status = 'Confirmed' or 
+      inv.status = 'Declined') and 
+      new.id = inv.id) as tbl;
   perform 
     pg_notify(
-      'timeline_transaction' || '_' || u.id,
+      'dashboard_transaction' || '_' || u.id,
       coalesce(result :: text, 'null' :: text))
   from auth.user as u;
   return new;
 end;
 $$ language 'plpgsql';
 
-create or replace trigger on_invoice_update
+create or replace trigger on_dashboard_transaction
 after update on institution.invoice
-for each row execute procedure notify_server_on_transaction();
+for each row execute procedure notify_server_on_dashboard_transaction();
 
-create or replace function notify_server_on_wallet()
+create or replace function notify_server_on_dashboard_wallet()
 returns trigger as
 $$
 declare
   result jsonb;
 begin
     select
-        json_build_object(
+        jsonb_build_object(
          'user', tmp.user,
          'ident', tmp.id,
          'amount', tmp.amount)
@@ -158,16 +157,16 @@ begin
       as tmp;
   perform 
     pg_notify(
-      'wallet' || '_' || u.id,
+      'dashboard_wallet' || '_' || u.id,
       coalesce(result :: text, 'null' :: text))
   from auth.user as u;
   return new;
 end;
 $$ language 'plpgsql';
 
-create or replace trigger on_wallet_update
+create or replace trigger on_dashboard_wallet_update
 after update on institution.wallet
-for each row execute procedure notify_server_on_wallet();
+for each row execute procedure notify_server_on_dashboard_wallet();
 
 
 create schema if not exists mv;
@@ -241,7 +240,7 @@ declare
   result jsonb;
 begin
     select
-      json_build_object(
+      jsonb_build_object(
         'user', tbl.user_ident,
         'institution', tbl.ident,
         'total', tbl.total,
@@ -313,7 +312,7 @@ declare
   result jsonb;
 begin
     select
-      json_build_object(
+      jsonb_build_object(
         'user', tbl.user_ident,
         'institution', tbl.ident,
         'total', tbl.total,
@@ -376,3 +375,38 @@ create or replace trigger on_withdrawal_new
 after insert on institution.withdrawal
 for each row 
 execute procedure notify_server_on_withdrawal_new();
+
+create or replace function notify_server_on_balanced_book_new_transaction()
+returns trigger as
+$$
+declare
+  result jsonb;
+begin
+    select
+      jsonb_build_object(
+        'user', iu.user_id,
+        'institution', iu.institution_id,
+        'from', extract(hour from new.appearance_on_timeline),
+        'to', extract(hour from new.appearance_on_timeline + interval '1 hour'),
+        'amount', i.amount,
+        'currency', i.currency
+      ) :: jsonb
+    into result
+    from institution.invoice as i
+    inner join institution.user as iu
+    on i.institution_id = iu.institution_id
+    where i.id = new.id 
+    and new.status = 'ForwardedToPaymentProvider';
+    perform
+    pg_notify(
+      'balanced_book_transaction213' || '_' || u.id,
+      coalesce(result :: text, 'null' :: text))
+  from auth.user as u;
+  return new;
+end;
+$$ language 'plpgsql';
+
+create or replace trigger on_balanced_book_new_transaction
+after update on institution.invoice
+for each row 
+execute procedure notify_server_on_balanced_book_new_transaction();
