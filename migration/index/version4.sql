@@ -427,3 +427,12 @@ create or replace trigger on_balanced_book_new_transaction
 after update on institution.invoice
 for each row 
 execute procedure notify_server_on_balanced_book_new_transaction();
+
+
+create table institution.relation (
+  first_id bigserial not null check(first_id != second_id),
+  second_id bigserial not null,
+  constraint institution_relation__first_id__fk foreign key (first_id) references auth.institution(id),
+  constraint institution_relation__second_id__fk foreign key (second_id) references auth.institution(id),
+  constraint institution__relation___first_second_unique unique (first_id, second_id));
+

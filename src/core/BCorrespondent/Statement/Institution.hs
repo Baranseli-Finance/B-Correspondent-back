@@ -222,35 +222,58 @@ getWithdrawalPage =
 
 updateWallet :: HS.Statement [Int64] Int64
 updateWallet =
-  lmap ((,toJSON Credit) . V.fromList)
+  lmap ((,toJSON Credit, toJSON Debit) . V.fromList)
   [rowsAffectedStatement|
+    with tbl as (
+      update institution.wallet
+      set amount = w.amount + wallet.amount,
+          modified_at = now()
+      from (
+        select
+          w.wallet_ident,
+          w.amount,
+          w.currency
+        from unnest($1 :: int8[]) 
+          as list(invoice_ident)
+        inner join (
+          select
+            w.id as wallet_ident,
+            inv.id as invoice_ident,
+            w.currency,
+            tr.amount
+          from institution.wallet as w
+          inner join auth.institution as i
+          on w.institution_id = i.id
+          inner join institution.invoice as inv
+          on i.id = inv.institution_id
+          inner join institution.transaction as tr
+          on inv.id = tr.invoice_id
+          and w.wallet_type = ($2 :: jsonb) #>> '{}'
+          and tr.currency = w.currency) as w
+        on list.invoice_ident = w.invoice_ident) as w
+      where id = w.wallet_ident
+      returning institution_id, w.amount, w.currency)
     update institution.wallet
     set amount = w.amount + wallet.amount,
         modified_at = now()
     from (
-      select
-        w.wallet_ident,
-        w.amount,
-        w.currency
-      from unnest($1 :: int8[]) 
-        as list(invoice_ident)
-      inner join (
-        select
-          w.id as wallet_ident,
-          inv.id as invoice_ident,
-          w.currency,
-          tr.amount
-        from institution.wallet as w
-        inner join auth.institution as i
-        on w.institution_id = i.id
-        inner join institution.invoice as inv
-        on i.id = inv.institution_id
-        inner join institution.transaction as tr
-        on inv.id = tr.invoice_id
-        and w.wallet_type = ($2 :: jsonb) #>> '{}'
-        and tr.currency = w.currency) as w
-      on list.invoice_ident = w.invoice_ident) as w
-    where id = w.wallet_ident|]
+      select 
+       f.amount,
+       w.id
+      from (
+        select 
+          coalesce(rf.first_id, rs.second_id) as ident,
+          t.amount,
+          t.currency
+        from tbl as t
+        left join institution.relation as rf
+        on rf.first_id = t.institution_id
+        left join institution.relation as rs
+        on rs.second_id = t.institution_id) as f
+      inner join institution.wallet as w
+      on w.institution_id = f.ident 
+      and w.currency = f.currency
+      where w.wallet_type = ($3 :: jsonb) #>> '{}' ) as w|]
 
 fetchWithdrawals :: HS.Statement () [(Int64, Text, Double, UUID)]
 fetchWithdrawals =
