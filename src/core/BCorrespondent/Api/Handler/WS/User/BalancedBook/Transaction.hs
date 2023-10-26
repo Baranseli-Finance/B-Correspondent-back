@@ -24,6 +24,7 @@ import Data.String (fromString)
 import BuildInfo (location)
 import Data.Aeson.WithField (WithField (..))
 import Data.Int (Int64)
+import Data.Text (Text)
 
 data TransactionBalancedBook =
      TransactionBalancedBook 
@@ -31,7 +32,8 @@ data TransactionBalancedBook =
        to :: Int,
        amount :: Double,
        currency :: Currency,
-       dow :: Int
+       dow :: Int,
+       institution :: Text
      }
     deriving stock (Generic, Show)
     deriving
