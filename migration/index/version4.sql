@@ -389,17 +389,21 @@ begin
         'from', extract(hour from new.appearance_on_timeline),
         'to', extract(hour from new.appearance_on_timeline + interval '1 hour'),
         'amount', i.amount,
-        'currency', i.currency
+        'currency', i.currency,
+        'dow', extract(dow from new.appearance_on_timeline),
+        'institution', ai.title
       ) :: jsonb
     into result
     from institution.invoice as i
     inner join institution.user as iu
     on i.institution_id = iu.institution_id
+    inner join auth.institution as ai
+    on ai.id = i.institution_id
     where i.id = new.id 
     and new.status = 'ForwardedToPaymentProvider';
     perform
     pg_notify(
-      'balanced_book_transaction213' || '_' || u.id,
+      'balanced_book_transaction_add' || '_' || u.id,
       coalesce(result :: text, 'null' :: text))
   from auth.user as u;
   return new;
