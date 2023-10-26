@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 module BCorrespondent.Api.Handler.Frontend.User.InitBalancedBook (handle, initDayOfWeeksHourly, transform) where
 
@@ -20,12 +21,12 @@ import Data.Time.Calendar.OrdinalDate (toOrdinalDate)
 import Data.Time.Calendar (weekFirstDay, weekLastDay, DayOfWeek (..))
 import Database.Transaction (transactionM, statement)
 import Control.Lens ((^.), (<&>))
-import Data.Bifunctor (second)
 import Katip (logTM, Severity (DebugS))
 import Data.String (fromString)
 import BuildInfo (location)
 import Data.List (find)
 import Data.Maybe
+import Data.Tuple.Extended (uncurryT, app2)
 
 -- 1 the current day is equal to weekFirstDay: we have only one day, there is no past
 -- 2 not: two parts: past (weekFirstDay, last), now: current day
@@ -57,11 +58,10 @@ handle user =
     let from = fromString $ show $ weekFirstDay Monday day
     let to = fromString $ show $ weekLastDay Monday day
     hasql <- fmap (^. katipEnv . hasqlDbPool) ask
-    let go = 
-             F.BalancedBook from to . 
-             (:[]) . 
-             uncurry F.BalancedBookInstitution . 
-             second (transform initDayOfWeeksHourly)
+    let go tpl =
+            F.BalancedBook from to . (:[]) $ 
+              uncurryT F.BalancedBookInstitution $ 
+                app2 (transform initDayOfWeeksHourly) tpl
     fmap (`withError` go) $ transactionM hasql $ statement initBalancedBook (startDoy, endDoy, nowDoy, ident)
     
 

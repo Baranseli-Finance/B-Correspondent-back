@@ -34,6 +34,7 @@ import Data.Functor ((<&>))
 import Data.Bifunctor (second)
 import Data.Foldable (fold)
 import Data.Monoid (Sum (..))
+import Data.List (nub)
 
 
 handle :: Auth.AuthenticatedUser 'Auth.Reader -> KatipHandlerM (Response InitDashboard)
@@ -79,11 +80,11 @@ transform xs =
   ] <&> \(xs, (start, end)) ->
            let mkGapItemUnits xs = 
                  [   GapItemUnit ident tm textIdent status 
-                   | (ident, tm, textIdent, status, _, _) <- xs 
+                   | (ident, tm, textIdent, status, _, _) <- nub xs
                  ]
                mkAmounts xs = 
                  [   (the currency, val) 
-                   | (_, _, _, _, currency, amount) <- xs, 
+                   | (_, _, _, _, currency, amount) <- nub xs, 
                      let val = Sum amount, 
                      then group by currency using groupWith 
                  ] 

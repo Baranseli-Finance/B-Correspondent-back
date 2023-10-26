@@ -6,6 +6,8 @@
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE TupleSections #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module BCorrespondent.Statement.BalancedBook 
        (initBalancedBook,
@@ -15,6 +17,7 @@ module BCorrespondent.Statement.BalancedBook
         DayOfWeek (..)
        ) where
 
+import BCorrespondent.Transport.Model.Frontend (BalancedBookWallet)
 import BCorrespondent.Transport.Model.Invoice (Currency)
 import BCorrespondent.Statement.Types (DoY (..))
 import qualified Hasql.Statement as HS
@@ -25,7 +28,7 @@ import Data.Coerce (coerce)
 import Data.Word (Word32)
 import Data.Tuple.Extended (app1, app2, app3)
 import Data.Int (Int64)
-import Data.Aeson (FromJSON, encode, eitherDecode)
+import Data.Aeson (FromJSON, encode, eitherDecode, Value)
 import Data.Aeson.Generic.DerivingVia
 import GHC.Generics (Generic)
 import qualified Data.Vector as V
@@ -69,9 +72,15 @@ data DayOfWeeksHourly =
          '[FieldLabelModifier '[CamelTo2 "_"]]
       DayOfWeeksHourly
 
-bookDecoder (title, xs) = fmap (title,) $ fromMaybe (Right []) $ fmap (sequence . map (eitherDecode @DayOfWeeksHourly . encode) .V.toList) xs
+decodeG :: forall a . FromJSON a => Maybe (V.Vector Value) -> Either String [a]
+decodeG = fromMaybe (Right []) . fmap (sequence . map (eitherDecode @a . encode) .V.toList)
 
-initBalancedBook :: HS.Statement (DoY, Maybe DoY, DoY, Int64) (Either String (Text, [DayOfWeeksHourly]))
+bookDecoder (title, xs, ys) = do
+  xs' <- decodeG @DayOfWeeksHourly xs
+  ys' <- decodeG @BalancedBookWallet ys
+  return (title, xs', ys')
+
+initBalancedBook :: HS.Statement (DoY, Maybe DoY, DoY, Int64) (Either String (Text, [DayOfWeeksHourly], [BalancedBookWallet]))
 initBalancedBook =
   dimap 
   (app1 (fromIntegral @Word32 . coerce) . 
@@ -81,7 +90,8 @@ initBalancedBook =
   [singletonStatement|
     select 
      f.title :: text,
-     s.timeline :: jsonb[]?
+     s.timeline :: jsonb[]?,
+     t.balances :: jsonb[]?
     from (
       select
         title 
@@ -124,7 +134,7 @@ initBalancedBook =
             where extract(doy from appearance_on_timeline) = $3 :: int
             and institution_id = $4 :: int8
             group by day_of_week, start_point, end_point
-            union 
+            union
             select
               count(*),
               extract(dow from appearance_on_timeline) as day_of_week,
@@ -178,9 +188,20 @@ initBalancedBook =
           where tm.start = i.start and tm.end = i.end
           group by tm.start, tm.end, i.currency) as tbl
       group by tbl.start, tbl.end) as s
-    on f.start = s.start and f.end = s.end) as s on true|]
+    on f.start = s.start and f.end = s.end) as s on true
+    left join (
+      select
+        array_agg(
+        jsonb_build_object(
+          'currency', currency, 
+          'amount', amount,
+          'walletType', wallet_type)
+        order by wallet_type asc, currency asc)
+        as balances
+      from institution.wallet
+      where institution_id = $4 :: int8) as t on true|]
 
-fetchBalancedBook :: HS.Statement (DoY, DoY, Int64) (Either String (Text, [DayOfWeeksHourly]))
+fetchBalancedBook :: HS.Statement (DoY, DoY, Int64) (Either String (Text, [DayOfWeeksHourly], [BalancedBookWallet]))
 fetchBalancedBook =
   dimap 
   (app1 (fromIntegral @Word32 . coerce) .
@@ -189,7 +210,8 @@ fetchBalancedBook =
   [singletonStatement|
     select 
      f.title :: text,
-     s.timeline :: jsonb[]?
+     s.timeline :: jsonb[]?,
+     array[] :: jsonb[]?
     from (
       select
         title 

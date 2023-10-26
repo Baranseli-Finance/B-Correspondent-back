@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 module BCorrespondent.Api.Handler.Frontend.User.FetchBalancedBook (handle) where
 
@@ -19,9 +20,9 @@ import Data.Time.Calendar.OrdinalDate (Day, toOrdinalDate)
 import Data.Time.Calendar (weekFirstDay, weekLastDay, addDays, DayOfWeek (..))
 import Database.Transaction (transactionM, statement)
 import Data.String (fromString)
-import Data.Bifunctor (second)
 import Control.Monad.Time (currentTime)
 import Data.Time.Clock (UTCTime (utctDay))
+import Data.Tuple.Extended (uncurryT, app2)
 
 handle
   :: Auth.AuthenticatedUser 'Auth.Reader  
@@ -47,11 +48,10 @@ handle user (Id y) (Id m) (Id d) direction =
           hasql <- fmap (^. katipEnv . hasqlDbPool) ask
           let from = fromString $ show $ weekFirstDay Monday day
           let to = fromString $ show $ weekLastDay Monday day
-          let go = 
-                BalancedBook from to . 
-                (:[]) . 
-                uncurry BalancedBookInstitution . 
-                second (transform initDayOfWeeksHourly)
+          let go tpl =
+                   BalancedBook from to . (:[]) $ 
+                     uncurryT BalancedBookInstitution $ 
+                       app2 (transform initDayOfWeeksHourly) tpl
           fmap (`withError` go) $ transactionM hasql $ statement fetchBalancedBook (startDoy, endDoy, ident)
 
     if doy >=startDoy && doy <= endDoy then InitBalancedBook.handle user else fetchPast

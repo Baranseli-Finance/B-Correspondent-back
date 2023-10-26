@@ -41,7 +41,7 @@ import Data.UUID (UUID)
 
 initWithdrawal :: HS.Statement (Int64, Int32) (Either String ([Balance], WithdrawalHistory))
 initWithdrawal = 
-  dimap (snocT (toJSON Debit)) decode
+  dimap (snocT (toJSON Credit)) decode
   [singletonStatement|
     select
       f.wallets :: jsonb[],
@@ -166,7 +166,7 @@ registerWithdrawal =
 
 getWithdrawalPage :: HS.Statement (Int64, Int32, Int32) (Either String (Maybe WithdrawalHistory))
 getWithdrawalPage =
-  dimap (snocT (toJSON Debit)) (sequence . fmap (eitherDecode @WithdrawalHistory . encode))
+  dimap (snocT (toJSON Credit)) (sequence . fmap (eitherDecode @WithdrawalHistory . encode))
   [maybeStatement|
     select
       json_build_object(
@@ -219,7 +219,7 @@ getWithdrawalPage =
 
 updateWallet :: HS.Statement [Int64] Int64
 updateWallet =
-  lmap ((,toJSON Debit) . V.fromList)
+  lmap ((,toJSON Credit) . V.fromList)
   [rowsAffectedStatement|
     update institution.wallet
     set amount = w.amount + wallet.amount,

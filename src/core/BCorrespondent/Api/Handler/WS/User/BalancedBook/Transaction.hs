@@ -33,7 +33,7 @@ data TransactionBalancedBook =
        amount :: Double,
        currency :: Currency,
        dow :: Int,
-       institution :: Text
+       institutionTitle :: Text
      }
     deriving stock (Generic, Show)
     deriving
@@ -41,7 +41,7 @@ data TransactionBalancedBook =
      via WithOptions DefaultOptions
      TransactionBalancedBook
 
-type TransactionBalancedBookExt = WithField "user" Int64 (WithField "institution" Int64 TransactionBalancedBook)
+type TransactionBalancedBookExt = WithField "user_ident" Int64 (WithField "institution_ident" Int64 TransactionBalancedBook)
 
 type instance ListenPsql "balanced_book_transaction_add" TransactionBalancedBookExt = ()
 

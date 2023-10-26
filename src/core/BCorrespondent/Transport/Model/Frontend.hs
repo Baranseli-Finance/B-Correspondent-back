@@ -60,6 +60,7 @@ module BCorrespondent.Transport.Model.Frontend
         DayOfWeeksHourlyTotalSum (..),
         BalancedBookInstitution (..),
         BalancedBookDirection (..),
+        BalancedBookWallet (..),
         encodeHistoryDate
        ) where
 
@@ -233,7 +234,7 @@ data GapItemUnitStatus =
        Pending
      | Ok 
      | Declined
-     deriving stock (Generic, Show)
+     deriving stock (Generic, Show, Eq)
 
 mkToSchemaAndJSON ''GapItemUnitStatus
 mkEnumConvertor ''GapItemUnitStatus
@@ -611,10 +612,30 @@ deriveToSchemaFieldLabelModifier
   ''DayOfWeeksHourly 
   [|firstLetterModify (Proxy @DayOfWeeksHourly)|]
 
+data BalancedBookWallet = 
+      BalancedBookWallet
+      { balancedBookWalletCurrency :: !Currency, 
+        balancedBookWalletAmount :: !Double,
+        balancedBookWalletWalletType :: !WalletType
+      }
+    deriving stock (Generic, Show)
+    deriving
+      (ToJSON, FromJSON)
+      via WithOptions 
+          '[FieldLabelModifier
+            '[UserDefined FirstLetterToLower,
+              UserDefined 
+              (StripConstructor 
+               BalancedBookWallet)]]
+      BalancedBookWallet
+
+deriveToSchemaFieldLabelModifier ''BalancedBookWallet  [|firstLetterModify (Proxy @BalancedBookWallet)|]
+
 data BalancedBookInstitution = 
      BalancedBookInstitution
      { balancedBookInstitutionTitle :: !Text,
-       balancedBookInstitutionDayOfWeeksHourly :: ![DayOfWeeksHourly]
+       balancedBookInstitutionDayOfWeeksHourly :: ![DayOfWeeksHourly],
+       balancedBookInstitutionBalances :: ![BalancedBookWallet] 
      }
     deriving stock (Generic, Show)
     deriving
@@ -644,14 +665,14 @@ data BalancedBook =
             FieldLabelModifier
             '[UserDefined FirstLetterToLower,
               UserDefined 
-              (StripConstructor 
+              (StripConstructor
                BalancedBook)]]
       BalancedBook
 
 deriveToSchemaFieldLabelModifier ''BalancedBook [|firstLetterModify (Proxy @BalancedBook)|]
 
 data BalancedBookDirection = 
-       BalancedBookDirectionForward 
+       BalancedBookDirectionForward
      | BalancedBookDirectionBackward
     deriving stock (Generic, Show, Eq)
     deriving
