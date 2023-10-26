@@ -60,7 +60,11 @@ import Data.Aeson.Generic.DerivingVia
 import GHC.Generics (Generic)
 
 
-data Resource = Transaction | Wallet | Withdrawal
+data Resource = 
+        Transaction 
+      | Wallet 
+      | Withdrawal 
+      | BalancedBookTransaction
      deriving stock (Generic, Show)
      deriving
      (ToJSON, FromJSON)
@@ -135,7 +139,8 @@ listenPsql c db userIdent modify log = do
   Hasql.listen db channelToListen
   forever $
     flip Hasql.waitForNotifications db $ 
-      \channel payload -> do 
+      \channel payload -> do
+        log InfoS $ fromString $ $location <> " ws raw data ---> " <> show payload
         let resp = eitherDecode @a $ payload^.from bytesLazy
         log InfoS $ fromString $ $location <> " ws data ---> " <> show resp
         for_ (sequence (fmap modify resp)) $ \x -> 

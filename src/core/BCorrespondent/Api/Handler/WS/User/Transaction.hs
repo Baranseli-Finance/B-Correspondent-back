@@ -49,7 +49,7 @@ data Transaction =
 
 type TransactionExt = Maybe (WithField "user" Int64 (WithField "status" Status Transaction))
 
-type instance ListenPsql "timeline_transaction" TransactionExt = ()
+type instance ListenPsql "dashboard_transaction" TransactionExt = ()
 
 handle :: AuthenticatedUser 'Reader -> WS.Connection -> KatipHandlerM ()
 handle AuthenticatedUser {institution = Nothing} conn = 
@@ -61,4 +61,5 @@ handle AuthenticatedUser {ident, institution = Just _} conn =
            | dbUser == ident = Just $ first mkStatus x
            | otherwise = Nothing
          mkResp _ = Nothing    
-     withResource @"Transaction" conn resource $ listenPsql @"timeline_transaction" @TransactionExt conn db ident mkResp
+     withResource @"Transaction" conn resource $ 
+       listenPsql @"dashboard_transaction" @TransactionExt conn db ident mkResp

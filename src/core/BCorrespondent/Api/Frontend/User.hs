@@ -90,7 +90,13 @@ data UserApi route = UserApi
         :- "dashboard"
         :> "wallet"
         :> "update"
-        :> WebSocketPending,        
+        :> WebSocketPending,
+    _userApiNotifyBalancedBookTransactionAdd ::
+      route
+        :- "balanced-book"
+        :> "transaction"
+        :> "add"
+        :> WebSocketPending,  
     _userApiMakeProcuratory ::
       route
         :- "procuratory"

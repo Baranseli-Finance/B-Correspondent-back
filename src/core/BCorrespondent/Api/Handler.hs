@@ -46,6 +46,7 @@ import qualified BCorrespondent.Api.Handler.Frontend.User.MarkNotificationRead a
 import qualified BCorrespondent.Api.Handler.Frontend.User.SubmitIssue as User.SubmitIssue
 import qualified BCorrespondent.Api.Handler.Frontend.User.InitBalancedBook as User.InitBalancedBook
 import qualified BCorrespondent.Api.Handler.Frontend.User.FetchBalancedBook as User.FetchBalancedBook
+import qualified BCorrespondent.Api.Handler.WS.User.BalancedBook.Transaction as WS.User.BalancedBook.Transaction
 -- << end handlers
 import qualified BCorrespondent.Auth as Auth
 import Katip
@@ -188,7 +189,14 @@ user nm =
           flip logExceptionM ErrorS
           $ katipAddNamespace
             (Namespace [nm, "wallet"])
-            (WS.User.Wallet.handle ident conn),    
+            (WS.User.Wallet.handle ident conn),
+    _userApiNotifyBalancedBookTransactionAdd =
+      \(pend :: WS.PendingConnection) ->
+        pend `Auth.withWSAuth` \(ident, conn) ->
+          flip logExceptionM ErrorS
+          $ katipAddNamespace
+            (Namespace [nm, "balanced-book", "transaction"]) $
+            WS.User.BalancedBook.Transaction.handle ident conn,
     _userApiIntTimelineHistory = \auth date ->
        auth `Auth.withAuth` \user ->
          flip logExceptionM ErrorS $

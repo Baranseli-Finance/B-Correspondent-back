@@ -95,7 +95,9 @@ getDashboard =
       select
         i.title :: text,
         gaps.xs :: jsonb[]? as gaps,
-        array_agg(json_build_object(
+        array_agg(
+          distinct
+          jsonb_build_object(
           'ident', iw.id,
           'currency', iw.currency,
           'amount', iw.amount,
@@ -112,7 +114,8 @@ getDashboard =
             tm.start,
             tm.end,
             array_agg(
-            json_build_object(
+            distinct
+            jsonb_build_object(
             'start_hour', extract(hour from tm.start),
             'start_minute', extract(minute from tm.start),
             'end_hour', extract(hour from tm.end),
@@ -134,7 +137,7 @@ getDashboard =
                 interval '5 min') as _(el)
             where el < $2 :: timestamptz) as tm
           cross join (
-            select 
+            select
               *
             from institution.invoice
             where institution_id = $3 :: int8) as i
@@ -180,7 +183,7 @@ get1HourTimeline =
           tm.start,
           tm.end,
           array_agg(
-          json_build_object(
+          jsonb_build_object(
           'start_hour', extract(hour from tm.start),
           'start_minute', extract(minute from tm.start),
           'end_hour', extract(hour from tm.end),
