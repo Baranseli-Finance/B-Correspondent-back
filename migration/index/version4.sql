@@ -224,11 +224,13 @@ refresh materialized view mv.invoice_and_transaction;
 create materialized view mv.wallet
 as
   select
-   *
-  from institution.wallet
+   w.*,
+   date_trunc('week', now() - interval '1 day') :: date as startpoint,
+   (date_trunc('week', now() - interval '1 day') + '6 days'::interval) :: date as endpoint
+  from institution.wallet as w
 with no data;
 
-create unique index wallet_type_currency_institution_id_uq on mv.wallet (institution_id, currency, wallet_type);
+create unique index wallet_type_currency_institution_id_from_to_uq on mv.wallet (institution_id, currency, wallet_type, startpoint. endpoint);
 
 refresh materialized view mv.wallet;
 

@@ -20,6 +20,7 @@ module BCorrespondent.Statement.Institution
          fetchWithdrawals,
          updateWithdrawalStatus,
          modifyWalletAfterWebhook,
+         refreshWalletMV,
          WithdrawResult (..)
        ) where
 
@@ -37,6 +38,8 @@ import GHC.Generics
 import Data.Tuple.Extended (snocT, app1, app2)
 import Data.Text (Text)
 import Data.UUID (UUID)
+import Hasql.Decoders (noResult)
+import Hasql.Encoders (noParams)
 
 
 initWithdrawal :: HS.Statement (Int64, Int32) (Either String ([Balance], WithdrawalHistory))
@@ -300,3 +303,6 @@ modifyWalletAfterWebhook =
       on f.wallet_id = s.id
       where f.external_id = $3 :: uuid) as tbl
     where id = tbl.ident|]
+
+refreshWalletMV :: HS.Statement () ()
+refreshWalletMV = HS.Statement [uncheckedSql|refresh materialized view mv.wallet|] noParams noResult True

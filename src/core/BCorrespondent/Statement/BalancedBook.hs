@@ -211,7 +211,7 @@ fetchBalancedBook =
     select 
      f.title :: text,
      s.timeline :: jsonb[]?,
-     array[] :: jsonb[]?
+     t.balances :: jsonb[]?
     from (
       select
         title 
@@ -289,4 +289,17 @@ fetchBalancedBook =
           where tm.start = i.start and tm.end = i.end
           group by tm.start, tm.end, i.currency) as tbl
       group by tbl.start, tbl.end) as s
-    on f.start = s.start and f.end = s.end) as s on true|]
+    on f.start = s.start and f.end = s.end) as s on true
+    left join (
+      select
+        array_agg(
+        jsonb_build_object(
+          'currency', currency, 
+          'amount', amount,
+          'walletType', wallet_type)
+        order by wallet_type asc, currency asc)
+        as balances
+      from mv.wallet
+      where institution_id = $3 :: int8
+      and extract(doy from startpoint) = $1 :: int
+      and extract(doy from endpoint) = $2 :: int) as t on true|]

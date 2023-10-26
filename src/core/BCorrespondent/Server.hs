@@ -194,7 +194,7 @@ run Cfg {..} = do
     validateAsync <- Async.Lifted.async $ Job.Invoice.validateAgainstTransaction jobFrequency
     refreshMVAsync <- Async.Lifted.async $ Job.History.refreshMV jobFrequency
     withdrawAsync <- Async.Lifted.async $ Job.Wallet.withdraw jobFrequency
-
+    archiveAsync <- Async.Lifted.async $ Job.Wallet.archive jobFrequency
 
     ServerState c <- get
     when (c == 50) $ throwM RecoveryFailed
@@ -206,7 +206,8 @@ run Cfg {..} = do
             forwardToInitiatorAsync, 
             forwardToProviderAsync,
             refreshMVAsync,
-            withdrawAsync
+            withdrawAsync,
+            archiveAsync
           ]
     whenLeft end $ \e -> do
       ST.modify' (+1)

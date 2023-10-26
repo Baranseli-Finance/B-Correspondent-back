@@ -4,12 +4,12 @@
 {-#LANGUAGE TypeApplications #-}
 {-#LANGUAGE RecordWildCards #-}
 
-module BCorrespondent.Job.Wallet (withdraw) where
+module BCorrespondent.Job.Wallet (withdraw, archive) where
 
 import BCorrespondent.Transport.Model.Institution 
        (WithdrawalPaymentProviderRequest (..), WithdrawalStatus (Processing))
 import BCorrespondent.Statement.Institution 
-       (fetchWithdrawals, updateWithdrawalStatus)    
+       (fetchWithdrawals, updateWithdrawalStatus, refreshWalletMV)    
 import BCorrespondent.Job.Utils (withElapsedTime)
 import BCorrespondent.ServerM (ServerM)
 import Katip
@@ -27,7 +27,10 @@ import Data.Foldable (for_)
 import Data.String.Conv (toS)
 import qualified Data.Text as T
 import Data.Int (Int64)
-import Control.Monad (void)
+import Control.Monad (void, when)
+import Control.Monad.Time (currentTime)
+import Data.Time.Clock (UTCTime (utctDay))
+import Data.Time.Calendar (weekFirstDay, DayOfWeek (Monday))
 
 withdraw :: Int -> KatipContextT ServerM ()
 withdraw freq =
@@ -50,3 +53,15 @@ withdraw freq =
             \ withdrawal request failed to be sent, " <>
             toS (show @Int64 ident)
       void $ transactionM hasql $ statement updateWithdrawalStatus (Processing, os)
+
+archive :: Int -> KatipContextT ServerM ()
+archive freq =
+  forever $ do
+    threadDelay $ freq * 1_000_000
+    withElapsedTime ($location <> ":archive") $ do 
+      tm <-currentTime
+      let day = utctDay tm
+      let firstDay  = weekFirstDay Monday day
+      when (day == firstDay) $ do 
+        hasql <- fmap (^. hasqlDbPool) ask
+        void $ transactionM hasql $ statement refreshWalletMV ()
