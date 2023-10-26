@@ -28,9 +28,10 @@ import Data.Int (Int64)
 data TransactionBalancedBook =
      TransactionBalancedBook 
      { from :: Int, 
-       to :: Int, 
+       to :: Int,
        amount :: Double,
-       currency :: Currency
+       currency :: Currency,
+       dow :: Int
      }
     deriving stock (Generic, Show)
     deriving
@@ -40,7 +41,7 @@ data TransactionBalancedBook =
 
 type TransactionBalancedBookExt = WithField "user" Int64 (WithField "institution" Int64 TransactionBalancedBook)
 
-type instance ListenPsql "balanced_book_transaction213" TransactionBalancedBookExt = ()
+type instance ListenPsql "balanced_book_transaction_add" TransactionBalancedBookExt = ()
 
 handle :: AuthenticatedUser 'Reader -> WS.Connection -> KatipHandlerM ()
 handle AuthenticatedUser {institution = Nothing} conn = 
@@ -53,4 +54,4 @@ handle AuthenticatedUser {ident, institution = Just inst} conn =
             dbInst == inst = Just x
           | otherwise = Nothing
      withResource @"BalancedBookTransaction" conn resource $ 
-       listenPsql @"balanced_book_transaction213" @TransactionBalancedBookExt conn db ident mkResp
+       listenPsql @"balanced_book_transaction_add" @TransactionBalancedBookExt conn db ident mkResp
