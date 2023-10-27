@@ -209,7 +209,9 @@ as
     t.currency as transaction_currency,
     t.correspondent_bank,
     t.correspondent_bank_swift_sepa_code,
-    iu.user_id as user_ident
+    iu.user_id as user_ident,
+    date_trunc('week', now() - interval '1 day') :: date as startpoint,
+    (date_trunc('week', now() - interval '1 day') + '6 days'::interval) :: date as endpoint
   from institution.invoice as i
   left join institution.transaction as t
   on i.id = t.invoice_id
@@ -361,7 +363,7 @@ begin
         on w.user_id = u.id
         inner join institution.wallet as s
         on s.id = w.wallet_id
-        where s.wallet_type = 'debit' 
+        where s.wallet_type = 'credit' 
         and new.id = w.id) as tmp
       inner join (
         select

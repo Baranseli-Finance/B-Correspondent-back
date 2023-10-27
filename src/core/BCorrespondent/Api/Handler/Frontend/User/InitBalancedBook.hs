@@ -17,7 +17,7 @@ import BCorrespondent.Statement.Types (DoY (..))
 import qualified BCorrespondent.Auth as Auth
 import Katip.Handler (KatipHandlerM, katipEnv, hasqlDbPool, ask)
 import Control.Monad.Time (currentTime)
-import Data.Time.Clock (UTCTime (utctDay), addUTCTime)
+import Data.Time.Clock (UTCTime (utctDay))
 import Data.Time.Calendar.OrdinalDate (toOrdinalDate)
 import Data.Time.Calendar (weekFirstDay, weekLastDay, DayOfWeek (..))
 import Database.Transaction (transactionM, statement)
@@ -38,15 +38,12 @@ handle user =
     tm <-currentTime
     let day = utctDay tm
     let startDay = weekFirstDay Monday day
-    let prevDay = utctDay $ addUTCTime (-86400) tm 
-    let endDay | day == startDay = Nothing
-               | otherwise = Just prevDay
+    let endDay = day
 
     let getDoy = DoY . fromIntegral . snd . toOrdinalDate
 
-    let nowDoy = getDoy day 
     let startDoy =  getDoy startDay
-    let endDoy = fmap getDoy endDay
+    let endDoy = getDoy endDay
 
     let msg = 
              " init balanced book from " <> 
@@ -64,8 +61,8 @@ handle user =
               (uncurryT F.BalancedBookInstitution . 
                 app2 (transform initDayOfWeeksHourly))
     fmap (`withError` go) $ transactionM hasql $ do
-      first <- statement initFirstBalancedBook (startDoy, endDoy, nowDoy, ident)
-      second <- statement initSecondBalancedBook (startDoy, endDoy, nowDoy, ident)
+      first <- statement initFirstBalancedBook (startDoy, endDoy, ident)
+      second <- statement initSecondBalancedBook (startDoy, endDoy, ident)
       return $ sequence [first, second]
 
 initDayOfWeeksHourly :: [DayOfWeeksHourly]

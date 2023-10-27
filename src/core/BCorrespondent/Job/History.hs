@@ -6,7 +6,7 @@
 
 module BCorrespondent.Job.History (refreshMV) where
 
-import qualified BCorrespondent.Statement.History as S (getLastRefreshTm, refreshMV)
+import qualified BCorrespondent.Statement.History as S (refreshMV)
 import BCorrespondent.Job.Utils (withElapsedTime)
 import BCorrespondent.ServerM (ServerM)
 import Katip
@@ -18,15 +18,17 @@ import Katip.Handler (hasqlDbPool, ask)
 import Control.Lens ((^.))
 import Control.Monad.Time (currentTime)
 import Data.Time.Clock (utctDay)
-import Data.Time.Calendar.OrdinalDate (toOrdinalDate)
 import Control.Monad (when)
+import Data.Time.Calendar (weekFirstDay, DayOfWeek (Monday))
 
 refreshMV :: Int -> KatipContextT ServerM ()
 refreshMV freq =
   forever $ do
     threadDelay $ freq * 1_000_000
     withElapsedTime ($location <> ":refreshMV") $ do
-      currDoY <- fmap (snd . toOrdinalDate . utctDay) currentTime
-      hasql <- fmap (^. hasqlDbPool) ask
-      mvDoY <- transactionM hasql $ statement S.getLastRefreshTm ()
-      when (currDoY > mvDoY) $ transactionM hasql $ statement S.refreshMV ()
+      tm <-currentTime
+      let day = utctDay tm
+      let firstDay = weekFirstDay Monday day
+      when (day == firstDay) $ do
+        hasql <- fmap (^. hasqlDbPool) ask
+        transactionM hasql $ statement S.refreshMV ()

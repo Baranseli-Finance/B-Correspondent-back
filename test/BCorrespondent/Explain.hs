@@ -100,7 +100,6 @@ explainTests =
      ]
   , "BCorrespondent.Statement.History" ==>
      ["initTimeline" =>> BCorrespondent.Statement.History.initTimeline,
-      "getLastRefreshTm" =>> BCorrespondent.Statement.History.getLastRefreshTm,
       "refreshMV" =>> BCorrespondent.Statement.History.refreshMV,
       "getHourShift" =>> BCorrespondent.Statement.History.getHourShift
     ]
@@ -116,7 +115,8 @@ explainTests =
       "refreshWalletMV" =>> BCorrespondent.Statement.Institution.refreshWalletMV
     ]
   , "BCorrespondent.Statement.BalancedBook" ==>
-    [ "initBalancedBook" =>> BCorrespondent.Statement.BalancedBook.initBalancedBook,
-      "fetchBalancedBook" =>> BCorrespondent.Statement.BalancedBook.fetchBalancedBook  
+    [ "initFirstBalancedBook" =>> BCorrespondent.Statement.BalancedBook.initFirstBalancedBook,
+      "fetchFirstBalancedBook" =>> BCorrespondent.Statement.BalancedBook.fetchFirstBalancedBook,
+      "fetchSecondBalancedBook" =>> BCorrespondent.Statement.BalancedBook.fetchSecondBalancedBook,
     ]  
   ]

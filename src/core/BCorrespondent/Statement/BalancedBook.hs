@@ -28,7 +28,7 @@ import Hasql.TH
 import Control.Lens (dimap)
 import Data.Coerce (coerce)
 import Data.Word (Word32)
-import Data.Tuple.Extended (app1, app2, app3)
+import Data.Tuple.Extended (app1, app2)
 import Data.Int (Int64)
 import Data.Aeson (FromJSON, encode, eitherDecode, Value)
 import Data.Aeson.Generic.DerivingVia
@@ -82,12 +82,11 @@ bookDecoder (title, xs, ys) = do
   ys' <- decodeG @BalancedBookWallet ys
   return (title, xs', ys')
 
-initFirstBalancedBook :: HS.Statement (DoY, Maybe DoY, DoY, Int64) (Either String (Text, [DayOfWeeksHourly], [BalancedBookWallet]))
+initFirstBalancedBook :: HS.Statement (DoY, DoY, Int64) (Either String (Text, [DayOfWeeksHourly], [BalancedBookWallet]))
 initFirstBalancedBook =
   dimap 
-  (app1 (fromIntegral @Word32 . coerce) . 
-   app2 (fmap (fromIntegral @Word32 . coerce)) .
-   app3 (fromIntegral @Word32 . coerce))
+  (app1 (fromIntegral @Word32 . coerce) .
+   app2 (fromIntegral @Word32 . coerce))
   bookDecoder
   [singletonStatement|
     select 
@@ -98,7 +97,7 @@ initFirstBalancedBook =
       select
         title 
       from auth.institution 
-      where id = $4 :: int8) as f
+      where id = $3 :: int8) as f
     left join (
       select
         array_agg(jsonb_build_object(
@@ -133,19 +132,9 @@ initFirstBalancedBook =
               extract(hour from appearance_on_timeline) as start_point,
               extract(hour from appearance_on_timeline) + 1 as end_point
             from institution.invoice
-            where extract(doy from appearance_on_timeline) = $3 :: int
-            and institution_id = $4 :: int8
-            group by day_of_week, start_point, end_point
-            union
-            select
-              count(*),
-              extract(dow from appearance_on_timeline) as day_of_week,
-              extract(hour from appearance_on_timeline) as start_point,
-              extract(hour from appearance_on_timeline) + 1 as end_point
-            from mv.invoice_and_transaction
             where extract(doy from appearance_on_timeline) >= $1 :: int
-            and coalesce(extract(doy from appearance_on_timeline) <= $2 :: int?, false)
-            and institution_id = $4 :: int8
+            and extract(doy from appearance_on_timeline) <= $2 :: int
+            and institution_id = $3 :: int8
             group by day_of_week, start_point, end_point) as i
           where tm.start = i.start_point and tm.end = i.end_point
           group by tm.start, tm.end, i.day_of_week) as tbl
@@ -175,18 +164,9 @@ initFirstBalancedBook =
               extract(hour from appearance_on_timeline) as start,
               extract(hour from appearance_on_timeline) + 1 as end
             from institution.invoice
-            where extract(doy from appearance_on_timeline) = $3 :: int
-            and institution_id = $4 :: int8
-            union 
-            select
-              invoice_currency as currency,
-              invoice_amount as amount,
-              extract(hour from appearance_on_timeline) as start,
-              extract(hour from appearance_on_timeline) + 1 as end
-            from mv.invoice_and_transaction
             where extract(doy from appearance_on_timeline) >= $1 :: int
-            and coalesce(extract(doy from appearance_on_timeline) <= $2 :: int?, false)
-            and institution_id = $4 :: int8) as i
+            and extract(doy from appearance_on_timeline) <= $2 :: int
+            and institution_id = $3 :: int8) as i
           where tm.start = i.start and tm.end = i.end
           group by tm.start, tm.end, i.currency) as tbl
       group by tbl.start, tbl.end) as s
@@ -201,9 +181,9 @@ initFirstBalancedBook =
         order by wallet_type asc, currency asc)
         as balances
       from institution.wallet
-      where institution_id = $4 :: int8) as t on true|]
+      where institution_id = $3 :: int8) as t on true|]
 
-initSecondBalancedBook :: HS.Statement (DoY, Maybe DoY, DoY, Int64) (Either String (Text, [DayOfWeeksHourly], [BalancedBookWallet]))
+initSecondBalancedBook :: HS.Statement (DoY, DoY, Int64) (Either String (Text, [DayOfWeeksHourly], [BalancedBookWallet]))
 initSecondBalancedBook = undefined
 
 fetchFirstBalancedBook :: HS.Statement (DoY, DoY, Int64) (Either String (Text, [DayOfWeeksHourly], [BalancedBookWallet]))

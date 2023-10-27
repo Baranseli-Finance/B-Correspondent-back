@@ -7,14 +7,14 @@
 {-# LANGUAGE TypeApplications #-}
 {-# OPTIONS_GHC -fno-warn-unused-top-binds #-}
 
-module BCorrespondent.Statement.History (initTimeline, getLastRefreshTm, refreshMV, getHourShift) where
+module BCorrespondent.Statement.History (initTimeline, refreshMV, getHourShift) where
 
 import BCorrespondent.Statement.Types
 import BCorrespondent.Transport.Model.Frontend (HistoryDate, encodeHistoryDate)
 import BCorrespondent.Statement.Dashboard (TimelineGapsItem)
 import BCorrespondent.Statement.Invoice (Status (..))
 import qualified Hasql.Statement as HS
-import Control.Lens (rmap, dimap)
+import Control.Lens (dimap)
 import Hasql.TH
 import Hasql.Decoders (noResult)
 import Hasql.Encoders (noParams)
@@ -45,7 +45,7 @@ initTimeline =
           f.start,
           f.end,
           array_agg(
-            json_build_object(
+            jsonb_build_object(
              'start_hour', extract(hour from f.start),
              'start_minute', extract(minute from f.start),
              'end_hour', extract(hour from f.end),
@@ -95,13 +95,6 @@ initTimeline =
     encode (user, inst, d) = snocT inst $ consT user $ mapPolyT fromIntegral $ encodeHistoryDate d
     decode title xs = fmap (title,) $ fromMaybe (Right []) $ fmap (sequence . map (A.eitherDecode @TimelineGapsItem . A.encode) . V.toList) xs
 
-getLastRefreshTm :: HS.Statement () Int
-getLastRefreshTm = 
-  rmap fromIntegral 
-  [singletonStatement|
-    select extract('doy' from max(refresh_time)) :: int 
-    from mv.invoice_and_transaction|]
-
 refreshMV :: HS.Statement () ()
 refreshMV = HS.Statement [uncheckedSql|refresh materialized view mv.invoice_and_transaction|] noParams noResult True
 
@@ -126,7 +119,7 @@ getHourShift =
           tm.start,
           tm.end,
           array_agg(
-          json_build_object(
+          jsonb_build_object(
           'start_hour', extract(hour from tm.start),
           'start_minute', extract(minute from tm.start),
           'end_hour', extract(hour from tm.end),
@@ -153,7 +146,7 @@ getHourShift =
           from mv.invoice_and_transaction
           where institution_id = $1 :: int8) as i
         where 
-        (i.status = $7 :: text or 
+        (i.status = $7 :: text or
          i.status = $8 :: text or 
          i.status = $9 :: text)
         and (i.appearance_on_timeline > tm.start)
