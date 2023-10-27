@@ -96,13 +96,13 @@ getDashboard =
         i.title :: text,
         gaps.xs :: jsonb[]? as gaps,
         array_agg(
-          distinct
           jsonb_build_object(
           'ident', iw.id,
           'currency', iw.currency,
           'amount', iw.amount,
-          'walletType', iw.wallet_type
-        )) :: jsonb[] as wallets
+          'walletType', iw.wallet_type)
+          order by iw.wallet_type asc, iw.currency asc) 
+        :: jsonb[] as wallets
       from auth.institution as i
       left join ( 
         select
