@@ -48,11 +48,11 @@ handle user (Id y) (Id m) (Id d) direction =
           hasql <- fmap (^. katipEnv . hasqlDbPool) ask
           let from = fromString $ show $ weekFirstDay Monday day
           let to = fromString $ show $ weekLastDay Monday day
-          let go xs =
-                   BalancedBook from to $ xs <&>
-                     (uncurryT BalancedBookInstitution . 
-                      app3 (transform initDayOfWeeksHourly))
-          fmap (`withError` go) $ transactionM hasql $ do 
+          let go xs = 
+                   zip [1..] xs <&> \(idx, x) ->
+                     uncurryT BalancedBookInstitution $
+                       app3 (transform (initDayOfWeeksHourly idx)) x
+          fmap (`withError` BalancedBook from to . go) $ transactionM hasql $ do 
             first <- statement fetchFirstBalancedBook (startDoy, endDoy, ident)
             second <- statement fetchSecondBalancedBook (startDoy, endDoy, ident)
             return $ sequence [first, second]

@@ -56,20 +56,24 @@ handle user =
     let from = fromString $ show $ weekFirstDay Monday day
     let to = fromString $ show $ weekLastDay Monday day
     hasql <- fmap (^. katipEnv . hasqlDbPool) ask
-    let go xs =
-            F.BalancedBook from to $ xs <&>
-              (uncurryT F.BalancedBookInstitution . 
-                app3 (transform initDayOfWeeksHourly))
-    fmap (`withError` go) $ transactionM hasql $ do
+    let go xs = 
+             zip [1..] xs <&> \(idx, x) ->
+               uncurryT F.BalancedBookInstitution $
+                 app3 (transform (initDayOfWeeksHourly idx)) x
+    fmap (`withError` F.BalancedBook from to . go) $ transactionM hasql $ do
       first <- statement initFirstBalancedBook (startDoy, endDoy, ident)
       second <- statement initSecondBalancedBook (startDoy, endDoy, ident)
       return $ sequence [first, second]
 
-initDayOfWeeksHourly :: [DayOfWeeksHourly]
-initDayOfWeeksHourly = 
-  [ item 
+initDayOfWeeksHourly :: Int -> [DayOfWeeksHourly]
+initDayOfWeeksHourly idx = 
+  [ item
     | (s, e) <- zip [0 ..23] [1 .. 24],
-      let xs = map (`DayOfWeek` 0) [fromEnum Monday .. fromEnum Sunday],
+      let weekdays = 
+            if idx == 1 
+            then [fromEnum Monday .. fromEnum Sunday] 
+            else [fromEnum Sunday, fromEnum Saturday .. fromEnum Monday],
+      let xs = map (`DayOfWeek` 0) weekdays,
       let e' = if e == 24 then 0 else e,
       let item = DayOfWeeksHourly s e' xs []
   ]

@@ -227,7 +227,7 @@ initSecondBalancedBook =
           array_agg(jsonb_build_object(
             'day_of_week', tbl.day_of_week, 
             'day_total', tbl.total) 
-          order by tbl.day_of_week) 
+          order by tbl.day_of_week desc)
           :: jsonb[] as xs
         from (
           select
