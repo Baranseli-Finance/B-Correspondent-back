@@ -117,6 +117,6 @@ explainTests =
   , "BCorrespondent.Statement.BalancedBook" ==>
     [ "initFirstBalancedBook" =>> BCorrespondent.Statement.BalancedBook.initFirstBalancedBook,
       "fetchFirstBalancedBook" =>> BCorrespondent.Statement.BalancedBook.fetchFirstBalancedBook,
-      "fetchSecondBalancedBook" =>> BCorrespondent.Statement.BalancedBook.fetchSecondBalancedBook,
+      "fetchSecondBalancedBook" =>> BCorrespondent.Statement.BalancedBook.fetchSecondBalancedBook
     ]  
   ]

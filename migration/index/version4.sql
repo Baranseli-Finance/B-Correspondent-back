@@ -232,7 +232,7 @@ as
   from institution.wallet as w
 with no data;
 
-create unique index wallet_type_currency_institution_id_from_to_uq on mv.wallet (institution_id, currency, wallet_type, startpoint. endpoint);
+create unique index wallet_type_currency_institution_id_from_to_uq on mv.wallet (institution_id, currency, wallet_type, startpoint, endpoint);
 
 refresh materialized view mv.wallet;
 
@@ -430,11 +430,9 @@ after update on institution.invoice
 for each row 
 execute procedure notify_server_on_balanced_book_new_transaction();
 
-
 create table institution.relation (
   first_id bigserial not null check(first_id != second_id),
   second_id bigserial not null,
   constraint institution_relation__first_id__fk foreign key (first_id) references auth.institution(id),
   constraint institution_relation__second_id__fk foreign key (second_id) references auth.institution(id),
   constraint institution__relation___first_second_unique unique (first_id, second_id));
-

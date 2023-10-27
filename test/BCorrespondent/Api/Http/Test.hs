@@ -23,7 +23,8 @@ import BCorrespondent.Transport.Model.Frontend
         WalletType, Wallet, FetchGap, TimelineTransactionResponse,
         TimelineTransaction, Notifications, Notification, Issue,
         BalancedBook, BalancedBookInstitution, DayOfWeeksHourly, 
-        AmountInDayOfWeek, DayOfWeeksHourlyTotalSum, BalancedBookWallet)
+        AmountInDayOfWeek, DayOfWeeksHourlyTotalSum, BalancedBookWallet,
+        GapItemWrapper)
 import BCorrespondent.Transport.Model.Institution 
        (Withdraw, InitWithdrawal, Balance, WithdrawalHistoryItem, 
         WithdrawalHistory, WithdrawResult, WithdrawResultStatus,
@@ -48,6 +49,7 @@ mkArbitrary ''GapItemAmount
 mkArbitrary ''GapItemUnitStatus
 mkArbitrary ''GapItemUnit
 mkArbitrary ''GapItem
+mkArbitrary ''GapItemWrapper
 mkArbitrary ''WalletType
 mkArbitrary ''Wallet
 mkArbitrary ''FetchGap
