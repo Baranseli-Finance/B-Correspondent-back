@@ -29,12 +29,12 @@ handle :: AuthCode -> KatipHandlerM (Response AuthToken)
 handle (AuthCode code hash) = do
   hasql <- fmap (^. katipEnv . hasqlDbPool) ask
   key <- fmap (^. katipEnv . jwk) ask
-  let mkToken ident login = liftIO $ Auth.generateJWT key ident (Just login) 2_592_000
+  let mkToken ident inst login = liftIO $ Auth.generateJWT key ident inst (Just login) 2_592_000
   res <- fmap join $ transactionM hasql $ do
     identm <- statement Auth.getUserCredByCode (code, hash)
     fmap (maybeToRight Code) $
       for identm $ \(Auth.UserCred {..}) -> do
-        tokene <- mkToken userCredIdent userCredLogin
+        tokene <- mkToken userCredIdent userCredInstitution userCredLogin
         fmap (first (const JWT)) $
           for tokene $ \(tokenbs, uuid) -> do
             let token = tokenbs ^. bytesLazy . from textbs

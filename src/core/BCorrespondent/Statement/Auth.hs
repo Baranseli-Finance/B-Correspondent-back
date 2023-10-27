@@ -154,7 +154,8 @@ data UserCred =
      UserCred 
      { userCredIdent :: Int64, 
        userCredLogin :: T.Text,
-       userCredFp :: T.Text
+       userCredFp :: T.Text,
+       userCredInstitution :: !(Maybe Int64)
      }
      deriving stock (Generic)
      deriving
@@ -178,16 +179,20 @@ getUserCredByCode =
          (extract(epoch from c.expire_at) -
           extract(epoch from now()) > 0))
           as is_code_valid,
-        c.browser_fp as fp
+        c.browser_fp as fp,
+        iu.institution_id as institution 
       from auth.user as u
       inner join auth.code as c
       on u.id = c.user_id
+      left join institution.user as iu
+      on u.id = iu.user_id
       where c.uuid = $2 :: text)
     select 
       jsonb_build_object(
         'ident', id :: int8, 
         'login', login :: text,
-        'fp', fp) :: jsonb 
+        'fp', fp,
+        'institution', institution) :: jsonb 
     from cred
     where is_code_valid|]
 

@@ -200,8 +200,8 @@ withAuth e _ = do
     mkError NoSuchUser = "no user found"
     mkError Indefinite = "an authentication procedure cannot be carried out"
 
-generateJWT :: Jose.JWK -> Int64 -> Maybe T.Text -> Int64 -> IO (Either Jose.JWTError (BSL.ByteString, UUID))
-generateJWT jwk ident login expiryIn = do
+generateJWT :: Jose.JWK -> Int64 -> Maybe Int64 -> Maybe T.Text -> Int64 -> IO (Either Jose.JWTError (BSL.ByteString, UUID))
+generateJWT jwk ident institution login expiryIn = do
   t <- currentTime
   uuid <- randomIO @UUID
   let claims =
@@ -214,7 +214,8 @@ generateJWT jwk ident login expiryIn = do
        { userIdentClaimsJwtClaims = claims,
          userIdentClaimsIdent = ident, 
          userIdentClaimsLogin = login,
-         userIdentClaimsJwtUUID = uuid
+         userIdentClaimsJwtUUID = uuid,
+         userIdentClaimsInstitution = institution
        }
   Jose.runJOSE $ do
     alg <- Jose.bestJWSAlg jwk
@@ -225,7 +226,8 @@ data UserIdentClaims = UserIdentClaims
   { userIdentClaimsJwtClaims :: !Jose.ClaimsSet,
     userIdentClaimsIdent :: !Int64,
     userIdentClaimsLogin :: !(Maybe T.Text),
-    userIdentClaimsJwtUUID :: !UUID
+    userIdentClaimsJwtUUID :: !UUID,
+    userIdentClaimsInstitution :: !(Maybe Int64)
   }
   deriving stock (Generic)
   deriving

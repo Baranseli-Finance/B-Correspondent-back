@@ -43,7 +43,7 @@ handle instKey = do
   tl <- fmap (^. katipEnv . tokenLife) ask
   key <- fmap (^. katipEnv . jwk) ask
   let mkToken ident = do
-       res <- liftIO $ generateJWT key ident Nothing $ fromIntegral tl
+       res <- liftIO $ generateJWT key ident Nothing Nothing $ fromIntegral tl
        fmap (join . first (const JWT)) $
          for res $ \(bs, uuid) -> 
            fmap (const (Right (toS bs))) $ 

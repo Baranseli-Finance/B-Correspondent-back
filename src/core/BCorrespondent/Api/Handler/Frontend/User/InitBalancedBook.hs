@@ -27,7 +27,7 @@ import Data.String (fromString)
 import BuildInfo (location)
 import Data.List (find)
 import Data.Maybe
-import Data.Tuple.Extended (uncurryT, app2)
+import Data.Tuple.Extended (uncurryT, app3)
 
 -- 1 the current day is equal to weekFirstDay: we have only one day, there is no past
 -- 2 not: two parts: past (weekFirstDay, last), now: current day
@@ -59,7 +59,7 @@ handle user =
     let go xs =
             F.BalancedBook from to $ xs <&>
               (uncurryT F.BalancedBookInstitution . 
-                app2 (transform initDayOfWeeksHourly))
+                app3 (transform initDayOfWeeksHourly))
     fmap (`withError` go) $ transactionM hasql $ do
       first <- statement initFirstBalancedBook (startDoy, endDoy, ident)
       second <- statement initSecondBalancedBook (startDoy, endDoy, ident)

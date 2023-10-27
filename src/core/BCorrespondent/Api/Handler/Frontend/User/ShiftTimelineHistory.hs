@@ -12,7 +12,7 @@ import BCorrespondent.Statement.History (getHourShift)
 import BCorrespondent.Api.Handler.Utils (withError)
 import BCorrespondent.Api.Handler.Frontend.User.Utils (checkInstitution)
 import BCorrespondent.Transport.Error (asError)
-import BCorrespondent.Transport.Model.Frontend (GapItem, TimelineDirection (..))
+import BCorrespondent.Transport.Model.Frontend (TimelineDirection (..), GapItemWrapper (..))
 import qualified BCorrespondent.Auth as Auth
 import Katip.Handler (KatipHandlerM, ask, katipEnv, hasqlDbPool)
 import Data.Text (Text)
@@ -34,8 +34,9 @@ handle
   -> Int
   -> TimelineDirection
   -> Int
-  -> KatipHandlerM (Response [GapItem])
-handle user y m d direction hour
+  -> Int
+  -> KatipHandlerM (Response GapItemWrapper)
+handle user y m d direction institutionIdent hour
   | 0 > hour || hour > 24 = 
     pure $ Error (Just 400) $ asError @Text "hour must lie between 0 and 23, 0 < hour || hour > 23"
   | (direction == Forward && hour + 1 > 24) || 
@@ -46,23 +47,25 @@ handle user y m d direction hour
            \ or direction == Backward && hour - 1 < 0" 
       in pure $ Error (Just 400) $ asError @Text msg
   | otherwise = 
-      checkInstitution user $ \(_, inst_ident) -> do
-        isCurrent <- checkIfCurrentPeriod y m d
-        hasql <- fmap (^. katipEnv . hasqlDbPool) ask
-        let from | direction == Forward = hour
-                 | otherwise = hour - 1
-        let to | direction == Forward = hour + 1
-               | otherwise = hour
-        let params =
-              snocT isCurrent $
-              consT inst_ident $ 
-              consT (Year (fromIntegral y)) $
-              consT (Month (fromIntegral m)) $
-              consT (Day (fromIntegral d)) $
-              mapPolyT (Hour . fromIntegral) (from, to)
-        $(logTM) DebugS $ fromString $ $location <> " params ---> " <> show params
-        dbResp <- transactionM hasql $ statement getHourShift params
-        pure $ withError dbResp transform
+      checkInstitution user $ \(_, yourInstitutionIdent) ->
+        if institutionIdent /= fromIntegral yourInstitutionIdent
+        then pure $ Error (Just 403) $ asError @Text "you should be granted the additional permission to monitor the second part"
+        else do
+          isCurrent <- checkIfCurrentPeriod y m d
+          hasql <- fmap (^. katipEnv . hasqlDbPool) ask
+          let from | direction == Forward = hour
+                  | otherwise = hour - 1
+          let to | direction == Forward = hour + 1
+                | otherwise = hour
+          let params =
+                snocT isCurrent $
+                consT yourInstitutionIdent $ 
+                consT (Year (fromIntegral y)) $
+                consT (Month (fromIntegral m)) $
+                consT (Day (fromIntegral d)) $
+                mapPolyT (Hour . fromIntegral) (from, to)
+          $(logTM) DebugS $ fromString $ $location <> " params ---> " <> show params
+          fmap (`withError`(GapItemWrapper . transform)) $ transactionM hasql $ statement getHourShift params
 
 checkIfCurrentPeriod y m d = do
   let addZero x = if x < 10 then "0" <> show x else show x

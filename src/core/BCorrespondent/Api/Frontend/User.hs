@@ -9,7 +9,7 @@
 module BCorrespondent.Api.Frontend.User (UserApi (..)) where
 
 import BCorrespondent.Transport.Model.Frontend 
-       (InitDashboard, GapItem, FetchGap, HistoryTimeline)
+       (InitDashboard, FetchGap, HistoryTimeline)
 import BCorrespondent.Transport.Response (Response)
 import BCorrespondent.Transport.Model.Frontend 
        (ProcuratoryRequest, 
@@ -20,7 +20,8 @@ import BCorrespondent.Transport.Model.Frontend
         Notifications,
         Issue,
         BalancedBook,
-        BalancedBookDirection
+        BalancedBookDirection,
+        GapItemWrapper
        )
 import BCorrespondent.Transport.Id (Id)       
 import BCorrespondent.Auth (AuthenticatedUser, JWT, Role (..))
@@ -46,13 +47,14 @@ data UserApi route = UserApi
         :- "history"
           :> "timeline"
           :> RateLimit (FixedWindow (Second 1) 50) (KeyPolicy "Token")
+          :> SA.Auth '[JWT] (AuthenticatedUser 'Reader)
           :> Capture "year" Int
           :> Capture "month" Int
           :> Capture "day" Int
           :> Capture "direction" TimelineDirection
-          :> SA.Auth '[JWT] (AuthenticatedUser 'Reader)
+          :> Capture "institution" Int
           :> QueryParam' '[Required, Strict] "hour" Int
-          :> Get '[JSON] (Response [GapItem]),
+          :> Get '[JSON] (Response GapItemWrapper),
     _userApiInitDashboard ::
       route
         :- "dashboard"
@@ -78,7 +80,7 @@ data UserApi route = UserApi
           :> SA.Auth '[JWT] (AuthenticatedUser 'Reader)
           :> Capture "direction" TimelineDirection
           :> QueryParam' '[Required, Strict] "point" GapItemTime
-          :> Get '[JSON] (Response [GapItem]),      
+          :> Get '[JSON] (Response GapItemWrapper),      
     _userApiNotifyTransactionUpdate ::
       route
         :- "dashboard"

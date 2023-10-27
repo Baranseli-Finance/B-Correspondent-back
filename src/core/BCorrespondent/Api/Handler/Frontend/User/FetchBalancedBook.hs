@@ -22,7 +22,7 @@ import Database.Transaction (transactionM, statement)
 import Data.String (fromString)
 import Control.Monad.Time (currentTime)
 import Data.Time.Clock (UTCTime (utctDay))
-import Data.Tuple.Extended (uncurryT, app2)
+import Data.Tuple.Extended (uncurryT, app3)
 
 handle
   :: Auth.AuthenticatedUser 'Auth.Reader  
@@ -51,7 +51,7 @@ handle user (Id y) (Id m) (Id d) direction =
           let go xs =
                    BalancedBook from to $ xs <&>
                      (uncurryT BalancedBookInstitution . 
-                      app2 (transform initDayOfWeeksHourly))
+                      app3 (transform initDayOfWeeksHourly))
           fmap (`withError` go) $ transactionM hasql $ do 
             first <- statement fetchFirstBalancedBook (startDoy, endDoy, ident)
             second <- statement fetchSecondBalancedBook (startDoy, endDoy, ident)

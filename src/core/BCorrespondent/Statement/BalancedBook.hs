@@ -36,6 +36,7 @@ import GHC.Generics (Generic)
 import qualified Data.Vector as V
 import Data.Maybe (fromMaybe)
 
+
 data DayOfWeek = 
      DayOfWeek
      { dayOfWeek :: Int, 
@@ -77,12 +78,12 @@ data DayOfWeeksHourly =
 decodeG :: forall a . FromJSON a => Maybe (V.Vector Value) -> Either String [a]
 decodeG = fromMaybe (Right []) . fmap (sequence . map (eitherDecode @a . encode) .V.toList)
 
-bookDecoder (title, xs, ys) = do
+bookDecoder (title, id, xs, ys) = do
   xs' <- decodeG @DayOfWeeksHourly xs
   ys' <- decodeG @BalancedBookWallet ys
-  return (title, xs', ys')
+  return (title, id, xs', ys')
 
-initFirstBalancedBook :: HS.Statement (DoY, DoY, Int64) (Either String (Text, [DayOfWeeksHourly], [BalancedBookWallet]))
+initFirstBalancedBook :: HS.Statement (DoY, DoY, Int64) (Either String (Text, Int64, [DayOfWeeksHourly], [BalancedBookWallet]))
 initFirstBalancedBook =
   dimap 
   (app1 (fromIntegral @Word32 . coerce) .
@@ -91,11 +92,13 @@ initFirstBalancedBook =
   [singletonStatement|
     select 
      f.title :: text,
+     f.id :: int8,
      s.timeline :: jsonb[]?,
      t.balances :: jsonb[]?
     from (
       select
-        title 
+        title,
+        id
       from auth.institution 
       where id = $3 :: int8) as f
     left join (
@@ -183,7 +186,7 @@ initFirstBalancedBook =
       from institution.wallet
       where institution_id = $3 :: int8) as t on true|]
 
-initSecondBalancedBook :: HS.Statement (DoY, DoY, Int64) (Either String (Text, [DayOfWeeksHourly], [BalancedBookWallet]))
+initSecondBalancedBook :: HS.Statement (DoY, DoY, Int64) (Either String (Text, Int64, [DayOfWeeksHourly], [BalancedBookWallet]))
 initSecondBalancedBook =
   dimap 
   (app1 (fromIntegral @Word32 . coerce) .
@@ -192,11 +195,13 @@ initSecondBalancedBook =
   [singletonStatement|
     select 
      f.title :: text,
+     f.id :: int8,
      s.timeline :: jsonb[]?,
      t.balances :: jsonb[]?
     from (
       select
-        s.title
+        s.title,
+        s.id
       from (
         select 
           coalesce(r.second_id, r.first_id) as ident
@@ -312,7 +317,7 @@ initSecondBalancedBook =
       inner join institution.wallet as s
       on institution_id = f.ident) as t on true|]
 
-fetchFirstBalancedBook :: HS.Statement (DoY, DoY, Int64) (Either String (Text, [DayOfWeeksHourly], [BalancedBookWallet]))
+fetchFirstBalancedBook :: HS.Statement (DoY, DoY, Int64) (Either String (Text, Int64, [DayOfWeeksHourly], [BalancedBookWallet]))
 fetchFirstBalancedBook =
   dimap 
   (app1 (fromIntegral @Word32 . coerce) .
@@ -321,11 +326,13 @@ fetchFirstBalancedBook =
   [singletonStatement|
     select 
      f.title :: text,
+     f.id :: int8,
      s.timeline :: jsonb[]?,
      t.balances :: jsonb[]?
     from (
       select
-        title 
+        title,
+        id
       from auth.institution 
       where id = $3 :: int8) as f
     left join (
@@ -415,7 +422,7 @@ fetchFirstBalancedBook =
       and extract(doy from startpoint) = $1 :: int
       and extract(doy from endpoint) = $2 :: int) as t on true|]
 
-fetchSecondBalancedBook :: HS.Statement (DoY, DoY, Int64) (Either String (Text, [DayOfWeeksHourly], [BalancedBookWallet]))
+fetchSecondBalancedBook :: HS.Statement (DoY, DoY, Int64) (Either String (Text, Int64, [DayOfWeeksHourly], [BalancedBookWallet]))
 fetchSecondBalancedBook =
   dimap 
   (app1 (fromIntegral @Word32 . coerce) .
@@ -424,11 +431,13 @@ fetchSecondBalancedBook =
   [singletonStatement|
     select 
      f.title :: text,
+     f.id :: int8,
      s.timeline :: jsonb[]?,
      t.balances :: jsonb[]?
     from (
       select
-        s.title
+        s.title,
+        s.id
       from (
         select 
           coalesce(r.second_id, r.first_id) as ident

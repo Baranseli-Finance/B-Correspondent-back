@@ -61,6 +61,7 @@ module BCorrespondent.Transport.Model.Frontend
         BalancedBookInstitution (..),
         BalancedBookDirection (..),
         BalancedBookWallet (..),
+        GapItemWrapper (..),
         encodeHistoryDate
        ) where
 
@@ -634,6 +635,7 @@ deriveToSchemaFieldLabelModifier ''BalancedBookWallet  [|firstLetterModify (Prox
 data BalancedBookInstitution = 
      BalancedBookInstitution
      { balancedBookInstitutionTitle :: !Text,
+       balancedBookInstitutionIdent :: !Int64,
        balancedBookInstitutionDayOfWeeksHourly :: ![DayOfWeeksHourly],
        balancedBookInstitutionBalances :: ![BalancedBookWallet] 
      }
@@ -686,3 +688,19 @@ data BalancedBookDirection =
 mkEnumConvertor ''BalancedBookDirection
 mkParamSchemaEnum ''BalancedBookDirection [|isoBalancedBookDirection . jsonb|]
 mkFromHttpApiDataEnum ''BalancedBookDirection [|from stext . from isoBalancedBookDirection . to Right|]
+
+data GapItemWrapper = 
+     GapItemWrapper 
+     { gapItemWrapperItems :: ![GapItem] }
+    deriving stock (Generic, Show)
+    deriving
+      (ToJSON, FromJSON)
+      via WithOptions 
+          '[FieldLabelModifier
+            '[UserDefined FirstLetterToLower,
+              UserDefined 
+              (StripConstructor
+               GapItemWrapper)]]
+      GapItemWrapper
+
+deriveToSchemaFieldLabelModifier ''GapItemWrapper [|firstLetterModify (Proxy @GapItemWrapper)|]

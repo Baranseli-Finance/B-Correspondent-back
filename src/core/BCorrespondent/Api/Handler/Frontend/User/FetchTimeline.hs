@@ -7,7 +7,7 @@ import BCorrespondent.Api.Handler.Frontend.User.InitDashboard (transform)
 import BCorrespondent.Statement.Dashboard (get1HourTimeline)
 import qualified BCorrespondent.Auth as Auth
 import BCorrespondent.Transport.Model.Frontend 
-       (TimelineDirection (..), GapItem, GapItemTime (..))
+       (TimelineDirection (..), GapItemWrapper (..), GapItemTime (..))
 import BCorrespondent.Transport.Response (Response)
 import BCorrespondent.Api.Handler.Utils (withError)
 import BCorrespondent.Api.Handler.Frontend.User.Utils (checkInstitution)
@@ -21,7 +21,7 @@ import Katip (logTM, Severity (DebugS))
 import Data.String (fromString)
 import BuildInfo (location)
 
-handle :: Auth.AuthenticatedUser 'Auth.Reader -> TimelineDirection -> GapItemTime -> KatipHandlerM (Response [GapItem])
+handle :: Auth.AuthenticatedUser 'Auth.Reader -> TimelineDirection -> GapItemTime -> KatipHandlerM (Response GapItemWrapper)
 handle user direction GapItemTime {gapItemTimeHour=hour, gapItemTimeMin=min} = 
   checkInstitution user $ \(_, ident) -> do 
     date@(year, day) <- fmap (toOrdinalDate . utctDay) currentTime
@@ -55,4 +55,4 @@ handle user direction GapItemTime {gapItemTimeHour=hour, gapItemTimeMin=min} =
     $(logTM) DebugS $ fromString $ $location <> " params ---> " <> show params        
     hasql <- fmap (^. katipEnv . hasqlDbPool) ask           
     dbResp <- transactionM hasql $ statement get1HourTimeline params
-    pure $ withError dbResp transform
+    pure $ withError dbResp (GapItemWrapper . transform)
