@@ -204,11 +204,13 @@ initSecondBalancedBook =
         s.id
       from (
         select 
-          coalesce(r.second_id, r.first_id) as ident
+          coalesce(rf.second_id, rs.first_id) as ident
         from auth.institution as i
-        inner join institution.relation r
-        on i.id = r.first_id and r.first_id = $3 :: int8 
-        or i.id = r.second_id and r.second_id = $3 :: int8) as f
+        left join institution.relation rf
+        on i.id = rf.first_id and rf.first_id = $3 :: int8
+        left join institution.relation rs
+        on i.id = rs.second_id and rs.second_id = $3 :: int8
+        where rf.second_id is not null or rs.first_id is not null) as f
       inner join auth.institution as s
       on f.ident = s.id) as f
     left join (
@@ -246,11 +248,13 @@ initSecondBalancedBook =
               extract(hour from appearance_on_timeline) + 1 as end_point
             from (
               select 
-                coalesce(r.second_id, r.first_id) as ident
+                coalesce(rf.second_id, rs.first_id) as ident
               from auth.institution as i
-              inner join institution.relation r
-              on i.id = r.first_id and r.first_id = $3 :: int8 
-              or i.id = r.second_id and r.second_id = $3 :: int8) as i         
+              left join institution.relation rf
+              on i.id = rf.first_id and rf.first_id = $3 :: int8
+              left join institution.relation rs
+              on i.id = rs.second_id and rs.second_id = $3 :: int8
+              where rf.second_id is not null or rs.first_id is not null) as i         
             left join institution.invoice as inv
             on i.ident = inv.institution_id
             where extract(doy from appearance_on_timeline) >= $1 :: int
@@ -285,11 +289,13 @@ initSecondBalancedBook =
               extract(hour from appearance_on_timeline) + 1 as end
             from (
               select 
-                coalesce(r.second_id, r.first_id) as ident
+                coalesce(rf.second_id, rs.first_id) as ident
               from auth.institution as i
-              inner join institution.relation r
-              on i.id = r.first_id and r.first_id = $3 :: int8 
-              or i.id = r.second_id and r.second_id = $3 :: int8) as i
+              left join institution.relation rf
+              on i.id = rf.first_id and rf.first_id = $3 :: int8
+              left join institution.relation rs
+              on i.id = rs.second_id and rs.second_id = $3 :: int8
+              where rf.second_id is not null or rs.first_id is not null) as i
             left join institution.invoice as inv
             on i.ident = inv.institution_id
             where extract(doy from appearance_on_timeline) >= $1 :: int
@@ -309,11 +315,14 @@ initSecondBalancedBook =
         as balances
       from (
         select 
-          coalesce(r.second_id, r.first_id) as ident
+          coalesce(rf.second_id, rs.first_id) as ident
         from auth.institution as i
-        inner join institution.relation r
-        on i.id = r.first_id and r.first_id = $3 :: int8 
-        or i.id = r.second_id and r.second_id = $3 :: int8) as f
+        left join institution.relation rf
+        on i.id = rf.first_id and rf.first_id = $3 :: int8
+        left join institution.relation rs
+        on i.id = rs.second_id and rs.second_id = $3 :: int8
+        where rf.second_id is not null or rs.first_id is not null
+      ) as f
       inner join institution.wallet as s
       on institution_id = f.ident) as t on true|]
 
@@ -482,11 +491,13 @@ fetchSecondBalancedBook =
               extract(hour from appearance_on_timeline) + 1 as end_point
             from (
               select 
-                coalesce(r.second_id, r.first_id) as ident
+                coalesce(rf.second_id, rs.first_id) as ident
               from auth.institution as i
-              inner join institution.relation r
-              on i.id = r.first_id and r.first_id = $3 :: int8 
-              or i.id = r.second_id and r.second_id = $3 :: int8) as i
+              left join institution.relation rf
+              on i.id = rf.first_id and rf.first_id = $3 :: int8
+              left join institution.relation rs
+              on i.id = rs.second_id and rs.second_id = $3 :: int8
+              where rf.second_id is not null or rs.first_id is not null) as i
             left join mv.invoice_and_transaction as inv
             on i.ident = inv.institution_id
             where extract(doy from appearance_on_timeline) >= $1 :: int
@@ -521,11 +532,13 @@ fetchSecondBalancedBook =
               extract(hour from appearance_on_timeline) + 1 as end
             from (
               select 
-                coalesce(r.second_id, r.first_id) as ident
+                coalesce(rf.second_id, rs.first_id) as ident
               from auth.institution as i
-              inner join institution.relation r
-              on i.id = r.first_id and r.first_id = $3 :: int8 
-              or i.id = r.second_id and r.second_id = $3 :: int8) as i
+              left join institution.relation rf
+              on i.id = rf.first_id and rf.first_id = $3 :: int8
+              left join institution.relation rs
+              on i.id = rs.second_id and rs.second_id = $3 :: int8
+              where rf.second_id is not null or rs.first_id is not null) as i
             left join mv.invoice_and_transaction as inv
             on i.ident = inv.institution_id
             where extract(doy from appearance_on_timeline) >= $1 :: int
@@ -545,11 +558,13 @@ fetchSecondBalancedBook =
         as balances
       from (
         select 
-          coalesce(r.second_id, r.first_id) as ident
+          coalesce(rf.second_id, rs.first_id) as ident
         from auth.institution as i
-        inner join institution.relation r
-        on i.id = r.first_id and r.first_id = $3 :: int8 
-        or i.id = r.second_id and r.second_id = $3 :: int8) as f
+        left join institution.relation rf
+        on i.id = rf.first_id and rf.first_id = $3 :: int8
+        left join institution.relation rs
+        on i.id = rs.second_id and rs.second_id = $3 :: int8
+        where rf.second_id is not null or rs.first_id is not null) as f
       inner join institution.wallet
       on institution_id = f.ident
       where extract(doy from startpoint) = $1 :: int
