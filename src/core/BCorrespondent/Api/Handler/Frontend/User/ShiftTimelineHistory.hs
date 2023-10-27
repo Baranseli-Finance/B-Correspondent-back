@@ -22,6 +22,10 @@ import Katip (logTM, Severity (DebugS))
 import Database.Transaction (transactionM, statement)
 import Control.Lens ((^.))
 import Data.Tuple.Extended (mapPolyT, consT, snocT)
+import Data.Time.Calendar (weekFirstDay, weekLastDay, DayOfWeek (..))
+import Control.Monad.Time (currentTime)
+import Data.Time.Clock (UTCTime (utctDay))
+import qualified Data.Time.Calendar.OrdinalDate as D (Day)
 
 handle 
   :: Auth.AuthenticatedUser 'Auth.Reader  
@@ -42,14 +46,15 @@ handle user y m d direction hour
            \ or direction == Backward && hour - 1 < 0" 
       in pure $ Error (Just 400) $ asError @Text msg
   | otherwise = 
-      checkInstitution user $ \(_, inst_ident) -> do 
+      checkInstitution user $ \(_, inst_ident) -> do
+        isCurrent <- checkIfCurrentPeriod y m d
         hasql <- fmap (^. katipEnv . hasqlDbPool) ask
         let from | direction == Forward = hour
                  | otherwise = hour - 1
         let to | direction == Forward = hour + 1
                | otherwise = hour
         let params =
-              snocT True $
+              snocT isCurrent $
               consT inst_ident $ 
               consT (Year (fromIntegral y)) $
               consT (Month (fromIntegral m)) $
@@ -58,3 +63,11 @@ handle user y m d direction hour
         $(logTM) DebugS $ fromString $ $location <> " params ---> " <> show params
         dbResp <- transactionM hasql $ statement getHourShift params
         pure $ withError dbResp transform
+
+checkIfCurrentPeriod y m d = do
+  let addZero x = if x < 10 then "0" <> show x else show x
+  let givenDay = read @D.Day $ show y <> "-" <> addZero m <> "-" <> addZero d
+  let start = weekFirstDay Monday givenDay
+  let end = weekLastDay Monday givenDay
+  day <- fmap utctDay currentTime
+  return $ day >= start && day <= end
