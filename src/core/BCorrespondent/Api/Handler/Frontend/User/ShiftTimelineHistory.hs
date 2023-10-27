@@ -21,7 +21,7 @@ import Data.String (fromString)
 import Katip (logTM, Severity (DebugS))
 import Database.Transaction (transactionM, statement)
 import Control.Lens ((^.))
-import Data.Tuple.Extended (mapPolyT, consT)
+import Data.Tuple.Extended (mapPolyT, consT, snocT)
 
 handle 
   :: Auth.AuthenticatedUser 'Auth.Reader  
@@ -48,7 +48,8 @@ handle user y m d direction hour
                  | otherwise = hour - 1
         let to | direction == Forward = hour + 1
                | otherwise = hour
-        let params = 
+        let params =
+              snocT True $
               consT inst_ident $ 
               consT (Year (fromIntegral y)) $
               consT (Month (fromIntegral m)) $

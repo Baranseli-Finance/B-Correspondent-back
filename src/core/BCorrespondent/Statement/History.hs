@@ -98,7 +98,7 @@ initTimeline =
 refreshMV :: HS.Statement () ()
 refreshMV = HS.Statement [uncheckedSql|refresh materialized view mv.invoice_and_transaction|] noParams noResult True
 
-getHourShift :: HS.Statement (Int64, Year, Month, Day, Hour, Hour) (Either String [TimelineGapsItem])
+getHourShift :: HS.Statement (Int64, Year, Month, Day, Hour, Hour, Bool) (Either String [TimelineGapsItem])
 getHourShift =
   dimap
    (snocT (toS (show Declined)) .
@@ -141,14 +141,31 @@ getHourShift =
               interval '5 min') as _(el)) 
          as tm
         cross join (
-          select 
-            *
+          select
+            textual_view,
+            invoice_ident,
+            created_at,
+            invoice_currency,
+            invoice_amount,
+            status,
+            appearance_on_timeline
           from mv.invoice_and_transaction
-          where institution_id = $1 :: int8) as i
+          where institution_id = $1 :: int8 and not $7 :: bool 
+          union
+          select
+            textual_view,
+            id as invoice_ident,
+            created_at,
+            currency as invoice_currency,
+            amount as invoice_amount,
+            status,
+            appearance_on_timeline
+          from institution.invoice
+          where institution_id = $1 :: int8 and $7 :: bool) as i
         where 
-        (i.status = $7 :: text or
-         i.status = $8 :: text or 
-         i.status = $9 :: text)
+        (i.status = $8 :: text or
+         i.status = $9 :: text or 
+         i.status = $10 :: text)
         and (i.appearance_on_timeline > tm.start)
         and (i.appearance_on_timeline < tm.end)
         group by tm.start, tm.end) as tmp)
