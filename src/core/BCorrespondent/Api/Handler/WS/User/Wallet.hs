@@ -42,7 +42,7 @@ data Wallet =
 
 type WalletExt = WithField "user" Int64 Wallet
 
-type instance ListenPsql "wallet" WalletExt = ()
+type instance ListenPsql "dashboard_wallet" WalletExt = ()
 
 handle :: AuthenticatedUser 'Reader -> WS.Connection -> KatipHandlerM ()
 handle AuthenticatedUser {institution = Nothing} conn = 
@@ -53,4 +53,4 @@ handle AuthenticatedUser {ident, institution = Just _} conn =
      let mkResp (WithField dbUser x)
           | dbUser == ident = Just x
           | otherwise = Nothing
-     withResource @"Wallet" conn resource $ listenPsql @"wallet" @WalletExt conn db ident mkResp
+     withResource @"Wallet" conn resource $ listenPsql @"dashboard_wallet" @WalletExt conn db ident mkResp

@@ -23,8 +23,7 @@ module BCorrespondent.Api.Handler.WS.Utils
        ) where
 
 
-import BCorrespondent.Transport.Response (Response (Error))
-import BCorrespondent.Api.Handler.Utils (withError)
+import BCorrespondent.Transport.Response (Response (Error, Ok))
 import BCorrespondent.Transport.Error (asError)
 import Katip
 import Katip.Handler
@@ -141,11 +140,14 @@ listenPsql c db userIdent modify log = do
     flip Hasql.waitForNotifications db $ 
       \channel payload -> do
         log InfoS $ fromString $ $location <> " ws raw data ---> " <> show payload
-        let resp = eitherDecode @a $ payload^.from bytesLazy
-        log InfoS $ fromString $ $location <> " ws data ---> " <> show resp
-        for_ (sequence (fmap modify resp)) $ \x -> 
-          WS.sendDataMessage c $ 
-            WS.Text (encode (withError x id)) Nothing
+        let decodeRes = eitherDecode @a $ payload^.from bytesLazy
+        log InfoS $ fromString $ $location <> " ws decoded data ---> " <> show decodeRes
+        for_ (sequence (fmap modify decodeRes)) $ \res -> do
+          resp <- for res $ \msg ->
+            WS.sendDataMessage c $ 
+              WS.Text (encode (Ok msg)) Nothing
+          whenLeft (resp) $ \error -> 
+            log ErrorS $ fromString $ $location <> " ws decode error ---> " <> error     
 
 sendError :: WS.Connection -> Text -> IO ()
 sendError c msg = WS.sendDataMessage c (WS.Text (encode @(Response ()) (Error Nothing (asError msg))) Nothing)
