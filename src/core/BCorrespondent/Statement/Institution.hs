@@ -300,32 +300,74 @@ updateWithdrawalStatus =
 
 modifyWalletAfterWebhook :: HS.Statement (WithdrawalStatus, Bool, UUID) ()
 modifyWalletAfterWebhook = 
-  lmap (app1 toJSON)
+  lmap (snocT (toJSON Credit) . snocT (toJSON Debit) . app1 toJSON)
   [resultlessStatement|
     with withdrawal as (
-      update institution.withdrawal
-      set status = ($1 :: jsonb) #>> '{}'
-      where external_id = $3 :: uuid)
+        update institution.withdrawal
+        set status = ($1 :: jsonb) #>> '{}'
+        where external_id = $3 :: uuid
+        returning amount),
+      wallet_data as (
+        select 
+          institution_id as ident,
+          currency,
+          case 
+            when wallet_type = ($4 :: jsonb) #>> '{}'
+            then ($5 :: jsonb) #>> '{}'
+            else ($4 :: jsonb) #>> '{}'
+          end  
+        from institution.wallet as w
+        inner join institution.withdrawal as wt
+        on w.id = wt.wallet_id
+        where external_id = $3 :: uuid)
     update institution.wallet 
     set modified_at = tbl.tm,
         amount = wallet.amount - coalesce(tbl.amount, 0)
     from (
       select
-        s.id as ident,
-        case
-          when $2 :: bool
-          then f.amount
-          else null
-        end as amount,
-        case 
-          when $2 :: bool
-          then now()
-          else null
-        end as tm      
+         s.id as ident,
+         case
+           when $2 :: bool
+           then f.amount
+           else null
+         end as amount,
+         case 
+           when $2 :: bool
+           then now()
+           else null
+         end as tm
       from institution.withdrawal as f
       inner join institution.wallet as s
       on f.wallet_id = s.id
-      where f.external_id = $3 :: uuid) as tbl
+      where f.external_id = $3 :: uuid
+      union 
+       select
+         w.id as ident,
+         case
+           when $2 :: bool
+           then (select amount from withdrawal)
+           else null
+         end as amount,
+         case 
+           when $2 :: bool
+           then now()
+           else null
+         end as tm
+       from (
+          select   
+            coalesce(rf.second_id, rs.first_id) as ident
+          from auth.institution as i
+          left join institution.relation rf
+          on i.id = rf.first_id 
+          and rf.first_id = (select ident from wallet_data)
+          left join institution.relation rs
+          on i.id = rs.second_id 
+          and rs.second_id = (select ident from wallet_data)
+          where rf.second_id is not null or rs.first_id is not null) as f
+       inner join institution.wallet as w
+       on w.institution_id = f.ident
+       where w.wallet_type = (select  wallet_type from wallet_data)
+       and w.currency = (select currency from wallet_data)) as tbl
     where id = tbl.ident|]
 
 refreshWalletMV :: HS.Statement () ()
