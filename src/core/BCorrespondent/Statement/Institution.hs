@@ -262,7 +262,7 @@ updateWallet =
        w.id
       from (
         select 
-          coalesce(rf.first_id, rs.second_id) as ident,
+          coalesce(rf.second_id, rs.first_id) as ident,
           t.amount,
           t.currency
         from tbl as t
@@ -271,9 +271,10 @@ updateWallet =
         left join institution.relation as rs
         on rs.second_id = t.institution_id) as f
       inner join institution.wallet as w
-      on w.institution_id = f.ident 
+      on w.institution_id = f.ident
       and w.currency = f.currency
-      where w.wallet_type = ($3 :: jsonb) #>> '{}' ) as w|]
+      where w.wallet_type = ($3 :: jsonb) #>> '{}') as w
+    where wallet.id = w.id|]
 
 fetchWithdrawals :: HS.Statement () [(Int64, Text, Double, UUID)]
 fetchWithdrawals =

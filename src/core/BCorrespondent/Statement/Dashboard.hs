@@ -132,10 +132,10 @@ getDashboard =
                 el as start,
                 el + interval '5min' as end
             from generate_series(
-                $1 :: timestamp,
-                $2 :: timestamp,
+                $1 :: timestamptz,
+                $2 :: timestamptz,
                 interval '5 min') as _(el)
-            where el < $2 :: timestamp) as tm
+            where el < $2 :: timestamptz) as tm
           cross join (
             select
               *
@@ -200,10 +200,10 @@ get1HourTimeline =
               el as start,
               el + interval '5min' as end
           from generate_series(
-              $1 :: timestamp,
-              $2 :: timestamp,
+              $1 :: timestamptz,
+              $2 :: timestamptz,
               interval '5 min') as _(el)
-          where el < $2 :: timestamp) as tm
+          where el < $2 :: timestamptz) as tm
         cross join (
           select 
             *
