@@ -11,7 +11,7 @@ import BCorrespondent.Api.Handler.Utils (withError)
 import BCorrespondent.Statement.Fs (insertFiles)
 import qualified BCorrespondent.Statement.Fs as Fs
 import BCorrespondent.Transport.Response (Response)
-import BCorrespondent.Auth (AuthenticatedUser (..), Role (Writer))
+import BCorrespondent.Auth (AuthenticatedUser (..), Role (None))
 import BCorrespondent.Transport.Model.Fs (Bucket (..))
 import BCorrespondent.Transport.Id
 import Katip.Handler
@@ -41,7 +41,7 @@ import Network.Minio
         fPutObject
       )
 
-handle :: AuthenticatedUser 'Writer -> Bucket -> Files -> KatipHandlerM (Response [Id "file"])
+handle :: AuthenticatedUser 'None -> Bucket -> Files -> KatipHandlerM (Response [Id "file"])
 handle AuthenticatedUser {..} bucket files = do
   Minio {..} <- fmap (^. katipEnv . minio) ask
   minioResp <- 

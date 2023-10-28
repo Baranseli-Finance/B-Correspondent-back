@@ -24,7 +24,7 @@ data FileApi route = FileApi
       route
         :- Description "upload to server"
           :> "upload" 
-          :> SA.Auth '[JWT] (AuthenticatedUser 'Writer)
+          :> SA.Auth '[JWT] (AuthenticatedUser 'None)
           :> Capture "bucket" Bucket
           :> MultipartForm Tmp Files
           :> Put '[JSON] (Response [Id "file"]),
