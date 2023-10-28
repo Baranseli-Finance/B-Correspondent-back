@@ -139,7 +139,7 @@ listenPsql c db userIdent modify log = do
   forever $
     flip Hasql.waitForNotifications db $ 
       \channel payload -> do
-        log InfoS $ fromString $ $location <> " ws raw data ---> " <> show payload
+        log InfoS $ fromString $ $location <> " ws raw data ---> " <> show payload <> ", channel ---> " <> toS channel
         let decodeRes = eitherDecode @a $ payload^.from bytesLazy
         log InfoS $ fromString $ $location <> " ws decoded data ---> " <> show decodeRes
         for_ (sequence (fmap modify decodeRes)) $ \res -> do
