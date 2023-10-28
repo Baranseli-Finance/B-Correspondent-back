@@ -39,6 +39,7 @@ services:
       - ${HOME}/config.yaml:/server/deploy/config.yaml
       - ${PWD}/deploy/init.sh:/server/deploy/init.sh
       - ${HOME}/jwk.txt:/server/deploy/jwk.txt
+      - ${HOME}/front_env:/server/front_env
     networks:
       b-correspondent:
          ipv4_address: 192.168.22.6
@@ -79,7 +80,7 @@ services:
     volumes:
       - ${PWD}/migration/:/liquibase/changelog
       - ${PWD}/migration/liquibase_policy_init.sh:/liquibase/liquibase_policy_init.sh
-      - ${HOME}/b-correspondent_env:/liquibase/b-correspondent_env
+      - ${HOME}/b_correspondent_env:/liquibase/b_correspondent_env
     command: ['./liquibase_policy_init.sh']
     networks:
       - b-correspondent
