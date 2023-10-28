@@ -64,6 +64,7 @@ data Resource =
       | Wallet 
       | Withdrawal 
       | BalancedBookTransaction
+      | BalancedBookWallet
      deriving stock (Generic, Show)
      deriving
      (ToJSON, FromJSON)
@@ -158,10 +159,11 @@ withResource
   -> Resource 
   -> ((Severity -> LogStr -> IO ()) -> IO ()) 
   -> KatipHandlerM ()
-withResource conn resource  callback
+withResource conn resource callback
   | show resource == toS (symbolVal (Proxy @r)) = askLoggerIO >>= liftIO . callback
   | otherwise = 
       let err = 
             Error Nothing $ 
-              asError @Text "wrong resource" 
+              asError @Text $ "wrong resource expected " <> 
+                toS (symbolVal (Proxy @r)) <> ", got " <> toS (show resource)
       in liftIO $ WS.sendDataMessage conn (WS.Text (encode @(Response ()) err) Nothing)

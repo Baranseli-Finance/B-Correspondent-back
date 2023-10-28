@@ -436,3 +436,89 @@ create table institution.relation (
   constraint institution_relation__first_id__fk foreign key (first_id) references auth.institution(id),
   constraint institution_relation__second_id__fk foreign key (second_id) references auth.institution(id),
   constraint institution__relation___first_second_unique unique (first_id, second_id));
+
+create or replace function notify_server_on_balanced_book_wallet_update()
+returns trigger as
+$$
+declare
+  result jsonb;
+begin
+  with info as (
+    select 
+      institution_id as ident,
+      currency
+    from institution.wallet as w
+    inner join institution.withdrawal as wt
+    on w.id = wt.wallet_id
+    where external_id = new.external_id)
+  select 
+    jsonb_build_object('wallets', f.wallets) || s.users
+  into result
+  from(
+    select 
+      array_agg(jsonb_build_object(
+        'ident', tbl.wallet_ident, 
+        'institution', tbl.institution_ident,
+        'amount', tbl.amount))
+      as wallets
+    from(
+      select
+        s.id as wallet_ident,
+        s.institution_id as institution_ident,
+        s.amount
+        from institution.withdrawal as f
+        inner join institution.wallet as s
+        on f.wallet_id = s.id
+        where f.external_id = new.external_id
+        union 
+        select
+            w.id as wallet_ident,
+            f.ident as institution_ident,
+            w.amount
+      from (
+        select   
+            coalesce(rf.second_id, rs.first_id) as ident
+        from auth.institution as i
+        left join institution.relation rf
+        on i.id = rf.first_id 
+        and rf.first_id = (select ident from info)
+        left join institution.relation rs
+        on i.id = rs.second_id 
+        and rs.second_id = (select ident from info)
+        where rf.second_id is not null or rs.first_id is not null) as f
+        inner join institution.wallet as w
+      on w.institution_id = f.ident
+      where w.wallet_type = 'debit'
+      and w.currency = (select currency from info)) as tbl) as f
+    left join (
+     select 
+       jsonb_build_object('users', tbl.users) as users
+     from (
+      select
+        array_agg(user_id) as users
+      from institution.user as f
+      inner join (select
+            unnest(array[(select ident from info), coalesce(rf.second_id, rs.first_id)])
+        from auth.institution as i
+        left join institution.relation rf
+        on i.id = rf.first_id 
+        and rf.first_id = (select ident from info)
+        left join institution.relation rs
+        on i.id = rs.second_id 
+        and rs.second_id = (select ident from info)
+        where rf.second_id is not null or rs.first_id is not null) as s(ident)
+      on  f.institution_id = s.ident) as tbl) as s on true;
+  perform 
+    pg_notify(
+      'balanced_book_wallet_update' || '_' || u.id,
+      coalesce(result :: text, 'null' :: text))
+  from auth.user as u;
+  return new;
+end;
+$$ language 'plpgsql';
+
+
+create or replace trigger on_balanced_book_wallet_update
+after update on institution.withdrawal
+for each row 
+execute procedure notify_server_on_balanced_book_wallet_update();
