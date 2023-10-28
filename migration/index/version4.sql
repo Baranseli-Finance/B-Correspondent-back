@@ -291,7 +291,7 @@ begin
         on s.id = f.wallet_id
         inner join auth.user as u
         on f.user_id = u.id
-        where s.wallet_type = 'debit'
+        where s.wallet_type = 'credit'
         and new.id = f.id) as tmp
       inner join (
         select
