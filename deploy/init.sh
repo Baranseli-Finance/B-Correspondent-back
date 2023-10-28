@@ -4,7 +4,8 @@ mute500="${MUTE_500:-True}"
 
 env_file=$(realpath -s env.yaml)
 
-b-correspondent_env_file=$(realpath -s b-correspondent_env)
+b-correspondent_env_file=$(realpath -s b_correspondent_env)
+front_env_file=$(realpath -s front_env)
 
 # db_user, db_pass, db, minio_access_key, minio_secret_key
 declare -a keysmap
@@ -32,4 +33,5 @@ echo 'launch server..'
         --b_correspondent_db_pass ${keysmap[1]} \
         --b_correspondent_database ${keysmap[2]} \
         --minio_access_key ${keysmap[3]} \
-        --minio_secret_key ${keysmap[4]}"
+        --minio_secret_key ${keysmap[4]} \ 
+        --front_env_file_path $front_env_file"
