@@ -300,7 +300,7 @@ updateWithdrawalStatus =
 
 modifyWalletAfterWebhook :: HS.Statement (WithdrawalStatus, Bool, UUID) ()
 modifyWalletAfterWebhook = 
-  lmap (snocT (toJSON Credit) . snocT (toJSON Debit) . app1 toJSON)
+  lmap (snocT (toJSON Debit) . app1 toJSON)
   [resultlessStatement|
     with withdrawal as (
         update institution.withdrawal
@@ -310,12 +310,7 @@ modifyWalletAfterWebhook =
       wallet_data as (
         select 
           institution_id as ident,
-          currency,
-          case 
-            when wallet_type = ($4 :: jsonb) #>> '{}'
-            then ($5 :: jsonb) #>> '{}'
-            else ($4 :: jsonb) #>> '{}'
-          end  
+          currency
         from institution.wallet as w
         inner join institution.withdrawal as wt
         on w.id = wt.wallet_id
@@ -366,7 +361,7 @@ modifyWalletAfterWebhook =
           where rf.second_id is not null or rs.first_id is not null) as f
        inner join institution.wallet as w
        on w.institution_id = f.ident
-       where w.wallet_type = (select  wallet_type from wallet_data)
+       where w.wallet_type = ($4 :: jsonb) #>> '{}'
        and w.currency = (select currency from wallet_data)) as tbl
     where id = tbl.ident|]
 
