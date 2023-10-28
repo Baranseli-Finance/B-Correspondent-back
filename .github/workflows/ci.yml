@@ -72,8 +72,9 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            rm -rf back
+            rm -rf B-Correspondent-back
             git clone https://github.com/Baranseli-Finance/B-Correspondent-back.git
-            cd back
+            cd B-Correspondent-back
             ./deploy/stop.sh
+            ./deploy/start.sh $HOME/docker_envs
             ./deploy/start.sh $HOME/docker_envs
