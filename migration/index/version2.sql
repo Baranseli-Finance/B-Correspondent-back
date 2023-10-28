@@ -6,7 +6,7 @@ create table auth.user (
     pass text not null,
     created_at timestamptz not null default now(),
     modified_at timestamptz,
-    constraint auth_user__email__uk unique (email));
+    constraint auth_user__login__uk unique (login));
 
 create table auth.code (
     code int not null default cast(random()*(999999 - 100000) + 100000 as decimal(6)),
