@@ -565,7 +565,7 @@ fetchSecondBalancedBook =
         left join institution.relation rs
         on i.id = rs.second_id and rs.second_id = $3 :: int8
         where rf.second_id is not null or rs.first_id is not null) as f
-      inner join institution.wallet
+      inner join mv.wallet
       on institution_id = f.ident
       where extract(doy from startpoint) = $1 :: int
       and extract(doy from endpoint) = $2 :: int) as t on true|]
