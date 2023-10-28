@@ -4,10 +4,10 @@ create table storage.file (
     title text not null,
     mime text not null,
     hash text not null,
-    created timestamptz not null default now(),
-    modified timestamptz,
+    created timestamp not null default now(),
+    modified timestamp,
     bucket text not null default 'default',
-    deleted timestamptz,
+    deleted timestamp,
     is_deleted bool not null default false,
     exts json,
     constraint "file__hash_unique" unique ("hash"));

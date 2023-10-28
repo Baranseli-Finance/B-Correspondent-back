@@ -4,15 +4,15 @@ create table auth.user (
     email text not null,
     login text not null,
     pass text not null,
-    created_at timestamptz not null default now(),
-    modified_at timestamptz,
+    created_at timestamp not null default now(),
+    modified_at timestamp,
     constraint auth_user__login__uk unique (login));
 
 create table auth.code (
     code int not null default cast(random()*(999999 - 100000) + 100000 as decimal(6)),
-    expire_at timestamptz not null default now() + interval '5 min',
+    expire_at timestamp not null default now() + interval '5 min',
     user_id bigserial not null,
-    created_at timestamptz not null default now(),
+    created_at timestamp not null default now(),
     uuid text not null,
     browser_fp text not null,
     is_expended bool not null default false,
@@ -33,14 +33,14 @@ $$;
 create table auth.institution (
     id bigserial primary key,
     title text not null,
-    created_at timestamptz not null default now(),
+    created_at timestamp not null default now(),
     key text not null default generate_key(),
     constraint auth_institution__title__uk unique (title));
 
 create table auth.jwt (
     id uuid primary key,
     value text not null,
-    created_at timestamptz not null default now(),
+    created_at timestamp not null default now(),
     browser_fp text,
     is_valid boolean not null default true);
 

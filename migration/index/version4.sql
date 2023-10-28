@@ -1,11 +1,11 @@
 create schema if not exists institution;
 create table institution.invoice (
     id bigserial primary key,
-    created_at timestamptz not null default now(),
+    created_at timestamp not null default now(),
     institution_id bigserial not null,
     customer_id text not null,
     invoice_id text not null,
-    invoice_time timestamptz not null,
+    invoice_time timestamp not null,
     seller text not null,
     seller_address text not null,
     seller_tax_id text,
@@ -21,7 +21,7 @@ create table institution.invoice (
     status text not null,
     fee text not null,
     textual_view text not null,
-    appearance_on_timeline timestamptz null,
+    appearance_on_timeline timestamp null,
     constraint institution_transaction__institution_id__fk foreign key (institution_id) references auth.institution(id),
     constraint institution_transaction__invoice_id_institution_id_customer_id__unique unique (customer_id, invoice_id, institution_id));
 
@@ -31,7 +31,7 @@ create table institution.invoice_to_institution_delivery (
     external_id uuid not null default uuid_generate_v4(),
     is_delivered bool not null default false,
     attempts int,
-    last_attempt_sent_at timestamptz,
+    last_attempt_sent_at timestamp,
     error text,  
     constraint institution__invoice_to_institution_delivery__invoice_id__fk foreign key (invoice_id) references institution.invoice(id),
     constraint institution__invoice_id__fk foreign key (institution_id) references auth.institution(id),
@@ -60,7 +60,7 @@ create table institution.transaction_to_institution_delivery (
     institution_id bigserial not null,
     is_delivered bool not null default false,
     attempts int,
-    last_attempt_sent_at timestamptz,
+    last_attempt_sent_at timestamp,
     error text,
     constraint transaction__transaction_to_institution_delivery__transaction_id__fk foreign key (transaction_id) references institution.transaction(id),
     constraint transaction__transaction_id__fk foreign key (institution_id) references auth.institution(id),
@@ -77,7 +77,7 @@ create table institution.wallet (
     currency text not null,
     amount decimal(24, 2) not null default 0,
     wallet_type text not null,
-    modified_at timestamptz null,
+    modified_at timestamp null,
     payment_provider_ident text not null,
     constraint institution_account__institution_id__fk foreign key (institution_id) references auth.institution(id),
     constraint institution__wallet_institution_id_currency_wallet_type__unique unique(institution_id, currency, wallet_type));

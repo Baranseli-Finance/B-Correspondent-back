@@ -138,7 +138,7 @@ insertPasswordResetLink =
         (user_id, link, valid_until)
         select user_ident, $2 :: text, now() + interval '5 min'
         from tmp
-        where (select now() > coalesce(created_at, '1970-01-01'::timestamptz) + interval '30 min' from tmp)
+        where (select now() > coalesce(created_at, '1970-01-01'::timestamp) + interval '30 min' from tmp)
         returning (select email from tmp)),
       tm_left as (
         select cast(extract(epoch from created_at + interval '30 min') - extract(epoch from now()) as int) as tm
