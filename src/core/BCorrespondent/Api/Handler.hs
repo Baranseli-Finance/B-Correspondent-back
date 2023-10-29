@@ -48,6 +48,7 @@ import qualified BCorrespondent.Api.Handler.Frontend.User.InitBalancedBook as Us
 import qualified BCorrespondent.Api.Handler.Frontend.User.FetchBalancedBook as User.FetchBalancedBook
 import qualified BCorrespondent.Api.Handler.WS.User.BalancedBook.Transaction as WS.User.BalancedBook.Transaction
 import qualified BCorrespondent.Api.Handler.WS.User.BalancedBook.Wallet as WS.User.BalancedBook.Wallet
+import qualified BCorrespondent.Api.Handler.Frontend.User.InitWorkspace as User.InitWorkspace
 -- << end handlers
 import qualified BCorrespondent.Auth as Auth
 import Katip
@@ -265,7 +266,13 @@ user nm =
          flip logExceptionM ErrorS $
            katipAddNamespace
            (Namespace [nm, "balanced-book", "fetch"]) $
-           User.FetchBalancedBook.handle user y m d direction
+           User.FetchBalancedBook.handle user y m d direction,
+    _userApiInitWorkspace = \auth ->
+       auth `Auth.withAuth` \user ->
+         flip logExceptionM ErrorS $
+           katipAddNamespace
+           (Namespace [nm, "balanced-book"]) $
+           User.InitWorkspace.handle user
   }
 
 institution :: InstitutionApi (AsServerT KatipHandlerM)

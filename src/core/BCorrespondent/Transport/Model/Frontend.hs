@@ -62,6 +62,7 @@ module BCorrespondent.Transport.Model.Frontend
         BalancedBookDirection (..),
         BalancedBookWallet (..),
         GapItemWrapper (..),
+        Workspace (..),
         encodeHistoryDate
        ) where
 
@@ -706,3 +707,17 @@ data GapItemWrapper =
       GapItemWrapper
 
 deriveToSchemaFieldLabelModifier ''GapItemWrapper [|firstLetterModify (Proxy @GapItemWrapper)|]
+
+data Workspace = Workspace { workspaceUnreadNotification :: !Int }
+    deriving stock (Generic, Show)
+    deriving
+      (ToJSON, FromJSON)
+      via WithOptions 
+          '[FieldLabelModifier
+            '[UserDefined FirstLetterToLower,
+              UserDefined 
+              (StripConstructor
+               Workspace)]]
+      Workspace
+
+deriveToSchemaFieldLabelModifier ''Workspace [|firstLetterModify (Proxy @Workspace)|]

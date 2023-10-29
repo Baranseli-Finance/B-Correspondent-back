@@ -23,6 +23,7 @@ module BCorrespondent.Statement.Institution
          refreshWalletMV,
          readNotification,
          loadNotification,
+         loadUnreadNotification,
          WithdrawResult (..)
        ) where
 
@@ -389,3 +390,5 @@ loadNotification =
      from public.notification
      where not is_read and user_id = $1 :: int8|]
 
+loadUnreadNotification :: HS.Statement Int64 Int
+loadUnreadNotification = rmap fromIntegral [singletonStatement|select count(*) :: int from public.notification where not is_read and user_id = $1 :: int8|]

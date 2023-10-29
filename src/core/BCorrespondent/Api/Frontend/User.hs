@@ -21,7 +21,8 @@ import BCorrespondent.Transport.Model.Frontend
         Issue,
         BalancedBook,
         BalancedBookDirection,
-        GapItemWrapper
+        GapItemWrapper,
+        Workspace
        )
 import BCorrespondent.Transport.Id (Id)       
 import BCorrespondent.Auth (AuthenticatedUser, JWT, Role (..))
@@ -156,6 +157,12 @@ data UserApi route = UserApi
           :> Capture "month" (Id "month")
           :> Capture "day" (Id "day")
           :> Capture "direction" BalancedBookDirection
-          :> Get '[JSON] (Response BalancedBook)
+          :> Get '[JSON] (Response BalancedBook),
+    _userApiInitWorkspace ::
+      route
+        :- "workspace"
+        :> RateLimit (FixedWindow (Second 1) 50) (KeyPolicy "Token")
+        :> SA.Auth '[JWT] (AuthenticatedUser 'Reader)
+        :> Get '[JSON] (Response Workspace)
   }
   deriving stock (Generic)
