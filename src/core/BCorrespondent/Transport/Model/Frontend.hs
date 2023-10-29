@@ -615,7 +615,8 @@ deriveToSchemaFieldLabelModifier
 
 data BalancedBookWallet = 
       BalancedBookWallet
-      { balancedBookWalletCurrency :: !Currency, 
+      { balancedBookWalletIdent :: !Int64,
+        balancedBookWalletCurrency :: !Currency, 
         balancedBookWalletAmount :: !Double,
         balancedBookWalletWalletType :: !WalletType
       }

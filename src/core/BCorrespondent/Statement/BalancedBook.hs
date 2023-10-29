@@ -178,6 +178,7 @@ initFirstBalancedBook =
       select
         array_agg(
         jsonb_build_object(
+          'ident', id,  
           'currency', currency, 
           'amount', amount,
           'walletType', wallet_type)
@@ -308,6 +309,7 @@ initSecondBalancedBook =
       select
         array_agg(
         jsonb_build_object(
+          'ident', id,
           'currency', currency, 
           'amount', amount,
           'walletType', wallet_type)
@@ -421,6 +423,7 @@ fetchFirstBalancedBook =
       select
         array_agg(
         jsonb_build_object(
+          'ident', id, 
           'currency', currency, 
           'amount', amount,
           'walletType', wallet_type)
@@ -449,11 +452,13 @@ fetchSecondBalancedBook =
         s.id
       from (
         select 
-          coalesce(r.second_id, r.first_id) as ident
+          coalesce(rf.second_id, rs.first_id) as ident
         from auth.institution as i
-        inner join institution.relation r
-        on i.id = r.first_id and r.first_id = $3 :: int8 
-        or i.id = r.second_id and r.second_id = $3 :: int8) as f
+        left join institution.relation rf
+        on i.id = rf.first_id and rf.first_id = $3 :: int8
+        left join institution.relation rs
+        on i.id = rs.second_id and rs.second_id = $3 :: int8
+        where rf.second_id is not null or rs.first_id is not null) as f
       inner join auth.institution as s
       on f.ident = s.id) as f
     left join (
@@ -551,6 +556,7 @@ fetchSecondBalancedBook =
       select
         array_agg(
         jsonb_build_object(
+          'ident', id,  
           'currency', currency, 
           'amount', amount,
           'walletType', wallet_type)
