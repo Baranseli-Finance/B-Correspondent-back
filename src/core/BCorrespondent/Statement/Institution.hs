@@ -21,14 +21,16 @@ module BCorrespondent.Statement.Institution
          updateWithdrawalStatus,
          modifyWalletAfterWebhook,
          refreshWalletMV,
+         readNotification,
+         loadNotification,
          WithdrawResult (..)
        ) where
 
 import BCorrespondent.Transport.Model.Institution 
        (Balance, WithdrawalHistory, WithdrawalStatus (Registered))
-import BCorrespondent.Transport.Model.Frontend (WalletType (..))
+import BCorrespondent.Transport.Model.Frontend (WalletType (..), Notification, Notifications (..))
 import qualified Hasql.Statement as HS
-import Control.Lens (dimap, lmap)
+import Control.Lens (dimap, lmap, rmap)
 import Hasql.TH
 import Data.Int (Int64, Int32)
 import Data.Aeson (eitherDecode, encode, toJSON, FromJSON, Value)
@@ -40,6 +42,7 @@ import Data.Text (Text)
 import Data.UUID (UUID)
 import Hasql.Decoders (noResult)
 import Hasql.Encoders (noParams)
+import Data.Maybe (fromMaybe)
 
 
 initWithdrawal :: HS.Statement (Int64, Int32) (Either String ([Balance], WithdrawalHistory))
@@ -367,3 +370,22 @@ modifyWalletAfterWebhook =
 
 refreshWalletMV :: HS.Statement () ()
 refreshWalletMV = HS.Statement [uncheckedSql|refresh materialized view mv.wallet|] noParams noResult True
+
+readNotification :: HS.Statement [Int64] ()
+readNotification = lmap V.fromList [resultlessStatement|update public.notification set is_read = true where id = any($1 :: int8[]) and not is_read|]
+
+loadNotification :: HS.Statement Int64 (Either String Notifications)
+loadNotification = 
+  rmap (fmap (Notifications 0) . fromMaybe (Right []) . fmap (sequence . map (eitherDecode @Notification . encode) . V.toList))
+  [singletonStatement|
+     select
+       array_agg(
+        jsonb_build_object(
+          'ident', id,
+          'created', cast(created_at as text) || 'Z',
+          'text', body)
+        order by created_at desc) 
+       :: jsonb[]?
+     from public.notification
+     where not is_read and user_id = $1 :: int8|]
+

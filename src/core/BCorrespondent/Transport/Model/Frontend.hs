@@ -493,8 +493,9 @@ deriveToSchemaFieldLabelModifier ''HistoryTimeline [|firstLetterModify (Proxy @H
 
 data Notification = 
      Notification 
-     { notificationIdent :: Int64,
-       notificationText :: Text 
+     { notificationIdent :: !Int64,
+       notificationText :: !Text,
+       notificationCreated :: !UTCTime
      }
     deriving stock (Generic, Show)
     deriving
@@ -511,8 +512,8 @@ deriveToSchemaFieldLabelModifier ''Notification [|firstLetterModify (Proxy @Noti
 
 data Notifications = 
      Notifications
-     { notificationsCount :: Int,
-       notificationsItems :: [Notification]
+     { notificationsCount :: !Int,
+       notificationsItems :: ![Notification]
      }
     deriving stock (Generic, Show)
     deriving

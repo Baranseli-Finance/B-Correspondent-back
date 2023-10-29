@@ -112,7 +112,9 @@ explainTests =
       "fetchWithdrawals" =>> BCorrespondent.Statement.Institution.fetchWithdrawals,
       "updateWithdrawalStatus" =>> BCorrespondent.Statement.Institution.updateWithdrawalStatus,
       "modifyWalletAfterWebhook" =>> BCorrespondent.Statement.Institution.modifyWalletAfterWebhook,
-      "refreshWalletMV" =>> BCorrespondent.Statement.Institution.refreshWalletMV
+      "refreshWalletMV" =>> BCorrespondent.Statement.Institution.refreshWalletMV,
+      "readNotification" =>> BCorrespondent.Statement.Institution.readNotification,
+      "loadNotification" =>> BCorrespondent.Statement.Institution.loadNotification
     ]
   , "BCorrespondent.Statement.BalancedBook" ==>
     [ "initFirstBalancedBook" =>> BCorrespondent.Statement.BalancedBook.initFirstBalancedBook,
