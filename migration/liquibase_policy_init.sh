@@ -17,7 +17,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # ============LICENSE_END======================================================
 
-b_correspondent_env_file=$(realpath -s b_correspondent_env)
+b_correspondent_env_file=$(realpath -s bcorrespondent_env)
 
 # db_user, db_pass, db, minio_access_key, minio_secret_key
 declare -a keysmap
