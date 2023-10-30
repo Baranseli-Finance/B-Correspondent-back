@@ -80,7 +80,7 @@ services:
     volumes:
       - ${PWD}/migration/:/liquibase/changelog
       - ${PWD}/migration/liquibase_policy_init.sh:/liquibase/liquibase_policy_init.sh
-      - ./bcorrespondent_env:/liquibase/b_correspondent_env
+      - ${PWD}/bcorrespondent_env:/liquibase/b_correspondent_env
     command: ['./liquibase_policy_init.sh']
     networks:
       - b-correspondent
