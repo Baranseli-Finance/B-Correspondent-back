@@ -22,11 +22,12 @@ echo 'launch server..'
     --log-format bar-with-logs \
     --verbose \
     --command \
-    "$PWD/bin/bcorrespondent \
+    "$PWD/bin/b-correspondent \
         --cfg_path deploy/config.yaml \
         --path_to_katip deploy \
         --path_to_jwk deploy/jwk.txt \
         --print_cfg y \
+        --env_path $env_file \
         --minio_access_key ${keysmap[3]} \
         --minio_secret_key ${keysmap[4]} \
         --front_env_file_path $front_env_file \

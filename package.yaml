@@ -213,7 +213,7 @@ library:
     - src/extended
 
 executables:
-  bcorrespondent:
+  b-correspondent:
     main:                Main.hs
     source-dirs:         
       - src/main

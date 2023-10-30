@@ -63,6 +63,7 @@ jobs:
     name: Deploy the server
     runs-on: ubuntu-latest
     environment: google
+    if: github.base_ref == 'master'
     needs: push_to_google_registry
     steps:
       - uses: actions/checkout@v3.5.2
@@ -76,5 +77,4 @@ jobs:
             git clone https://github.com/Baranseli-Finance/B-Correspondent-back.git
             cd B-Correspondent-back
             ./deploy/stop.sh
-            ./deploy/start.sh $HOME/docker_envs
             ./deploy/start.sh $HOME/docker_envs
