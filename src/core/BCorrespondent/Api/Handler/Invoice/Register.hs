@@ -17,6 +17,7 @@ import BCorrespondent.Transport.Model.Invoice
        )
 import qualified BCorrespondent.Auth as Auth
 import BCorrespondent.Api.Handler.Utils (withEither)
+import BCorrespondent.Notification (make, Template (NewInvoiceIssued))
 import Katip.Handler
 import qualified Data.Text as T
 import Control.Lens ((^.), to)
@@ -31,6 +32,7 @@ import qualified Data.Vector as V
 import Data.Maybe (isJust, fromMaybe)
 import Data.List ((\\))
 import BuildInfo (location)
+import Data.Foldable (for_)
 
 
 data CountryCode = 
@@ -70,7 +72,9 @@ handle Auth.AuthenticatedUser {..} xs = do
                 then Right () 
                 else let msg = "the following invoices contain invalid country codes: " 
                      in Left $ msg <> show (xs \\ map fst xs')
-    withEither cmpRes $ const $ do 
+    res <- withEither cmpRes $ const $ do 
       hasql <- fmap (^. katipEnv . hasqlDbPool) ask
       fmap (fromEither @T.Text . first toS) $ 
         transactionM hasql $ statement Invoice.register (ident, xs')
+    
+    fmap (const res) $ for_ res $ const $ make @() NewInvoiceIssued undefined undefined 
