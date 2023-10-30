@@ -63,7 +63,6 @@ jobs:
     name: Deploy the server
     runs-on: ubuntu-latest
     environment: google
-    if: github.base_ref == 'master'
     needs: push_to_google_registry
     steps:
       - uses: actions/checkout@v3.5.2
