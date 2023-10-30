@@ -17,7 +17,7 @@ import BCorrespondent.Transport.Model.Invoice
        )
 import qualified BCorrespondent.Auth as Auth
 import BCorrespondent.Api.Handler.Utils (withEither)
-import BCorrespondent.Notification (make, Template (NewInvoiceIssued))
+import BCorrespondent.Notification (make, NewInvoice)
 import Katip.Handler
 import qualified Data.Text as T
 import Control.Lens ((^.), to)
@@ -77,4 +77,4 @@ handle Auth.AuthenticatedUser {..} xs = do
       fmap (fromEither @T.Text . first toS) $ 
         transactionM hasql $ statement Invoice.register (ident, xs')
     
-    fmap (const res) $ for_ res $ const $ make @() NewInvoiceIssued undefined undefined 
+    fmap (const res) $ for_ res $ const $ make @"new_invoice_issued" @NewInvoice undefined undefined 
