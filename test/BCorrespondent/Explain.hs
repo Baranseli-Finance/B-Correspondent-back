@@ -114,7 +114,8 @@ explainTests =
       "modifyWalletAfterWebhook" =>> BCorrespondent.Statement.Institution.modifyWalletAfterWebhook,
       "refreshWalletMV" =>> BCorrespondent.Statement.Institution.refreshWalletMV,
       "readNotification" =>> BCorrespondent.Statement.Institution.readNotification,
-      "loadNotification" =>> BCorrespondent.Statement.Institution.loadNotification
+      "loadNotification" =>> BCorrespondent.Statement.Institution.loadNotification,
+      "loadUnreadNotification" =>> BCorrespondent.Statement.Institution.loadUnreadNotification
     ]
   , "BCorrespondent.Statement.BalancedBook" ==>
     [ "initFirstBalancedBook" =>> BCorrespondent.Statement.BalancedBook.initFirstBalancedBook,

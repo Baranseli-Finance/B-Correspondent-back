@@ -24,7 +24,7 @@ import BCorrespondent.Transport.Model.Frontend
         TimelineTransaction, Notifications, Notification, Issue,
         BalancedBook, BalancedBookInstitution, DayOfWeeksHourly, 
         AmountInDayOfWeek, DayOfWeeksHourlyTotalSum, BalancedBookWallet,
-        GapItemWrapper)
+        GapItemWrapper, Workspace)
 import BCorrespondent.Transport.Model.Institution 
        (Withdraw, InitWithdrawal, Balance, WithdrawalHistoryItem, 
         WithdrawalHistory, WithdrawResult, WithdrawResultStatus,
@@ -79,6 +79,7 @@ mkArbitrary ''DayOfWeeksHourly
 mkArbitrary ''BalancedBookWallet
 mkArbitrary ''BalancedBookInstitution
 mkArbitrary ''BalancedBook
+mkArbitrary ''Workspace
 
 spec_api :: Spec
 spec_api =
