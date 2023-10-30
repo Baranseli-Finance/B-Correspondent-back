@@ -44,15 +44,15 @@ services:
       b-correspondent:
          ipv4_address: 192.168.22.6
 
-  # front:
-  #   image: europe-west3-docker.pkg.dev/b-correspondent/front/front:${FRONT_TAG}
-  #   container_name: b-correspondent-front
-  #   restart: 'always'
-  #   ports:
-  #     - 3001:3000
-  #   networks:
-  #     b-correspondent:
-  #       ipv4_address: 192.168.22.7
+  front:
+    image: europe-west3-docker.pkg.dev/b-correspondent/front/front:${FRONT_TAG}
+    container_name: b-correspondent-front
+    restart: 'always'
+    ports:
+      - 3001:3000
+    networks:
+      b-correspondent:
+        ipv4_address: 192.168.22.7
 
   storage:
     image: minio/minio:latest
