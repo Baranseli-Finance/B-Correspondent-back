@@ -10,18 +10,25 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -fno-warn-unused-top-binds #-}
 {-# OPTIONS_GHC -fno-warn-redundant-constraints #-}
 
 module BCorrespondent.Notification (make, NewInvoice (..)) where
 
-import Katip.Handler (KatipHandlerM)
+import BCorrespondent.Statement.Institution (insertNotification)
+import BCorrespondent.Transport.Model.Invoice (Currency)
+import Katip.Handler (KatipHandlerM, katipEnv, hasqlDbPool, templateDir, ask)
+import Database.Transaction (transactionM, statement)
 import Control.Concurrent.Lifted (fork)
+import Control.Lens ((^.), (<&>))
 import Control.Monad (void)
 import Data.Text (Text)
 import Data.Int (Int64)
 import Data.Kind (Constraint)
-import Data.Aeson (ToJSON)
+import Data.Aeson (ToJSON, toJSON, Value (Object))
+import Data.Aeson.KeyMap (toHashMap)
+import Data.Aeson.Key (toText)
 import Data.Aeson.Generic.DerivingVia
 import GHC.Generics (Generic)
 import GHC.TypeLits (Symbol, KnownSymbol, symbolVal)
@@ -30,15 +37,21 @@ import Data.Proxy (Proxy (..))
 import qualified Text.EDE as E
 import Control.Monad.IO.Class
 import Data.String (fromString)
-import Katip (logTM, Severity (ErrorS))
+import Katip (logTM, Severity (ErrorS, DebugS))
 import Data.Traversable (for)
 import Data.Either.Combinators (whenLeft)
-
+import Data.HashMap.Strict (mapKeys)
+import BuildInfo (location)
 
 type family Notification (s :: Symbol) b :: Constraint 
 
 
-data NewInvoice = NewInvoice { newInvoiceTextualIdent :: Text }
+data NewInvoice = 
+     NewInvoice
+     { newInvoiceTextualIdent :: !Text,
+       newInvoiceAmount :: !Double,
+       newInvoiceCurrency :: !Currency
+     }
     deriving stock (Generic, Show)
     deriving
       (ToJSON)
@@ -52,11 +65,24 @@ data NewInvoice = NewInvoice { newInvoiceTextualIdent :: Text }
 
 type instance Notification "new_invoice_issued" NewInvoice = ()
 
-make :: forall s a . (KnownSymbol s, ToJSON a, Notification s a) => Int64 -> a -> KatipHandlerM ()
-make _ _ = void $ fork go
+make :: forall s a . (KnownSymbol s, Show a, ToJSON a, Notification s a) => Int64 -> [a]-> KatipHandlerM ()
+make institution_id xs = void $ fork go
   where
     go = do
-           let file = toS (symbolVal (Proxy @s)) <> ".ede"
+           $(logTM) DebugS $ fromString $ $location <> " ede xs ---->  " <> show xs
+           dir <- fmap (^. katipEnv . templateDir) ask 
+           let file = toS dir <> "/" <> toS (symbolVal (Proxy @s)) <> ".ede"
            parseRes <- liftIO $ E.eitherParseFile file
-           res <- for parseRes $ \_ -> undefined
-           whenLeft res $ \error -> $(logTM) ErrorS $ fromString $ show error
+           res <- for parseRes $ \template -> do
+                     let bodyRes = 
+                          fmap (map toS) $ 
+                            sequence $ 
+                              map toJSON xs <&> \(Object obj) -> 
+                                E.eitherRender template $ 
+                                  mapKeys toText $  
+                                    toHashMap obj
+                     for bodyRes $ \ys -> do
+                      $(logTM) DebugS $ fromString $ $location <> " ede parsing result ---->  " <> show ys
+                      hasql <- fmap (^. katipEnv . hasqlDbPool) ask 
+                      transactionM hasql $ statement insertNotification (institution_id, ys)
+           whenLeft (res) $ \error -> $(logTM) ErrorS $ fromString $ show error

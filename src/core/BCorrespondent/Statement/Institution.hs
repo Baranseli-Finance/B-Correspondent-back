@@ -24,6 +24,7 @@ module BCorrespondent.Statement.Institution
          readNotification,
          loadNotification,
          loadUnreadNotification,
+         insertNotification,
          WithdrawResult (..)
        ) where
 
@@ -392,3 +393,18 @@ loadNotification =
 
 loadUnreadNotification :: HS.Statement Int64 Int
 loadUnreadNotification = rmap fromIntegral [singletonStatement|select count(*) :: int from public.notification where not is_read and user_id = $1 :: int8|]
+
+insertNotification :: HS.Statement (Int64, [Text]) ()
+insertNotification =
+  lmap (app2 V.fromList)
+  [resultlessStatement|
+    insert into notification
+    (user_id, body)
+    select
+      f.user_id,
+      s.body
+    from (
+      select user_id 
+      from institution.user
+      where institution_id = $1 :: int8) as f
+    cross join unnest($2 :: text[]) as s(body)|]

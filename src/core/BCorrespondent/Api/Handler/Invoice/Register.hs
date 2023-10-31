@@ -5,22 +5,27 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE NamedFieldPuns #-}
 
 module BCorrespondent.Api.Handler.Invoice.Register (handle) where
 
 import qualified BCorrespondent.Statement.Invoice as Invoice (register)
 import BCorrespondent.Transport.Response (Response, fromEither)
 import BCorrespondent.Transport.Model.Invoice
-       (InvoiceRegisterRequest, 
+       (InvoiceRegisterRequest (InvoiceRegisterRequest), 
         InvoiceRegisterResponse, 
-        invoiceRegisterRequestCountryISOCode
+        invoiceRegisterRequestCountryISOCode,
+        invoiceRegisterRequestInvoiceIdent,
+        invoiceRegisterRequestCurrency,
+        invoiceRegisterRequestAmount,
+        ExternalInvoiceId (..)
        )
 import qualified BCorrespondent.Auth as Auth
 import BCorrespondent.Api.Handler.Utils (withEither)
-import BCorrespondent.Notification (make, NewInvoice)
+import BCorrespondent.Notification (make, NewInvoice (..))
 import Katip.Handler
 import qualified Data.Text as T
-import Control.Lens ((^.), to)
+import Control.Lens ((^.), to, (<&>))
 import Database.Transaction (statement, transactionM)
 import Data.String.Conv (toS)
 import Data.Bifunctor (first)
@@ -33,6 +38,8 @@ import Data.Maybe (isJust, fromMaybe)
 import Data.List ((\\))
 import BuildInfo (location)
 import Data.Foldable (for_)
+import Data.Aeson.WithField (WithField (..))
+import Data.Coerce (coerce)
 
 
 data CountryCode = 
@@ -77,4 +84,15 @@ handle Auth.AuthenticatedUser {..} xs = do
       fmap (fromEither @T.Text . first toS) $ 
         transactionM hasql $ statement Invoice.register (ident, xs')
     
-    fmap (const res) $ for_ res $ const $ make @"new_invoice_issued" @NewInvoice undefined undefined 
+    let response = flip fmap res $ \xs ->  xs <&> \(WithField _ (WithField _ r)) -> r
+    let notifXxs =
+          flip fmap res $ \ys -> 
+            ys <&> \(WithField i (WithField text r)) -> 
+              [  NewInvoice text amount currency | 
+                InvoiceRegisterRequest 
+                {invoiceRegisterRequestInvoiceIdent,
+                invoiceRegisterRequestAmount = amount,
+                invoiceRegisterRequestCurrency = currency} <- xs, 
+                i == coerce invoiceRegisterRequestInvoiceIdent
+              ]
+    fmap (const response) $ for_ res $ const $ for_ notifXxs (make @"new_invoice_issued" @NewInvoice ident . concat)

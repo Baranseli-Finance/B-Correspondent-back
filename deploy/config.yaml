@@ -41,9 +41,11 @@ configCors:
 
 configServerError: true
 
-configJobFrequency: 500
+configJobFrequency: 10000000
 configWebhook: https://b-correspondent.app
 
 configCountryCodeFilePath: country-code.csv
 
-configSourceTokenLife: 120000 
+configSourceTokenLife: 10000
+
+configTemplateDir: ./template

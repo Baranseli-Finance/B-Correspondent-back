@@ -342,7 +342,8 @@ main = do
               katipEnvFrontEnvFilePath = frontEnvFilePath,
               katipEnvCache = cache,
               katipEnvCountryCode = cfg^.countryCodeFilePath,
-              katipEnvTokenLife = cfg^.sourceTokenLife
+              katipEnvTokenLife = cfg^.sourceTokenLife,
+              katipEnvTemplateDir = cfg^.BCorrespondent.Config.templateDir
           }
 
     let shutdownMsg = print "------ server is shut down --------"

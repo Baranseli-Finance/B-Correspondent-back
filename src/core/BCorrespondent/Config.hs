@@ -53,6 +53,7 @@ module BCorrespondent.Config
     jobFrequency,
     countryCodeFilePath,
     sourceTokenLife,
+    templateDir,
 
     -- * Iso
     isoEnv,
@@ -152,7 +153,8 @@ data Config = Config
     configJobFrequency :: !Int,
     configWebhook :: !T.Text,
     configCountryCodeFilePath :: !T.Text,
-    configSourceTokenLife :: !Int
+    configSourceTokenLife :: !Int,
+    configTemplateDir :: !T.Text
   }
   deriving (Show)
 

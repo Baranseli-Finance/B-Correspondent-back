@@ -1,0 +1,2 @@
+new invoice {{ textualIdent }} for {{ amount }} {{ currency }} has been registered
+

@@ -39,6 +39,7 @@ module Katip.Handler
     cache,
     countryCode,
     tokenLife,
+    templateDir,
 
     -- * run
     runKatipHandler,
@@ -99,7 +100,8 @@ data KatipEnv = KatipEnv
     katipEnvFrontEnvFilePath :: !FilePath,
     katipEnvCache :: !(Cache KatipHandlerM T.Text Value),
     katipEnvCountryCode :: !T.Text,
-    katipEnvTokenLife :: !Int
+    katipEnvTokenLife :: !Int,
+    katipEnvTemplateDir :: !T.Text
   }
 
 data Minio = Minio {minioConn :: !Minio.MinioConn, minioBucketPrefix :: !T.Text}

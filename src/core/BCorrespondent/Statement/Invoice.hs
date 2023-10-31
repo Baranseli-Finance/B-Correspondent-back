@@ -51,6 +51,7 @@ import Data.Tuple (swap)
 import Data.Aeson.Generic.DerivingVia
 import BuildInfo (location)
 
+
 data Status = 
        Registered
      | ForwardedToPaymentProvider 
@@ -67,9 +68,9 @@ instance FromJSON Status where
 
 mkArbitrary ''Status
 
-register :: HS.Statement (Int64, [(InvoiceRegisterRequest, T.Text)]) (Either String [InvoiceRegisterResponse])
+register :: HS.Statement (Int64, [(InvoiceRegisterRequest, T.Text)]) (Either String [WithField "ident" T.Text (WithField "textualView" T.Text InvoiceRegisterResponse)])
 register = 
-  dimap mkEncoder (sequence . map (eitherDecode @InvoiceRegisterResponse . encode) . V.toList) $ 
+  dimap mkEncoder (sequence . map (eitherDecode @(WithField "ident" T.Text (WithField "textualView" T.Text InvoiceRegisterResponse)) . encode) . V.toList) $ 
   [vectorStatement|
     with
        series as (
@@ -171,7 +172,7 @@ register =
             country_code,
             current_ident)
         on conflict (customer_id, invoice_id, institution_id) do nothing
-        returning id :: int8 as invoice_id, invoice_id as external_id),
+        returning id :: int8 as invoice_id, invoice_id as external_id, textual_view),
       delivery as (
         insert into institution.invoice_to_institution_delivery
         (invoice_id, institution_id)
@@ -183,9 +184,13 @@ register =
         returning invoice_id, external_id)
       select  
         jsonb_build_object(
-          'externalIdent', external_id) 
+          'externalIdent', f.external_id,
+          'textualView', s.textual_view,
+          'ident', s.external_id)
         :: jsonb
-      from external_ident|]
+      from external_ident as f
+      inner join xs as s
+      on f.invoice_id = s.invoice_id|]
   where 
     mkEncoder (instIdent, xs) =
       snocT instIdent $
