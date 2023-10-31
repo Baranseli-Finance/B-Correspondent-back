@@ -71,7 +71,8 @@ httpApi =
       _httpApiFrontend = toServant frontend,
       _httpApiInstitution = toServant institution,
       _httpApiFile = toServant file,
-      _httpApiAdmin = toServant admin
+      _httpApiAdmin = toServant admin,
+      _wsApi = toServant ws
     }
 
 auth :: AuthApi (AsServerT KatipHandlerM)
@@ -178,34 +179,6 @@ user nm =
            katipAddNamespace
            (Namespace [nm, "dashboard", "timeline", "gap"])
            (Frontend.User.FetchGap.handle user from to),
-    _userApiNotifyTransactionUpdate =
-      \(pend :: WS.PendingConnection) ->
-        pend `Auth.withWSAuth` \(ident, conn) ->
-          flip logExceptionM ErrorS
-          $ katipAddNamespace
-            (Namespace [nm, "dashboard", "timeline", "transaction"])
-            (WS.User.Transaction.handle ident conn),
-    _userApiNotifyWalletUpdate =
-      \(pend :: WS.PendingConnection) ->
-        pend `Auth.withWSAuth` \(ident, conn) ->
-          flip logExceptionM ErrorS
-          $ katipAddNamespace
-            (Namespace [nm, "wallet"])
-            (WS.User.Wallet.handle ident conn),
-    _userApiNotifyBalancedBookTransactionAdd =
-      \(pend :: WS.PendingConnection) ->
-        pend `Auth.withWSAuth` \(ident, conn) ->
-          flip logExceptionM ErrorS
-          $ katipAddNamespace
-            (Namespace [nm, "balanced-book", "transaction"]) $
-            WS.User.BalancedBook.Transaction.handle ident conn,
-    _userApiNotifyBalancedBookWalletUpdate =
-      \(pend :: WS.PendingConnection) ->
-        pend `Auth.withWSAuth` \(ident, conn) ->
-          flip logExceptionM ErrorS
-          $ katipAddNamespace
-            (Namespace [nm, "balanced-book", "wallet"]) $
-            WS.User.BalancedBook.Wallet.handle ident conn,
     _userApiIntTimelineHistory = \auth date ->
        auth `Auth.withAuth` \user ->
          flip logExceptionM ErrorS $
@@ -314,13 +287,6 @@ fiat nm =
          katipAddNamespace
          (Namespace [nm, "fiat", "withdrawal", "history", "page"]) $
          Institution.GetWithdrawalHistoryPage.handle user page,
-    _fiatApiNotifyWithdrawRecord =
-       \(pend :: WS.PendingConnection) ->
-        pend `Auth.withWSAuth` \(ident, conn) ->
-          flip logExceptionM ErrorS
-          $ katipAddNamespace
-            (Namespace [nm, "withdraw", "item", "notify"])
-            (WS.Institution.Withdrawal.handle ident conn),  
     _fiatApiTransactionOrder = undefined
   }
 
@@ -350,3 +316,43 @@ admin =
          (Namespace ["admin", "user", "put"])
          (Admin.CreateUser.handle user)
   }
+
+ws :: WSApi (AsServerT KatipHandlerM)
+ws = 
+  WSApi
+  {_wsApiNotifyWithdrawRecord =
+    \(pend :: WS.PendingConnection) ->
+    pend `Auth.withWSAuth` \(ident, conn) ->
+      flip logExceptionM ErrorS
+      $ katipAddNamespace
+        (Namespace ["ws", "withdraw", "item", "notify"])
+        (WS.Institution.Withdrawal.handle ident conn),
+    _wsApiNotifyTransactionUpdate =
+      \(pend :: WS.PendingConnection) ->
+        pend `Auth.withWSAuth` \(ident, conn) ->
+          flip logExceptionM ErrorS
+          $ katipAddNamespace
+            (Namespace ["ws", "dashboard", "timeline", "transaction"])
+            (WS.User.Transaction.handle ident conn),
+    _wsApiNotifyWalletUpdate =
+      \(pend :: WS.PendingConnection) ->
+        pend `Auth.withWSAuth` \(ident, conn) ->
+          flip logExceptionM ErrorS
+          $ katipAddNamespace
+            (Namespace ["ws", "wallet"])
+            (WS.User.Wallet.handle ident conn),
+    _wsApiNotifyBalancedBookTransactionAdd =
+      \(pend :: WS.PendingConnection) ->
+        pend `Auth.withWSAuth` \(ident, conn) ->
+          flip logExceptionM ErrorS
+          $ katipAddNamespace
+            (Namespace ["ws", "balanced-book", "transaction"]) $
+            WS.User.BalancedBook.Transaction.handle ident conn,
+    _wsApiNotifyBalancedBookWalletUpdate =
+      \(pend :: WS.PendingConnection) ->
+        pend `Auth.withWSAuth` \(ident, conn) ->
+          flip logExceptionM ErrorS
+          $ katipAddNamespace
+            (Namespace ["ws", "balanced-book", "wallet"]) $
+            WS.User.BalancedBook.Wallet.handle ident conn
+    }

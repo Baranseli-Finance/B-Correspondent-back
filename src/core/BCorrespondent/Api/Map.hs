@@ -12,7 +12,8 @@ module BCorrespondent.Api.Map
     module Frontend,
     module Institution,
     module Fs,
-    module Admin
+    module Admin,
+    module WS
   )
 where
 
@@ -22,6 +23,7 @@ import BCorrespondent.Api.Frontend as Frontend
 import BCorrespondent.Api.Institution as Institution  
 import BCorrespondent.Api.Fs as Fs
 import BCorrespondent.Api.Admin as Admin
+import BCorrespondent.Api.WS as WS
 import Servant.API
 import Servant.API.Generic
 import Servant.Swagger.Tags
@@ -56,6 +58,12 @@ data HttpApi route = HttpApi
       route
         :- Tags "Admin"
           :> "admin"
-          :> ToServant AdminApi AsApi
+          :> ToServant AdminApi AsApi,
+    _wsApi ::
+      route
+        :- Tags "WebSocket"
+          :> "ws"
+          :> ToServant WSApi AsApi
+
   }
   deriving stock (Generic)

@@ -23,6 +23,7 @@ module BCorrespondent.Api
     FiatApi (..),
     UserApi (..),
     AdminApi (..),
+    WSApi (..),
     api,
     swaggerHttpApi,
   )

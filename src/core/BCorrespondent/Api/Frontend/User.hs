@@ -29,7 +29,6 @@ import BCorrespondent.Auth (AuthenticatedUser, JWT, Role (..))
 import Servant.API.Extended
 import Servant.API.Generic (Generic)
 import qualified Servant.Auth.Server as SA
-import Servant.API.WebSocket (WebSocketPending)
 import Servant.Swagger.Internal.Extended ()
 import RateLimit (RateLimit, FixedWindow, KeyPolicy)
 import Data.Time.TypeLevel (TimePeriod (Second))
@@ -81,31 +80,7 @@ data UserApi route = UserApi
           :> SA.Auth '[JWT] (AuthenticatedUser 'Reader)
           :> Capture "direction" TimelineDirection
           :> QueryParam' '[Required, Strict] "point" GapItemTime
-          :> Get '[JSON] (Response GapItemWrapper),      
-    _userApiNotifyTransactionUpdate ::
-      route
-        :- "dashboard"
-        :> "transaction"
-        :> "update"
-        :> WebSocketPending,
-    _userApiNotifyWalletUpdate ::
-      route
-        :- "dashboard"
-        :> "wallet"
-        :> "update"
-        :> WebSocketPending,
-    _userApiNotifyBalancedBookTransactionAdd ::
-      route
-        :- "balanced-book"
-        :> "transaction"
-        :> "add"
-        :> WebSocketPending,
-    _userApiNotifyBalancedBookWalletUpdate ::
-      route
-        :- "balanced-book"
-        :> "wallet"
-        :> "update"
-        :> WebSocketPending, 
+          :> Get '[JSON] (Response GapItemWrapper),
     _userApiMakeProcuratory ::
       route
         :- "procuratory"
