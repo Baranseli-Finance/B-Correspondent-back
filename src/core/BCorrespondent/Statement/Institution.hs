@@ -392,7 +392,12 @@ loadNotification =
      where not is_read and user_id = $1 :: int8|]
 
 loadUnreadNotification :: HS.Statement Int64 Int
-loadUnreadNotification = rmap fromIntegral [singletonStatement|select count(*) :: int from public.notification where not is_read and user_id = $1 :: int8|]
+loadUnreadNotification = 
+  rmap fromIntegral 
+  [singletonStatement|
+    select count(*) :: int 
+    from public.notification 
+    where not is_read and user_id = $1 :: int8|]
 
 insertNotification :: HS.Statement (Int64, [Text]) ()
 insertNotification =

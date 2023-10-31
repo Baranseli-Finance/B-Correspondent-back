@@ -115,7 +115,8 @@ explainTests =
       "refreshWalletMV" =>> BCorrespondent.Statement.Institution.refreshWalletMV,
       "readNotification" =>> BCorrespondent.Statement.Institution.readNotification,
       "loadNotification" =>> BCorrespondent.Statement.Institution.loadNotification,
-      "loadUnreadNotification" =>> BCorrespondent.Statement.Institution.loadUnreadNotification
+      "loadUnreadNotification" =>> BCorrespondent.Statement.Institution.loadUnreadNotification,
+      "insertNotification" =>> BCorrespondent.Statement.Institution.insertNotification
     ]
   , "BCorrespondent.Statement.BalancedBook" ==>
     [ "initFirstBalancedBook" =>> BCorrespondent.Statement.BalancedBook.initFirstBalancedBook,
