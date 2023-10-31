@@ -129,9 +129,9 @@ insertPasswordResetLink =
            u.email
          from auth.user as u 
          left join auth.password_reset_link as l
-         on u.id = l.user_id
-         where u.id = $1 :: int8 
+         on u.id = l.user_id 
          and not coalesce(is_expended, false)
+         where u.id = $1 :: int8
          order by l.id desc limit 1),
       link as (
         insert into auth.password_reset_link
