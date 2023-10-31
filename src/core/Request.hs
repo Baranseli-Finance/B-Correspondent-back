@@ -2,7 +2,7 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Request (make, withError, forConcurrentlyNRetry, retry, HTTP.methodPost) where
+module Request (make, safeMake, withError, forConcurrentlyNRetry, retry, HTTP.methodPost) where
 
 import qualified Network.HTTP.Types as HTTP
 import qualified Network.HTTP.Client as HTTP
@@ -18,6 +18,8 @@ import Control.Monad.IO.Unlift (MonadUnliftIO)
 import UnliftIO.Retry (retrying, constantDelay, limitRetries)
 import Data.Bifunctor (first)
 import Control.Monad.IO.Class (liftIO, MonadIO)
+import Control.Monad.Catch (handle, MonadCatch)
+import Network.HTTP.Client (HttpException)
 
 make ::
   (ToJSON a, MonadIO m) =>
@@ -26,7 +28,7 @@ make ::
   -> [HTTP.Header]
   -> HTTP.Method
   -> Either (Maybe a) [Part]
-  -> m (Either (HTTP.Response BL.ByteString) B.ByteString)
+  -> m (Either String B.ByteString)
 make url manager headers method bodye = do
  req_tmp <- liftIO $ HTTP.parseRequest $ T.unpack url
  let req =
@@ -53,7 +55,7 @@ make url manager headers method bodye = do
     response_status == 
       HTTP.statusCode HTTP.status201
    then Right response_body
-   else Left response
+   else Left $ show response
 
 withError :: 
   forall a b e. 
@@ -83,3 +85,15 @@ retry :: MonadUnliftIO m => Int -> (a -> m Bool) -> m a -> m a
 retry delay shouldRetry go =
   let retryPolicy = constantDelay (delay * 10 ^ 6) <> limitRetries 3
   in retrying retryPolicy (const shouldRetry) (const go)
+
+safeMake ::
+  (ToJSON a, MonadCatch m, MonadIO m) =>
+  T.Text
+  -> HTTP.Manager
+  -> [HTTP.Header]
+  -> HTTP.Method
+  -> Either (Maybe a) [Part]
+  -> (HttpException -> m (Either String B.ByteString))
+  -> m (Either String B.ByteString)
+safeMake url manager headers method bodye onError = onError `handle` make url manager headers method bodye
+{-# inline safeMake #-}

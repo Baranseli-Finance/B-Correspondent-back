@@ -3,6 +3,7 @@
 {-#LANGUAGE NumericUnderscores #-}
 {-#LANGUAGE TypeApplications #-}
 {-#LANGUAGE RecordWildCards #-}
+{-#LANGUAGE TupleSections #-}
 
 module BCorrespondent.Job.Invoice (forwardToPaymentProvider, validateAgainstTransaction) where
 
@@ -33,6 +34,7 @@ import qualified Control.Concurrent.Async.Lifted as Async
 import Data.Aeson.WithField (WithField (..))
 import qualified Request as Request
 import Data.Int (Int64)
+import Data.Bifunctor (bimap)
 
 
 forwardToPaymentProvider :: Int -> KatipContextT ServerM ()
@@ -46,18 +48,19 @@ forwardToPaymentProvider freq =
         Right xs -> do
           manager <- fmap (^.httpReqManager) ask
           ys <- Async.forConcurrently xs $
-            \(WithField _ invoice) -> do
+            \(WithField ident invoice) -> do
               let req = Left $ Just $ invoice
-              _ <- Request.make @InvoiceToPaymentProvider undefined manager [] Request.methodPost req
-              undefined
+              let mkResp = bimap ((ident,) . toS . show) (const ident)
+              let onFailure = pure . Left . show
+              fmap mkResp $ Request.safeMake @InvoiceToPaymentProvider "https://test.com" manager [] Request.methodPost req onFailure
           let (es, os) = partitionEithers ys
-          for_ es $ \ident ->
+          for_ es $ \(ident, error) ->
             $(logTM) ErrorS $
             logStr @T.Text $
               $location <>
               ":forwardToElekse: --> \
               \ invoice failed to be sent, " <> 
-              toS (show ident)
+              toS (show ident) <> ", error: " <> error
           transactionM hasql $ do 
             statement insertFailedInvoices es
             statement updateStatus $ os <&> \x -> (x, ForwardedToPaymentProvider)

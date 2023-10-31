@@ -2,6 +2,7 @@
 {-#LANGUAGE OverloadedStrings #-}
 {-#LANGUAGE NumericUnderscores #-}
 {-#LANGUAGE TypeApplications #-}
+{-#LANGUAGE TupleSections #-}
 
 module BCorrespondent.Job.Transaction (forwardToInitiator) where
 
@@ -9,7 +10,7 @@ import BCorrespondent.Statement.Transaction
        (getTransactionsToBeSent, insertSentTransactions, insertFailedTransactions)
 import BCorrespondent.Job.Utils (withElapsedTime)
 import BCorrespondent.ServerM
-import BCorrespondent.Transport.Model.Transaction (TransactionToInitiator)
+import BCorrespondent.Transport.Model.Transaction (TransactionToInitiator, TransactionId (..))
 import Katip
 import BuildInfo (location)
 import Control.Monad (forever)
@@ -24,6 +25,9 @@ import Data.String.Conv (toS)
 import Data.Aeson.WithField (WithField (..))
 import qualified Control.Concurrent.Async.Lifted as Async
 import qualified Request as Request
+import Data.Bifunctor (bimap)
+import Data.Coerce (coerce)
+
 
 forwardToInitiator :: Int -> KatipContextT ServerM ()
 forwardToInitiator freq = 
@@ -36,18 +40,19 @@ forwardToInitiator freq =
         Right xs -> do
           manager <- fmap (^.httpReqManager) ask
           ys <- Async.forConcurrently xs $ 
-            \(WithField _ transaction) -> do  
+            \(WithField ident transaction) -> do  
                 let req = Left $ Just $ transaction
-                _ <- Request.make @TransactionToInitiator undefined manager [] Request.methodPost req
-                undefined
+                let mkResp = bimap ((coerce ident,) . toS . show) (const ident)
+                let onFailure = pure . Left . show
+                fmap mkResp $ Request.safeMake @TransactionToInitiator "https://test.com" manager [] Request.methodPost req onFailure
           let (es, os) = partitionEithers ys
-          for_ es $ \ident ->
+          for_ es $ \(ident, error) ->
             $(logTM) ErrorS $
               logStr @T.Text $
                 $location <>
                 ":forwardToInitiator: --> \ 
                 \ transaction details failed to be sent, " <>
-                toS (show ident)
+                toS (show ident) <> ", error: " <> error
           transactionM hasql $ do 
             statement insertFailedTransactions es
             statement insertSentTransactions os

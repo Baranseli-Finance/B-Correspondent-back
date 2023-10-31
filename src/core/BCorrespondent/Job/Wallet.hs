@@ -3,6 +3,7 @@
 {-#LANGUAGE NumericUnderscores #-}
 {-#LANGUAGE TypeApplications #-}
 {-#LANGUAGE RecordWildCards #-}
+{-#LANGUAGE TupleSections #-}
 
 module BCorrespondent.Job.Wallet (withdraw, archive) where
 
@@ -16,7 +17,7 @@ import Katip
 import BuildInfo (location)
 import Control.Monad (forever)
 import Control.Concurrent.Lifted (threadDelay)
-import Control.Lens ((^.))
+import Control.Lens ((^.), _1)
 import Database.Transaction (statement, transactionM)
 import Katip.Handler
 import qualified Control.Concurrent.Async.Lifted as Async
@@ -31,6 +32,8 @@ import Control.Monad (void, when)
 import Control.Monad.Time (currentTime)
 import Data.Time.Clock (UTCTime (utctDay))
 import Data.Time.Calendar (weekFirstDay, DayOfWeek (Monday))
+import Data.Bifunctor (bimap)
+
 
 withdraw :: Int -> KatipContextT ServerM ()
 withdraw freq =
@@ -42,16 +45,17 @@ withdraw freq =
       xs <- transactionM hasql $ statement fetchWithdrawals ()
       ys <- Async.forConcurrently xs $ \x -> do
         let req = Left $ Just $ uncurryT WithdrawalPaymentProviderRequest $ del1 x
-        _ <- Request.make @WithdrawalPaymentProviderRequest undefined manager [] Request.methodPost req
-        undefined
+        let mkResp = bimap ((x^._1,) . toS . show) (const (x^._1))
+        let onFailure = pure . Left . show
+        fmap mkResp $ Request.safeMake @WithdrawalPaymentProviderRequest "https://test.com" manager [] Request.methodPost req onFailure
       let (es, os) = partitionEithers ys
-      for_ es $ \ident ->
+      for_ es $ \(ident, error) ->
         $(logTM) ErrorS $
           logStr @T.Text $
             $location <>
             ":withdraw: --> \ 
             \ withdrawal request failed to be sent, " <>
-            toS (show @Int64 ident)
+            toS (show @Int64 ident) <> ", error: " <> error
       void $ transactionM hasql $ statement updateWithdrawalStatus (Processing, os)
 
 archive :: Int -> KatipContextT ServerM ()
