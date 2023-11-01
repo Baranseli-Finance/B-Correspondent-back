@@ -22,7 +22,7 @@ import BCorrespondent.Transport.Model.Invoice
        )
 import qualified BCorrespondent.Auth as Auth
 import BCorrespondent.Api.Handler.Utils (withEither)
-import BCorrespondent.Notification (make, NewInvoice (..))
+import BCorrespondent.Notification (make, Invoice (..))
 import Katip.Handler
 import qualified Data.Text as T
 import Control.Lens ((^.), to, (<&>))
@@ -88,11 +88,11 @@ handle Auth.AuthenticatedUser {..} xs = do
     let notifXxs =
           flip fmap res $ \ys -> 
             ys <&> \(WithField i (WithField text r)) -> 
-              [  NewInvoice text amount currency | 
-                InvoiceRegisterRequest 
+              [  Invoice text amount currency | 
+                InvoiceRegisterRequest
                 {invoiceRegisterRequestInvoiceIdent,
                 invoiceRegisterRequestAmount = amount,
                 invoiceRegisterRequestCurrency = currency} <- xs, 
                 i == coerce invoiceRegisterRequestInvoiceIdent
               ]
-    fmap (const response) $ for_ res $ const $ for_ notifXxs (make @"new_invoice_issued" @NewInvoice ident . concat)
+    fmap (const response) $ for_ res $ const $ for_ notifXxs (make @"new_invoice_issued" @Invoice ident . concat)

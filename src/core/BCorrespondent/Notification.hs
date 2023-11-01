@@ -14,7 +14,7 @@
 {-# OPTIONS_GHC -fno-warn-unused-top-binds #-}
 {-# OPTIONS_GHC -fno-warn-redundant-constraints #-}
 
-module BCorrespondent.Notification (make, NewInvoice (..)) where
+module BCorrespondent.Notification (make, Invoice (..)) where
 
 import BCorrespondent.Statement.Institution (insertNotification)
 import BCorrespondent.Transport.Model.Invoice (Currency)
@@ -43,11 +43,11 @@ import Data.Either.Combinators (whenLeft)
 import Data.HashMap.Strict (mapKeys)
 import BuildInfo (location)
 
-type family Notification (s :: Symbol) b :: Constraint 
+type family Notification (s :: Symbol) b :: Constraint
 
 
-data NewInvoice = 
-     NewInvoice
+data Invoice = 
+     Invoice
      { newInvoiceTextualIdent :: !Text,
        newInvoiceAmount :: !Double,
        newInvoiceCurrency :: !Currency
@@ -60,10 +60,10 @@ data NewInvoice =
             '[UserDefined FirstLetterToLower,
               UserDefined 
               (StripConstructor
-               NewInvoice)]]
-      NewInvoice
+               Invoice)]]
+      Invoice
 
-type instance Notification "new_invoice_issued" NewInvoice = ()
+type instance Notification "new_invoice_issued" Invoice = ()
 
 make :: forall s a . (KnownSymbol s, Show a, ToJSON a, Notification s a) => Int64 -> [a]-> KatipHandlerM ()
 make institution_id xs = void $ fork go
