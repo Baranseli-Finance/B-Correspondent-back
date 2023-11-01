@@ -61,10 +61,25 @@ makeDailyInvoices freq = do
           for_ dbResp $ \DailyInvoices {..} -> do
             cfg <- fmap (^.sendGrid) ask
             for_ cfg $ \(Sendgrid {..}, sendgrid) -> do
-              tm <- fmap (fromIntegral . systemSeconds) $ liftIO $ getSystemTime  
+              tm <- fmap (fromIntegral . systemSeconds) $ liftIO $ getSystemTime
+              let report =
+                     "total: " <> toS (show dailyInvoicesTotal)
+                     <> ", registered: " <> toS (show dailyInvoicesRegistered)
+                     <> ", forwarded to Elekse: " <> toS (show dailyInvoicesForwarded)
+                     <> ", processed by Elekse: " <> toS (show dailyInvoicesProcessed)
+                     <> ", confirmed: " <> toS (show dailyInvoicesConfirmed)
+                     <> ", declined: " <> toS (show dailyInvoicesDeclined)
+                     <> ", discrepancy between total and status: "
+                     <> toS (show (dailyInvoicesTotal))
+                     <> " ~ " <> 
+                     toS (show (dailyInvoicesRegistered + 
+                                dailyInvoicesForwarded + 
+                                dailyInvoicesProcessed + 
+                                dailyInvoicesConfirmed + 
+                                dailyInvoicesDeclined))
               let reqBody =
                     mkPOSTMailSendRequestBody 
-                    [mkPOSTMailSendRequestBodyContentsendgrid "text/plain" undefined]
+                    [mkPOSTMailSendRequestBodyContentsendgrid "text/plain" report]
                     ((mkFromEmailObject (coerce sendgridIdentity)) { fromEmailObjectName = Just "admin"})
                     [(mkPOSTMailSendRequestBodyPersonalizationssendgrid [mkToEmailArrayItem "fclaw007@gmail.com"])
                     { pOSTMailSendRequestBodyPersonalizationssendgridSendAt = Just tm,
