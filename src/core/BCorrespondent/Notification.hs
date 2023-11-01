@@ -48,6 +48,8 @@ import BuildInfo (location)
 import qualified Hasql.Connection as Hasql
 import qualified Data.Pool as Pool
 import Control.Monad.Trans.Control (MonadBaseControl)
+import Data.UUID (UUID)
+
 
 type family Notification (s :: Symbol) b :: Constraint
 
@@ -73,7 +75,7 @@ data Invoice =
 data Transaction =
      Transaction
      { transactionInvoiceIdent :: !Text,
-       transactionIdent :: !Text
+       transactionIdent :: !UUID
      }
     deriving stock (Generic, Show)
     deriving

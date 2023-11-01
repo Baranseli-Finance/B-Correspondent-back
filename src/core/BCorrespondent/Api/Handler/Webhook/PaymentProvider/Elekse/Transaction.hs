@@ -4,6 +4,7 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NumericUnderscores #-}
+{-# LANGUAGE DataKinds #-}
 
 module BCorrespondent.Api.Handler.Webhook.PaymentProvider.Elekse.Transaction (handle) where
 
@@ -13,6 +14,7 @@ import BCorrespondent.Statement.Transaction (create)
 import BCorrespondent.Statement.Fs (File (..), insertFiles)
 import BCorrespondent.Transport.Response (Response (Ok))
 import Katip.Handler (KatipHandlerM, hasqlDbPool, katipEnv, ask, Minio (..), minio)
+import BCorrespondent.Notification (makeH, Transaction (..)) 
 import Database.Transaction (transactionM, statement)
 import Control.Lens ((^.))
 import Data.Foldable (for_)
@@ -20,7 +22,6 @@ import Data.Text (Text, pack)
 import Data.Int (Int64)
 import BuildInfo (location)
 import Katip (logTM, logStr, Severity(ErrorS))
-import Control.Monad (when)
 import Data.Text.Encoding (encodeUtf8)
 import qualified Data.ByteString.Base64 as Base64
 import Data.Traversable (for)
@@ -59,9 +60,9 @@ handle transaction@TransactionFromPaymentProvider
     for_ resp $ \case
       [ident] -> do
         hasql <- fmap (^. katipEnv . hasqlDbPool) ask
-        isOk <- transactionM hasql $ statement create (ident, transaction)
-        let error = pack $ "webhook ended up in failure, ident: " <> show uuid
-        when (not isOk) $ $(logTM) ErrorS $ logStr @Text $ $location <> "error ---> " <> error
+        dbRes <- transactionM hasql $ statement create (ident, transaction)
+        for_ dbRes $ \(instIdent, textualIdent) -> 
+          makeH @"transaction_processed" instIdent [Transaction textualIdent uuid]
       _ -> $(logTM) ErrorS $ logStr @Text $ $location <> "error ---> commitSwiftMessage returns more then 1 result"   
 
 commitSwiftMessage :: Text -> Text -> KatipHandlerM (Either String [Int64])

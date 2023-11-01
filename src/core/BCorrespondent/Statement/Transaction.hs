@@ -38,6 +38,9 @@ import Data.Int (Int64)
 import Data.Tuple.Extended (snocT)
 import Data.String.Conv (toS)
 
+
+
+
 getTransactionsToBeSent :: HS.Statement () (Either String [WithField "id" UUID TransactionToInitiator])
 getTransactionsToBeSent =
   rmap (sequence . map (eitherDecode @(WithField "id" UUID TransactionToInitiator) . encode) .  V.toList)
@@ -100,13 +103,13 @@ insertSentTransactions =
 --   "swfitSepaCodeCorrespondentBank": "...",
 --   "swiftMessage": "..."
 -- }
-create :: HS.Statement (Int64, TransactionFromPaymentProvider) Bool
+create :: HS.Statement (Int64, TransactionFromPaymentProvider) (Maybe (Int64, T.Text))
 create = 
-  (flip dimap (>0) $ \(x, y) ->
+  (lmap $ \(x, y) ->
     snocT (toS (show ForwardedToPaymentProvider)) $
       snocT (toS (show ProcessedByPaymentProvider)) $ 
         snocT x $ encodeTransactionFromPaymentProvider y)
-  [rowsAffectedStatement|
+  [maybeStatement|
     with new_transaction as (  
       insert into institution.transaction
       ( invoice_id,
@@ -150,4 +153,5 @@ create =
     update institution.invoice 
     set status = $13 :: text
     where id = (select invoice_id from new_transaction)
-    and status = $14 :: text|]
+    and status = $14 :: text
+    returning institution_id :: int8, textual_view :: text|]
