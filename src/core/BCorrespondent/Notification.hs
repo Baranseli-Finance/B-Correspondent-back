@@ -16,7 +16,7 @@
 {-# OPTIONS_GHC -fno-warn-unused-top-binds #-}
 {-# OPTIONS_GHC -fno-warn-redundant-constraints #-}
 
-module BCorrespondent.Notification (make, makeS, Invoice (..)) where
+module BCorrespondent.Notification (makeH, makeS, Invoice (..), Transaction (..)) where
 
 import BCorrespondent.Statement.Institution (insertNotification)
 import BCorrespondent.Transport.Model.Invoice (Currency)
@@ -51,7 +51,7 @@ import Control.Monad.Trans.Control (MonadBaseControl)
 
 type family Notification (s :: Symbol) b :: Constraint
 
-data Context m = Context { getTemplateDir :: m Text, getHasql :: m (Pool.Pool Hasql.Connection)  }
+data Context m = Context { getTemplateDir :: m Text, getHasql :: m (Pool.Pool Hasql.Connection) }
 
 data Invoice = 
      Invoice
@@ -70,9 +70,25 @@ data Invoice =
                Invoice)]]
       Invoice
 
+data Transaction =
+     Transaction
+     { transactionInvoiceIdent :: !Text,
+       transactionIdent :: !Text
+     }
+    deriving stock (Generic, Show)
+    deriving
+      (ToJSON)
+      via WithOptions 
+          '[FieldLabelModifier
+            '[UserDefined FirstLetterToLower,
+              UserDefined 
+              (StripConstructor
+               Transaction)]]
+      Transaction
+
 type instance Notification "new_invoice_issued" Invoice = ()
 type instance Notification "invoice_forwarded" Invoice = ()
-
+type instance Notification "transaction_processed" Transaction = ()
 
 makeG ::
   forall m s a . 
@@ -108,8 +124,8 @@ makeG Context {getTemplateDir, getHasql} institution_id xs = void $ fork go
                       transactionM hasql $ statement insertNotification (institution_id, ys)
            whenLeft (res) $ \error -> $(logTM) ErrorS $ fromString $ show error
 
-make :: forall s a . (KnownSymbol s, Show a, ToJSON a, Notification s a) => Int64 -> [a]-> KatipHandlerM ()
-make = makeG @KatipHandlerM @s (Context (fmap (^. katipEnv . templateDir) ask) (fmap (^. katipEnv . hasqlDbPool) ask))
+makeH :: forall s a . (KnownSymbol s, Show a, ToJSON a, Notification s a) => Int64 -> [a]-> KatipHandlerM ()
+makeH = makeG @KatipHandlerM @s (Context (fmap (^. katipEnv . templateDir) ask) (fmap (^. katipEnv . hasqlDbPool) ask))
 
 
 makeS :: forall s a . (KnownSymbol s, Show a, ToJSON a, Notification s a) => Int64 -> [a]-> KatipContextT ServerM ()

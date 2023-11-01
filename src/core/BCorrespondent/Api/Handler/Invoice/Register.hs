@@ -22,7 +22,7 @@ import BCorrespondent.Transport.Model.Invoice
        )
 import qualified BCorrespondent.Auth as Auth
 import BCorrespondent.Api.Handler.Utils (withEither)
-import BCorrespondent.Notification (make, Invoice (..))
+import BCorrespondent.Notification (makeH, Invoice (..))
 import Katip.Handler
 import qualified Data.Text as T
 import Control.Lens ((^.), to, (<&>))
@@ -95,4 +95,4 @@ handle Auth.AuthenticatedUser {..} xs = do
                 invoiceRegisterRequestCurrency = currency} <- xs, 
                 i == coerce invoiceRegisterRequestInvoiceIdent
               ]
-    fmap (const response) $ for_ res $ const $ for_ notifXxs (make @"new_invoice_issued" @Invoice ident . concat)
+    fmap (const response) $ for_ res $ const $ for_ notifXxs (makeH @"new_invoice_issued" @Invoice ident . concat)
