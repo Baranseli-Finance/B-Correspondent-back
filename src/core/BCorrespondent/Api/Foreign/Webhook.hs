@@ -18,15 +18,15 @@ import Data.Time.TypeLevel (TimePeriod (Second))
 
 data WebhookApi route = 
      WebhookApi
-     { _webhookApiCatchPaymentProvider ::
+     {_webhookApiCatchGithub ::
         route
-            :- Capture "provider" PaymentProvider
+            :- "github"
             :> RateLimit (FixedWindow (Second 1) 10) (IPAddressPolicy "fixed")
             :> ReqBody '[JSON] Payload
             :> Post '[JSON] (Response ()),
-       _webhookApiCatchGithub ::
+      _webhookApiCatchPaymentProvider ::
         route
-            :- "github"
+            :- Capture "provider" PaymentProvider
             :> RateLimit (FixedWindow (Second 1) 10) (IPAddressPolicy "fixed")
             :> ReqBody '[JSON] Payload
             :> Post '[JSON] (Response ())
