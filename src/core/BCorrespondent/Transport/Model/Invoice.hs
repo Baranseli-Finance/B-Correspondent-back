@@ -200,7 +200,10 @@ deriveToSchemaFieldLabelModifier
 
 data InvoiceToPaymentProvider = 
      InvoiceToPaymentProvider 
-     { invoiceToPaymentProviderExternalId :: UUID }
+     { invoiceToPaymentProviderExternalId :: !UUID,
+       invoiceToPaymentProviderCurrency :: !Currency,
+       invoiceToPaymentProviderAmount :: !Double 
+     }
      deriving stock (Generic, Show)
      deriving (FromJSON, ToJSON)
        via WithOptions

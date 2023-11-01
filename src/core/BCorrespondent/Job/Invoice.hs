@@ -1,9 +1,12 @@
 {-#LANGUAGE TemplateHaskell #-}
-{-#LANGUAGE OverloadedStrings #-}
-{-#LANGUAGE NumericUnderscores #-}
-{-#LANGUAGE TypeApplications #-}
-{-#LANGUAGE RecordWildCards #-}
-{-#LANGUAGE TupleSections #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE NumericUnderscores #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE TupleSections #-}
+{-# LANGUAGE TransformListComp #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 module BCorrespondent.Job.Invoice (forwardToPaymentProvider, validateAgainstTransaction) where
 
@@ -18,7 +21,13 @@ import BCorrespondent.Statement.Invoice
 import BCorrespondent.Statement.Institution (updateWallet)  
 import BCorrespondent.Job.Utils (withElapsedTime)
 import BCorrespondent.ServerM
-import BCorrespondent.Transport.Model.Invoice (InvoiceToPaymentProvider, Fee (..))
+import BCorrespondent.Transport.Model.Invoice 
+       (InvoiceToPaymentProvider (..), 
+        Fee (..),
+        invoiceToPaymentProviderAmount,
+        invoiceToPaymentProviderCurrency
+       )
+import BCorrespondent.Notification (Invoice (..), makeS)
 import Katip
 import BuildInfo (location)
 import Control.Monad (forever)
@@ -34,7 +43,9 @@ import qualified Control.Concurrent.Async.Lifted as Async
 import Data.Aeson.WithField (WithField (..))
 import qualified Request as Request
 import Data.Int (Int64)
-import Data.Bifunctor (bimap)
+import Data.Bifunctor (bimap, second)
+import Data.Tuple.Extended (sel3, consT)
+import GHC.Exts (groupWith, the)
 
 
 forwardToPaymentProvider :: Int -> KatipContextT ServerM ()
@@ -47,24 +58,45 @@ forwardToPaymentProvider freq =
       case res of
         Right xs -> do
           manager <- fmap (^.httpReqManager) ask
-          ys <- Async.forConcurrently xs $
-            \(WithField ident invoice) -> do
-              let req = Left $ Just $ invoice
-              let mkResp = bimap ((ident,) . toS . show) (const ident)
-              let onFailure = pure . Left . show
-              fmap mkResp $ Request.safeMake @InvoiceToPaymentProvider "https://test.com" manager [] Request.methodPost req onFailure
-          let (es, os) = partitionEithers ys
-          for_ es $ \(ident, error) ->
-            $(logTM) ErrorS $
-            logStr @T.Text $
-              $location <>
-              ":forwardToElekse: --> \
-              \ invoice failed to be sent, " <> 
-              toS (show ident) <> ", error: " <> error
-          transactionM hasql $ do 
-            statement insertFailedInvoices es
-            statement updateStatus $ os <&> \x -> (x, ForwardedToPaymentProvider)
+          yss <- Async.forConcurrently xs $ 
+            \(ident, zs) -> 
+              fmap (map (second (consT ident))) $ 
+                Async.forConcurrently zs $ 
+                  sendInvoice manager
+
+          for_ yss $ \ys -> do
+            let (es, os) = partitionEithers ys
+            for_ es $ \(ident, error) ->
+              $(logTM) ErrorS $
+              logStr @T.Text $
+                $location <>
+                ":forwardToElekse: --> \
+                \ invoice failed to be sent, " <> 
+                toS (show ident) <> ", error: " <> error
+            transactionM hasql $ do
+              statement insertFailedInvoices es
+              statement updateStatus $ (map sel3 os) <&> \x -> (x, ForwardedToPaymentProvider)
+            let notifParams = 
+                  [ (the ident, body) 
+                    | (ident, body, _) <- os,
+                      then group by ident using groupWith 
+                  ]    
+            for_ notifParams $ uncurry (makeS @"invoice_forwarded")
         Left err -> $(logTM) CriticalS $ logStr @T.Text $ $location <> ":forwardToPaymentProvider: decode error ---> " <> toS err
+
+sendInvoice 
+  manager 
+  (WithField ident 
+   (WithField 
+      textIdent 
+      invoice@InvoiceToPaymentProvider 
+      {invoiceToPaymentProviderAmount = amount, 
+       invoiceToPaymentProviderCurrency = currency})) = do
+    let req = Left $ Just $ invoice
+    let notifBody = Invoice textIdent amount currency
+    let mkResp = bimap ((ident,) . toS . show) (const (notifBody, ident))
+    let onFailure = pure . Left . show
+    fmap mkResp $ Request.safeMake @InvoiceToPaymentProvider "https://test.com" manager [] Request.methodPost req onFailure
 
 validateAgainstTransaction :: Int -> KatipContextT ServerM ()
 validateAgainstTransaction freq = 

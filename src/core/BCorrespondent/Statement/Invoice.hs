@@ -7,6 +7,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TupleSections #-}
 {-# OPTIONS_GHC -fno-warn-unused-top-binds #-}
 {-# OPTIONS_GHC -fconstraint-solver-iterations=16 #-}
 
@@ -50,6 +51,7 @@ import Data.Bifunctor (first)
 import Data.Tuple (swap)
 import Data.Aeson.Generic.DerivingVia
 import BuildInfo (location)
+import Data.Maybe (fromMaybe)
 
 
 data Status = 
@@ -213,19 +215,41 @@ updateStatus =
      from unnest($1 :: int8[], $2 :: text[]) 
      as x(ident, status)
      where id = x.ident|]
-  
-getInvoicesToBeSent :: HS.Statement () (Either String [WithField "ident" Int64 InvoiceToPaymentProvider])
+
+type InvoiceToBeSent = WithField "ident" Int64 (WithField "textualIdent" T.Text InvoiceToPaymentProvider)
+
+getInvoicesToBeSent :: HS.Statement () (Either String [(Int64, [InvoiceToBeSent])])
 getInvoicesToBeSent =
-  rmap (sequence . map (eitherDecode @(WithField "ident" Int64 InvoiceToPaymentProvider) . encode) .  V.toList)
+  rmap decoder
   [vectorStatement|
     select
+      f.id :: int8,
+      array_agg(
       jsonb_build_object(
         'ident', i.id,
-        'externalId', d.external_id) :: jsonb
-    from institution.invoice as i
+        'currency', i.currency,
+        'amount', i.amount,
+        'externalId', d.external_id,
+        'textualIdent', i.textual_view)) 
+      :: jsonb[]?
+    from auth.institution as f
+    left join institution.invoice as i
+    on f.id = i.institution_id
     inner join institution.invoice_to_institution_delivery as d
     on i.id = d.invoice_id
-    where not d.is_delivered|]
+    where not d.is_delivered
+    group by f.id|]
+  where decoder xs = 
+          sequence $ 
+            V.toList xs <&> \(ident, ys) -> 
+              fmap (ident,) $ 
+                fromMaybe (Right []) $ 
+                  let decodeYs = 
+                        sequence . 
+                        map (eitherDecode @InvoiceToBeSent . encode) .  
+                        V.toList
+                  in fmap decodeYs ys
+
 
 insertFailedInvoices :: HS.Statement [(Int64, T.Text)] ()
 insertFailedInvoices =

@@ -1,0 +1,1 @@
+invoice {{ textualIdent }} for {{ amount }} {{ currency }} has been forwarded to payment provider
