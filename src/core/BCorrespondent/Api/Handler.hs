@@ -30,7 +30,7 @@ import qualified BCorrespondent.Api.Handler.Frontend.User.MakeProcuratory as Fro
 import qualified BCorrespondent.Api.Handler.Frontend.User.FetchTimeline as Frontend.User.FetchTimeline
 import qualified BCorrespondent.Api.Handler.Frontend.Init as Frontend.Init
 import qualified BCorrespondent.Api.Handler.Webhook.CatchPaymentProvider as Webhook.CatchPaymentProvider
-import qualified BCorrespondent.Api.Handler.Webhook.CatchGithub as Webhook.CatchGithub
+import qualified BCorrespondent.Api.Handler.Github.CatchWebhook as Github.CatchWebhook
 import qualified BCorrespondent.Api.Handler.Fs.Upload as Fs.Upload
 import qualified BCorrespondent.Api.Handler.Fs.Download as Fs.Download
 import qualified BCorrespondent.Api.Handler.WS.User.Transaction as WS.User.Transaction
@@ -52,7 +52,7 @@ import qualified BCorrespondent.Api.Handler.Frontend.User.InitWorkspace as User.
 -- << end handlers
 import qualified BCorrespondent.Auth as Auth
 import Katip
-import Katip.Handler hiding (webhook)
+import Katip.Handler hiding (webhook, github)
 import Servant.API.Generic
 import Servant.RawM.Server ()
 import Servant.Server.Generic
@@ -123,6 +123,7 @@ _foreign :: ForeignApi (AsServerT KatipHandlerM)
 _foreign = 
   ForeignApi 
   { _foreignApiSendGrid = toServant sendgrid,
+    _foreignApiGithub = toServant github,
     _foreignApiWebhook = toServant webhook 
   }
 
@@ -136,6 +137,16 @@ sendgrid =
           . SendGrid.Send.handle
     }
 
+github :: GithubApi (AsServerT KatipHandlerM)
+github =
+  GithubApi
+    { _githubApiCatchWebhook =
+        flip logExceptionM ErrorS
+          . katipAddNamespace
+            (Namespace ["github", "webhook"])
+          . Github.CatchWebhook.catch
+    }
+
 webhook :: WebhookApi (AsServerT KatipHandlerM)
 webhook =
   WebhookApi
@@ -143,12 +154,7 @@ webhook =
       flip logExceptionM ErrorS
         . katipAddNamespace
           (Namespace ["webhook", "payment_provider"])
-        . (Webhook.CatchPaymentProvider.catch kind),
-    _webhookApiCatchGithub =
-      flip logExceptionM ErrorS
-        . katipAddNamespace
-          (Namespace ["webhook", "Github"])
-        . Webhook.CatchGithub.catch
+        . (Webhook.CatchPaymentProvider.catch kind)
   }
 
 frontend :: FrontendApi (AsServerT KatipHandlerM)

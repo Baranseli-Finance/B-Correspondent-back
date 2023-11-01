@@ -4,7 +4,7 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module BCorrespondent.Api.Handler.Webhook.CatchGithub (catch) where
+module BCorrespondent.Api.Handler.Github.CatchWebhook (catch) where
 
 import qualified BCorrespondent.Transport.Model.Frontend as Front
 import BCorrespondent.Transport.Model.Github (Sha (..))

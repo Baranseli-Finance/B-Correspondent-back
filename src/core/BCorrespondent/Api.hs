@@ -24,6 +24,7 @@ module BCorrespondent.Api
     UserApi (..),
     AdminApi (..),
     WSApi (..),
+    GithubApi (..),
     api,
     swaggerHttpApi,
   )

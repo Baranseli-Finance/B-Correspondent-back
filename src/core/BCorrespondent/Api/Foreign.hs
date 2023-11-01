@@ -9,11 +9,13 @@
 module BCorrespondent.Api.Foreign
   ( ForeignApi (..),
     module SendGrid,
+    module Github,
     module Webhook
   )
 where
 
 import BCorrespondent.Api.Foreign.SendGrid as SendGrid
+import BCorrespondent.Api.Foreign.Github as Github
 import BCorrespondent.Api.Foreign.Webhook as Webhook
 import Servant.API.Extended (AsApi, ToServant, type (:>))
 import Servant.API.Generic (Generic, GenericMode (type (:-)))
@@ -23,6 +25,10 @@ data ForeignApi route = ForeignApi
       route
         :- "sendgrid"
           :> ToServant SendGridApi AsApi,
+    _foreignApiGithub ::
+      route
+        :- "github"
+          :> ToServant GithubApi AsApi,
     _foreignApiWebhook ::
       route
         :- "webhook"

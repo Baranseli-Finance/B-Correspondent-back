@@ -16,15 +16,9 @@ import Servant.API.Generic (Generic, GenericMode (type (:-)))
 import RateLimit (RateLimit, FixedWindow, IPAddressPolicy)
 import Data.Time.TypeLevel (TimePeriod (Second))
 
-data WebhookApi route = 
+newtype WebhookApi route = 
      WebhookApi
-     {_webhookApiCatchGithub ::
-        route
-            :- "github"
-            :> RateLimit (FixedWindow (Second 1) 10) (IPAddressPolicy "fixed")
-            :> ReqBody '[JSON] Payload
-            :> Post '[JSON] (Response ()),
-      _webhookApiCatchPaymentProvider ::
+     {_webhookApiCatchPaymentProvider ::
         route
             :- Capture "provider" PaymentProvider
             :> RateLimit (FixedWindow (Second 1) 10) (IPAddressPolicy "fixed")
