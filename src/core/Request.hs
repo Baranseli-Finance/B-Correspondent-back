@@ -2,7 +2,15 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Request (make, safeMake, withError, forConcurrentlyNRetry, retry, HTTP.methodPost) where
+module Request 
+       ( make,
+         safeMake, 
+         makePostReq, 
+         withError, 
+         forConcurrentlyNRetry, 
+         retry, 
+         HTTP.methodPost
+        ) where
 
 import qualified Network.HTTP.Types as HTTP
 import qualified Network.HTTP.Client as HTTP
@@ -97,3 +105,14 @@ safeMake ::
   -> m (Either String B.ByteString)
 safeMake url manager headers method bodye onError = onError `handle` make url manager headers method bodye
 {-# inline safeMake #-}
+
+makePostReq ::
+  forall a m .
+  (ToJSON a, MonadCatch m, MonadIO m) =>
+  T.Text
+  -> HTTP.Manager
+  -> [HTTP.Header]
+  -> a
+  -> (HttpException -> m (Either String B.ByteString))
+  -> m (Either String B.ByteString)
+makePostReq url manager headers body = safeMake @a url manager headers HTTP.methodPost (Left (Just body))

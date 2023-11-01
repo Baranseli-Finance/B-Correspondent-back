@@ -40,11 +40,10 @@ forwardToInitiator freq =
         Right xs -> do
           manager <- fmap (^.httpReqManager) ask
           ys <- Async.forConcurrently xs $ 
-            \(WithField ident transaction) -> do  
-                let req = Left $ Just $ transaction
+            \(WithField ident transaction) -> do
                 let mkResp = bimap ((coerce ident,) . toS . show) (const ident)
                 let onFailure = pure . Left . show
-                fmap mkResp $ Request.safeMake @TransactionToInitiator "https://test.com" manager [] Request.methodPost req onFailure
+                fmap mkResp $ Request.makePostReq @TransactionToInitiator "https://test.com" manager [] transaction onFailure
           let (es, os) = partitionEithers ys
           for_ es $ \(ident, error) ->
             $(logTM) ErrorS $

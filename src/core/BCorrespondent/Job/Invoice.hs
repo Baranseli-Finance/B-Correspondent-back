@@ -92,11 +92,10 @@ sendInvoice
       invoice@InvoiceToPaymentProvider 
       {invoiceToPaymentProviderAmount = amount, 
        invoiceToPaymentProviderCurrency = currency})) = do
-    let req = Left $ Just $ invoice
     let notifBody = Invoice textIdent amount currency
     let mkResp = bimap ((ident,) . toS . show) (const (notifBody, ident))
     let onFailure = pure . Left . show
-    fmap mkResp $ Request.safeMake @InvoiceToPaymentProvider "https://test.com" manager [] Request.methodPost req onFailure
+    fmap mkResp $ Request.makePostReq @InvoiceToPaymentProvider "https://test.com" manager [] invoice onFailure
 
 validateAgainstTransaction :: Int -> KatipContextT ServerM ()
 validateAgainstTransaction freq = 

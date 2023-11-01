@@ -44,10 +44,10 @@ withdraw freq =
       manager <- fmap (^.httpReqManager) ask
       xs <- transactionM hasql $ statement fetchWithdrawals ()
       ys <- Async.forConcurrently xs $ \x -> do
-        let req = Left $ Just $ uncurryT WithdrawalPaymentProviderRequest $ del1 x
+        let body = uncurryT WithdrawalPaymentProviderRequest $ del1 x
         let mkResp = bimap ((x^._1,) . toS . show) (const (x^._1))
         let onFailure = pure . Left . show
-        fmap mkResp $ Request.safeMake @WithdrawalPaymentProviderRequest "https://test.com" manager [] Request.methodPost req onFailure
+        fmap mkResp $ Request.makePostReq @WithdrawalPaymentProviderRequest "https://test.com" manager [] body onFailure
       let (es, os) = partitionEithers ys
       for_ es $ \(ident, error) ->
         $(logTM) ErrorS $
