@@ -51,6 +51,7 @@ go Issue {issueDescription, issueFiles} = do
   hasql <- fmap (^. katipEnv . hasqlDbPool) ask
   Minio {..} <- fmap (^. katipEnv . minio) ask
   let files = maybe [] concat issueFiles
+
   dbResp <- transactionM hasql $ statement fetchFiles files
   ys <- for dbResp $ \xs -> 
     for xs $ \File {..} -> do
@@ -73,6 +74,7 @@ go Issue {issueDescription, issueFiles} = do
          decodeUtf8 (B64.encode (toS bs)) 
            `mkPOSTMailSendRequestBodyAttachmentssendgrid` 
          title
+
   for_ attachmentsRes $ \attachments -> do
     cfg <- fmap (^. katipEnv . sendGrid) ask
     for_ cfg $ \(Sendgrid {..}, sendgrid) -> do
@@ -86,5 +88,5 @@ go Issue {issueDescription, issueFiles} = do
                 pOSTMailSendRequestBodyPersonalizationssendgridSubject = Just "technical issue"
               } ]
             "technical issue")
-            {pOSTMailSendRequestBodyAttachments = Just attachments}
+            {pOSTMailSendRequestBodyAttachments = if null attachments then Nothing else Just attachments}
       liftIO $ void $ runWithConfiguration sendgrid (pOSTMailSend (Just reqBody))
