@@ -19,6 +19,7 @@ import qualified BCorrespondent.Statement.Dashboard
 import qualified BCorrespondent.Statement.History
 import qualified BCorrespondent.Statement.Institution
 import qualified BCorrespondent.Statement.BalancedBook
+import qualified BCorrespondent.Statement.Report
 
 import Control.Lens
 import Control.Monad.IO.Class
@@ -123,5 +124,7 @@ explainTests =
       "initSecondBalancedBook" =>> BCorrespondent.Statement.BalancedBook.initSecondBalancedBook,
       "fetchFirstBalancedBook" =>> BCorrespondent.Statement.BalancedBook.fetchFirstBalancedBook,
       "fetchSecondBalancedBook" =>> BCorrespondent.Statement.BalancedBook.fetchSecondBalancedBook
-    ]  
+    ]
+  , "BCorrespondent.Statement.Report" ==>
+    ["fetchDailyInvoices" =>> BCorrespondent.Statement.Report.fetchDailyInvoices]
   ]

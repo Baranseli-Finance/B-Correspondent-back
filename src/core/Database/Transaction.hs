@@ -51,6 +51,7 @@ import Katip.Handler
 import PostgreSQL.ErrorCodes
 import Data.Tuple (Solo (..))
 import Data.UUID (UUID)
+import Data.Time.Calendar.OrdinalDate (Day)
 
 
 newtype QueryErrorWrapper = QueryErrorWrapper Hasql.QueryError
@@ -152,6 +153,8 @@ instance ParamsShow Double where render = show
 instance ParamsShow B.ByteString where render = B.unpack
 
 instance ParamsShow T.Text where render = T.unpack
+
+instance ParamsShow Day where render = show
 
 instance ParamsShow Bool where
   render True = "true"
