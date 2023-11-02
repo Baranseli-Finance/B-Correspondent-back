@@ -116,3 +116,4 @@ makePostReq ::
   -> (HttpException -> m (Either String B.ByteString))
   -> m (Either String B.ByteString)
 makePostReq url manager headers body = safeMake @a url manager headers HTTP.methodPost (Left (Just body))
+{-# inline makePostReq #-}

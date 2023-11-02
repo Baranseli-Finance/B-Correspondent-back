@@ -92,7 +92,7 @@ type instance Notification "new_invoice_issued" Invoice = ()
 type instance Notification "invoice_forwarded" Invoice = ()
 type instance Notification "transaction_processed" Transaction = ()
 
-makeG ::
+make ::
   forall m s a . 
   (KnownSymbol s, 
    Show a, 
@@ -105,7 +105,7 @@ makeG ::
   Int64 -> 
   [a] -> 
   m ()
-makeG Context {getTemplateDir, getHasql} institution_id xs = void $ fork go
+make Context {getTemplateDir, getHasql} institution_id xs = void $ fork go
   where
     go = do
            $(logTM) DebugS $ fromString $ $location <> " ede xs ---->  " <> show xs
@@ -127,8 +127,9 @@ makeG Context {getTemplateDir, getHasql} institution_id xs = void $ fork go
            whenLeft (res) $ \error -> $(logTM) ErrorS $ fromString $ show error
 
 makeH :: forall s a . (KnownSymbol s, Show a, ToJSON a, Notification s a) => Int64 -> [a]-> KatipHandlerM ()
-makeH = makeG @KatipHandlerM @s (Context (fmap (^. katipEnv . templateDir) ask) (fmap (^. katipEnv . hasqlDbPool) ask))
-
+makeH = make @KatipHandlerM @s (Context (fmap (^. katipEnv . templateDir) ask) (fmap (^. katipEnv . hasqlDbPool) ask))
+{-# inline makeH #-}
 
 makeS :: forall s a . (KnownSymbol s, Show a, ToJSON a, Notification s a) => Int64 -> [a]-> KatipContextT ServerM ()
-makeS = makeG @(KatipContextT ServerM) @s (Context (fmap (^.templateDir) ask) (fmap (^.hasqlDbPool) ask))
+makeS = make @(KatipContextT ServerM) @s (Context (fmap (^.templateDir) ask) (fmap (^.hasqlDbPool) ask))
+{-# inline makeS #-}
