@@ -8,16 +8,22 @@
 
 module BCorrespondent.Api.Foreign.SendGrid (SendGridApi (..)) where
 
-import BCorrespondent.Api.Handler.SendGrid.SendMail (SendGridSendMailRequest)
+import BCorrespondent.Api.Handler.SendGrid.Mail (SendGridSendMailRequest)
 import BCorrespondent.Transport.Response (Response)
+import BCorrespondent.Transport.Payload (Payload)
 import Servant.API.Extended (JSON, Post, ReqBody, type (:>))
 import Servant.API.Generic (Generic, GenericMode (type (:-)))
 
-newtype SendGridApi route = SendGridApi
+data SendGridApi route = SendGridApi
   { _sendGridApiSendMail ::
       route
         :- "send"
           :> ReqBody '[JSON] SendGridSendMailRequest
+          :> Post '[JSON] (Response ()),
+    _sendGridApiCatchWebhook ::
+      route
+        :- "webhook"
+          :> ReqBody '[JSON] [Payload]
           :> Post '[JSON] (Response ())
   }
   deriving stock (Generic)

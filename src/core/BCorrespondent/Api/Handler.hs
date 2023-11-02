@@ -13,7 +13,8 @@ module BCorrespondent.Api.Handler (handler) where
 
 -- << start handlers
 import BCorrespondent.Api
-import qualified BCorrespondent.Api.Handler.SendGrid.SendMail as SendGrid.Send
+import qualified BCorrespondent.Api.Handler.SendGrid.Mail as SendGrid.Mail
+import qualified BCorrespondent.Api.Handler.SendGrid.Webhook as SendGrid.Webhook
 import qualified BCorrespondent.Api.Handler.Auth.GenerateToken as Auth.GenerateToken
 import qualified BCorrespondent.Api.Handler.Auth.Password.MakeResetLink as Auth.Password.MakeResetLink
 import qualified BCorrespondent.Api.Handler.Auth.Password.New as Auth.Password.New
@@ -133,8 +134,13 @@ sendgrid =
     { _sendGridApiSendMail =
         flip logExceptionM ErrorS
           . katipAddNamespace
-            (Namespace ["sendgrid", "send"])
-          . SendGrid.Send.handle
+            (Namespace ["sendgrid", "mail"])
+          . SendGrid.Mail.handle,
+      _sendGridApiCatchWebhook =
+        flip logExceptionM ErrorS
+          . katipAddNamespace
+            (Namespace ["sendgrid", "webhook"])
+          . SendGrid.Webhook.catch
     }
 
 github :: GithubApi (AsServerT KatipHandlerM)

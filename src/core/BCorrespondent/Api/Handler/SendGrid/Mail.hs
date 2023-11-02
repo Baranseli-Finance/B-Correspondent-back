@@ -13,7 +13,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeApplications #-}
 
-module BCorrespondent.Api.Handler.SendGrid.SendMail (handle, SendGridSendMailRequest) where
+module BCorrespondent.Api.Handler.SendGrid.Mail (handle, SendGridSendMailRequest) where
 
 import BCorrespondent.Config (Email (..))
 import BCorrespondent.EnvKeys (Sendgrid (..), personEmail)
