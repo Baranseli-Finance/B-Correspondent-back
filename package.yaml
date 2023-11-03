@@ -246,7 +246,7 @@ executables:
 
 tests:
   tasty:
-    main:                test.hs
+    main: test.hs
     source-dirs:
        - prog
        - test
@@ -263,3 +263,14 @@ tests:
     - tasty
     - tasty-hspec
     - tasty-html
+
+  doctest:
+    main: Main.hs
+    source-dirs:
+       - test/doctest
+    dependencies:
+    - base >= 4.7 && < 5
+    - b-correspondent
+    - doctest
+    - cabal-doctest
+    - Cabal
