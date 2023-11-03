@@ -30,14 +30,16 @@ import Test.QuickCheck.Arbitrary
 --
 -- For instance:
 --
+-- >>> :seti -XDataKinds
+--
 -- >>> encode (WithField "val" (Left 42) :: WithField "injected" String (Either Int Int))
--- "{\"Left\":42,\"id\":\"val\"}"
+-- "{\"Left\":42,\"injected\":\"val\"}"
 --
 -- If the instance cannot inject field (in case of single values and arrays),
 -- it wraps the result in the following way:
 --
 -- >>> encode (WithField "val" 42 :: WithField "injected" String Int)
--- "{\"value\":42,\"injected\":\"val\"}"
+-- "{\"injected\":\"val\",\"value\":42}"
 --
 -- `WithField s a b` always overwites field `s` in JSON produced by `b`.
 data WithField (s :: Symbol) a b = WithField !a !b

@@ -7,6 +7,8 @@ import qualified Data.ByteString as B
 -- | Extract whole path (path segments + query) from a
 -- <http://tools.ietf.org/html/rfc2616#section-5.1.2 RFC 2616 Request-URI>.
 --
+-- >>> :seti -XOverloadedStrings
+--
 -- >>> extractPath "/path"
 -- "/path"
 --

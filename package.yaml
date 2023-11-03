@@ -269,8 +269,7 @@ tests:
     source-dirs:
        - test/doctest
     dependencies:
-    - base >= 4.7 && < 5
     - b-correspondent
     - doctest
-    - cabal-doctest
-    - Cabal
+    - directory
+    - filepath
