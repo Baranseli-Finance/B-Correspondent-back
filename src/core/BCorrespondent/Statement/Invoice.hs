@@ -177,8 +177,8 @@ register =
         returning id :: int8 as invoice_id, invoice_id as external_id, textual_view),
       delivery as (
         insert into institution.invoice_to_institution_delivery
-        (invoice_id, institution_id)
-        select invoice_id, $19 :: int8 from xs),
+        (invoice_id, institution_id, attempts)
+        select invoice_id, $19 :: int8, 1 from xs),
       external_ident as (
         insert into institution.invoice_external_ident
         (invoice_id)
@@ -210,11 +210,15 @@ updateStatus :: HS.Statement [(Int64, Status)] ()
 updateStatus = 
   lmap (second (V.map (toS . show)) . V.unzip . V.fromList)
   [resultlessStatement|
-     update institution.invoice 
-     set status = x.status
-     from unnest($1 :: int8[], $2 :: text[]) 
-     as x(ident, status)
-     where id = x.ident|]
+     with invoices as (
+       update institution.invoice 
+       set status = x.status
+       from unnest($1 :: int8[], $2 :: text[]) 
+       as x(ident, status)
+       where id = x.ident)
+     update institution.invoice_to_institution_delivery
+     set is_delivered = true 
+     where invoice_id = any($1 :: int8[])|]
 
 type InvoiceToBeSent = WithField "ident" Int64 (WithField "textualIdent" T.Text InvoiceToPaymentProvider)
 
