@@ -65,6 +65,7 @@ data Resource =
       | Withdrawal 
       | BalancedBookTransaction
       | BalancedBookWallet
+      | Notification
      deriving stock (Generic, Show)
      deriving
      (ToJSON, FromJSON)

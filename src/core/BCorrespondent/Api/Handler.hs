@@ -50,6 +50,7 @@ import qualified BCorrespondent.Api.Handler.Frontend.User.FetchBalancedBook as U
 import qualified BCorrespondent.Api.Handler.WS.User.BalancedBook.Transaction as WS.User.BalancedBook.Transaction
 import qualified BCorrespondent.Api.Handler.WS.User.BalancedBook.Wallet as WS.User.BalancedBook.Wallet
 import qualified BCorrespondent.Api.Handler.Frontend.User.InitWorkspace as User.InitWorkspace
+import qualified BCorrespondent.Api.Handler.WS.User.Notification as WS.User.Notification
 -- << end handlers
 import qualified BCorrespondent.Auth as Auth
 import Katip
@@ -366,5 +367,12 @@ ws =
           flip logExceptionM ErrorS
           $ katipAddNamespace
             (Namespace ["ws", "balanced-book", "wallet"]) $
-            WS.User.BalancedBook.Wallet.handle ident conn
+            WS.User.BalancedBook.Wallet.handle ident conn,
+    _wsApiNotifyNotification =
+       \(pend :: WS.PendingConnection) ->
+        pend `Auth.withWSAuth` \(ident, conn) ->
+          flip logExceptionM ErrorS
+          $ katipAddNamespace
+            (Namespace ["ws", "notification"]) $
+            WS.User.Notification.handle ident conn
     }

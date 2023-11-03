@@ -54,6 +54,12 @@ data WSApi route =
           :> "balanced-book"
           :> "wallet"
           :> "update"
+          :> WebSocketPending,
+      _wsApiNotifyNotification ::
+        route
+          :- "frontend"
+          :> "user"
+          :> "notification"
           :> WebSocketPending
      }
      deriving stock (Generic)
