@@ -11,6 +11,8 @@ import Data.Text (Text)
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Aeson.Generic.DerivingVia
 import GHC.Generics
+import Data.UUID (UUID)
+
 
 data DeliveryWStatus = Bounce | Blocked | Delivered
      deriving stock (Generic, Show, Eq, Read, Ord)
@@ -24,7 +26,8 @@ data DeliveryEvent =
      DeliveryEvent
      { deliveryEventEmail :: !Text,
        deliveryEventEvent :: !DeliveryWStatus,
-       deliveryEventReason :: !(Maybe Text)
+       deliveryEventReason :: !(Maybe Text),
+       deliveryEventIdent :: !(Maybe UUID)
      }
      deriving stock (Generic, Show, Eq)
      deriving (FromJSON, ToJSON)

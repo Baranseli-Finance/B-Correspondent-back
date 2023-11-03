@@ -20,6 +20,7 @@ import qualified BCorrespondent.Statement.History
 import qualified BCorrespondent.Statement.Institution
 import qualified BCorrespondent.Statement.BalancedBook
 import qualified BCorrespondent.Statement.Report
+import qualified BCorrespondent.Statement.Mail
 
 import Control.Lens
 import Control.Monad.IO.Class
@@ -127,4 +128,9 @@ explainTests =
     ]
   , "BCorrespondent.Statement.Report" ==>
     ["fetchDailyInvoices" =>> BCorrespondent.Statement.Report.fetchDailyInvoices]
+  , "BCorrespondent.Statement.Mail" ==> 
+    [ "insert" =>> BCorrespondent.Statement.Mail.insert, 
+      "fetchMail" =>> BCorrespondent.Statement.Mail.fetchMail, 
+      "update" =>> BCorrespondent.Statement.Mail.update
+    ]
   ]

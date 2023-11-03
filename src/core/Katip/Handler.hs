@@ -40,6 +40,7 @@ module Katip.Handler
     countryCode,
     tokenLife,
     templateDir,
+    smtpCfg,
 
     -- * run
     runKatipHandler,
@@ -101,7 +102,8 @@ data KatipEnv = KatipEnv
     katipEnvCache :: !(Cache KatipHandlerM T.Text Value),
     katipEnvCountryCode :: !T.Text,
     katipEnvTokenLife :: !Int,
-    katipEnvTemplateDir :: !T.Text
+    katipEnvTemplateDir :: !T.Text,
+    katipEnvSmtpCfg :: !(Maybe SMTP)
   }
 
 data Minio = Minio {minioConn :: !Minio.MinioConn, minioBucketPrefix :: !T.Text}

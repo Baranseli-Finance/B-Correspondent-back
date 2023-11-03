@@ -207,6 +207,8 @@ library:
     - postgresql-simple
     - github
     - ede
+    - smtp-mail
+    - mime-mail
 
   source-dirs:
     - src/core
