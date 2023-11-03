@@ -25,7 +25,7 @@ import Database.Transaction (transactionM, statement)
 import BCorrespondent.ServerM (ServerM)
 import Control.Concurrent.Lifted (fork)
 import Control.Lens ((^.), (<&>))
-import Control.Monad (void)
+import Control.Monad (void, join)
 import Data.Text (Text)
 import Data.Int (Int64)
 import Data.Kind (Constraint)
@@ -57,9 +57,9 @@ data Context m = Context { getTemplateDir :: m Text, getHasql :: m (Pool.Pool Ha
 
 data Invoice = 
      Invoice
-     { newInvoiceTextualIdent :: !Text,
-       newInvoiceAmount :: !Double,
-       newInvoiceCurrency :: !Currency
+     { invoiceTextualIdent :: !Text,
+       invoiceAmount :: !Double,
+       invoiceCurrency :: !Currency
      }
     deriving stock (Generic, Show)
     deriving
@@ -112,7 +112,7 @@ make Context {getTemplateDir, getHasql} institution_id xs = void $ fork go
            dir <- getTemplateDir 
            let file = toS dir <> "/" <> toS (symbolVal (Proxy @s)) <> ".ede"
            parseRes <- liftIO $ E.eitherParseFile file
-           res <- for parseRes $ \template -> do
+           res <- for parseRes $ \template -> do 
                      let bodyRes = 
                           fmap (map toS) $ 
                             sequence $ 
@@ -120,11 +120,11 @@ make Context {getTemplateDir, getHasql} institution_id xs = void $ fork go
                                 E.eitherRender template $ 
                                   mapKeys toText $  
                                     toHashMap obj
-                     for bodyRes $ \ys -> do
+                     for bodyRes $ \ys -> do 
                       $(logTM) DebugS $ fromString $ $location <> " ede parsing result ---->  " <> show ys
-                      hasql <- getHasql 
+                      hasql <- getHasql
                       transactionM hasql $ statement insertNotification (institution_id, ys)
-           whenLeft (res) $ \error -> $(logTM) ErrorS $ fromString $ show error
+           whenLeft (join res) $ \error -> $(logTM) ErrorS $ fromString $ "ede error -->  " <> show error
 
 makeH :: forall s a . (KnownSymbol s, Show a, ToJSON a, Notification s a) => Int64 -> [a]-> KatipHandlerM ()
 makeH = make @KatipHandlerM @s (Context (fmap (^. katipEnv . templateDir) ask) (fmap (^. katipEnv . hasqlDbPool) ask))
