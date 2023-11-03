@@ -17,22 +17,11 @@
 # SPDX-License-Identifier: Apache-2.0
 # ============LICENSE_END======================================================
 
-b_correspondent_env_file=$(realpath -s bcorrespondent_env)
-
-# db_user, db_pass, db, minio_access_key, minio_secret_key
-declare -a keysmap
-
-idx=0
-while IFS= read -r line || [[ -n "$line" ]]; do
-    keysmap[idx]=$line
-    (( idx++ ))
-done < "${b_correspondent_env_file}"
-
 /liquibase/liquibase \
     --driver=org.postgresql.Driver \
-    --url=jdbc:postgresql://db:5432/${keysmap[2]} \
+    --url=jdbc:postgresql://db:5432/${DB_DATABASE} \
     --changeLogFile=changelog/changelog.xml \
-    --username=${keysmap[0]} \
-    --password=${keysmap[1]} \
+    --username=${DB_USER} \
+    --password=${DB_PASSWORD} \
     --log-level info \
     update
