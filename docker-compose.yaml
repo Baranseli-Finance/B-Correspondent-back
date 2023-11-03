@@ -41,6 +41,7 @@ services:
       - ${HOME}/jwk.txt:/server/deploy/jwk.txt
       - ${HOME}/front_env:/server/front_env
       - ${PWD}/country-code.csv:/server/country-code.csv
+      - ${PWD}/template:/server/template
     networks:
       b-correspondent:
          ipv4_address: 192.168.22.6
