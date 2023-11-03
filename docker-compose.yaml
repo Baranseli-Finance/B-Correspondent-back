@@ -40,6 +40,7 @@ services:
       - ${PWD}/deploy/init.sh:/server/deploy/init.sh
       - ${HOME}/jwk.txt:/server/deploy/jwk.txt
       - ${HOME}/front_env:/server/front_env
+      - ${PWD}/country-code.csv:/server/country-code.csv
     networks:
       b-correspondent:
          ipv4_address: 192.168.22.6
