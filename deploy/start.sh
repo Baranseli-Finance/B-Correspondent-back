@@ -16,41 +16,23 @@ sha_front=$(curl -L \
   https://api.github.com/repos/Baranseli-Finance/B-Correspondent-front/commits/master \
   | jq -r '.sha')
 
-tag_front=$(curl -L \
+sha_back=$(curl -L \
   -H "Accept: application/vnd.github+json" \
   -H "Authorization: Bearer ${keysmap[0]}"\
   -H "X-GitHub-Api-Version: 2022-11-28" \
-  https://api.github.com/repos/Baranseli-Finance/B-Correspondent-front/tags \
-  | jq -r '.[0].name')
+  https://api.github.com/repos/Baranseli-Finance/B-Correspondent-back/commits/master \
+  | jq -r '.sha')
 
-sha_back=$(git log -n 1 --pretty=format:"%H")
-
-tag_back=$(git describe --tags --abbrev=0)
-
-if [ -z "$sha_back" ]
-then
-     back=master_$sha_back
-else
-     back=$tag_back
-fi
-
-if [ -z "$sha_front" ]
-then
-     front=master_$sha_front
-else
-     front=$tag_front
-fi
-
-echo "back sha --> $back"
-echo "front sha --> $front"
+echo "back sha --> $sha_front"
+echo "front sha --> $sha_back"
 
 cat <<EOT >> .env
   DBUSER=sonny
   DATABASE=b-correspondent
   DBPASS=${keysmap[1]}
   DBPOSTGRESPASS=${keysmap[2]}
-  BACK_TAG=${back}
-  FRONT_TAG=${front}
+  BACK_TAG=master_${sha_back}
+  FRONT_TAG=master_${sha_front}
   PGADMINEMAIL=${keysmap[3]}
   PGADMINPASS=${keysmap[4]}
   MINIO_USER=${keysmap[5]}
