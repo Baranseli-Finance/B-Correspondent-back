@@ -418,4 +418,11 @@ insertNotification =
        returning user_id)
     insert into public.notification_counter
     (institution_id, amount)
-    select $1 :: int8, (select count(distinct user_id) from xs)|]
+    select $1 :: int8, tbl.cnt
+    from (
+      select 
+        user_id, 
+        count(1) as cnt 
+      from xs 
+      group by user_id 
+      limit 1) as tbl|]

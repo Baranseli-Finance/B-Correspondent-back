@@ -95,7 +95,7 @@ declare
 begin
     select
       jsonb_build_object(
-        'institutionId', iu.institution_id,
+        'institutionId', i.id,
         'from', extract(hour from new.appearance_on_timeline),
         'to', extract(hour from new.appearance_on_timeline + interval '1 hour'),
         'amount', i.amount,
@@ -107,7 +107,7 @@ begin
     from institution.invoice as i
     inner join auth.institution as ai
     on ai.id = i.institution_id
-    where i.id = new.id 
+    where i.id = new.id
     and new.status = 'ForwardedToPaymentProvider';
     perform
     pg_notify(

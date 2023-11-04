@@ -121,7 +121,7 @@ withWS conn go = do
     threadm <- Async.tryTakeMVar thread
     for_ threadm killThread
     liftIO $ Pool.putResource local db
-    $(logTM) InfoS $ logStr @String $ $location <> " ws ends up with an error ---> " <> show error
+    $(logTM) ErrorS $ logStr @String $ $location <> " ws ends up with an error ---> " <> show error
 
 type family ListenPsql (s :: Symbol) (b :: Type) :: Constraint
 
@@ -149,7 +149,9 @@ listenPsql c db userIdent modify log = do
             WS.sendDataMessage c $ 
               WS.Text (encode (Ok msg)) Nothing
           whenLeft (resp) $ \error -> 
-            log ErrorS $ fromString $ $location <> " ws decode error ---> " <> error     
+            log ErrorS $ fromString $ 
+              $location <> ", channel: " <> 
+              toS channel <> ", ws decode error ---> " <> error     
 
 sendError :: WS.Connection -> Text -> IO ()
 sendError c msg = WS.sendDataMessage c (WS.Text (encode @(Response ()) (Error Nothing (asError msg))) Nothing)
