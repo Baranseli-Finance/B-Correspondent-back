@@ -57,6 +57,7 @@ import Data.Traversable (for)
 import Data.String (fromString)
 import Data.Aeson.Generic.DerivingVia
 import GHC.Generics (Generic)
+import Control.Exception (onException)
 
 
 data Resource = 
@@ -134,29 +135,31 @@ listenPsql
   -> (a -> Maybe b) 
   -> (Severity -> LogStr -> IO ()) 
   -> IO ()
-listenPsql c db userIdent modify log = do
-  let channel =  toS (symbolVal (Proxy @s)) <> "_" <> toS (show userIdent)
-  let channelToListen = Hasql.toPgIdentifier channel
-  Hasql.listen db channelToListen
-  forever $
-    flip Hasql.waitForNotifications db $ 
-      \channel payload -> do
-        log InfoS $ fromString $ $location <> " ws raw data ---> " <> show payload <> ", channel ---> " <> toS channel
-        let decodeRes = eitherDecode @a $ payload^.from bytesLazy
-        log InfoS $ fromString $ $location <> " ws decoded data ---> " <> show decodeRes
-        for_ (sequence (fmap modify decodeRes)) $ \res -> do
-          resp <- for res $ \msg ->
-            WS.sendDataMessage c $ 
-              WS.Text (encode (Ok msg)) Nothing
-          whenLeft (resp) $ \error -> 
-            log ErrorS $ fromString $ 
-              $location <> ", channel: " <> 
-              toS channel <> ", ws decode error ---> " <> error     
+listenPsql c db userIdent modify log =
+  flip onException (Hasql.unlisten db channelToListen) $ do
+    Hasql.listen db channelToListen
+    forever $
+      flip Hasql.waitForNotifications db $ 
+        \channel payload -> do
+          log InfoS $ fromString $ $location <> " ws raw data ---> " <> show payload <> ", channel ---> " <> toS channel
+          let decodeRes = eitherDecode @a $ payload^.from bytesLazy
+          log InfoS $ fromString $ $location <> " ws decoded data ---> " <> show decodeRes
+          for_ (sequence (fmap modify decodeRes)) $ \res -> do
+            resp <- for res $ \msg ->
+              WS.sendDataMessage c $ 
+                WS.Text (encode (Ok msg)) Nothing
+            whenLeft (resp) $ \error ->
+              log ErrorS $ fromString $ 
+                $location <> ", channel: " <> 
+                toS channel <> ", ws decode error ---> " <> error
+  where
+      channel = toS (symbolVal (Proxy @s)) <> "_" <> toS (show userIdent)
+      channelToListen = Hasql.toPgIdentifier channel  
 
 sendError :: WS.Connection -> Text -> IO ()
 sendError c msg = WS.sendDataMessage c (WS.Text (encode @(Response ()) (Error Nothing (asError msg))) Nothing)
 
-withResource 
+withResource
   :: forall r . KnownSymbol r 
   => WS.Connection 
   -> Resource 
