@@ -22,23 +22,24 @@ import Data.Int (Int64)
 import Data.Aeson.Generic.DerivingVia
 import GHC.Generics
 import Data.Aeson (FromJSON)
-import Data.Bool (bool)
 
 
-newtype Notification = Notification { users :: [Int64] }
+data Counter = Counter { institution_id :: Int64, count :: Int64 }
   deriving (Generic, Show)
    deriving (FromJSON)
        via WithOptions DefaultOptions
-          Notification
+          Counter
 
-type instance ListenPsql "notification" Notification = ()
+type instance ListenPsql "notification" Counter = ()
 
 handle :: AuthenticatedUser 'Reader -> WS.Connection -> KatipHandlerM ()
 handle AuthenticatedUser {institution = Nothing} conn = 
   liftIO $ sendError conn "you haven't an institution assigned to to"
-handle AuthenticatedUser {ident, institution = Just _} conn =
+handle AuthenticatedUser {ident, institution = Just i} conn =
   withWS @Resource conn $ \db resource -> do
      $(logTM) DebugS $ fromString $ $location <> " received " <> show resource
-     let mkResp = bool Nothing (Just ()) . elem ident . users
+     let mkResp (Counter {institution_id, count})
+           | institution_id == i = Just count
+           | otherwise = Nothing
      withResource @"Notification" conn resource $
-       listenPsql @"notification" @Notification conn db ident mkResp
+       listenPsql @"notification" @Counter conn db ident mkResp

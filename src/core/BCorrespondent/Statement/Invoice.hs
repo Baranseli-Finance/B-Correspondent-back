@@ -213,7 +213,8 @@ setInvoiceInMotion =
   [resultlessStatement|
      with invoices as (
        update institution.invoice 
-       set status = $2 :: text
+       set status = $2 :: text,
+           appearance_on_timeline = now()
        from unnest($1 :: int8[]) 
        as x(ident)
        where id = x.ident)

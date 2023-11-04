@@ -403,13 +403,19 @@ insertNotification :: HS.Statement (Int64, [Text]) ()
 insertNotification =
   lmap (app2 V.fromList)
   [resultlessStatement|
-    insert into notification
-    (user_id, body)
-    select
-      f.user_id,
-      s.body
-    from (
-      select user_id 
-      from institution.user
-      where institution_id = $1 :: int8) as f
-    cross join unnest($2 :: text[]) as s(body)|]
+    with 
+      xs as (
+       insert into public.notification 
+       (user_id, body)
+       select
+         f.user_id,
+         s.body
+       from (
+         select user_id 
+         from institution.user
+         where institution_id = $1 :: int8) as f
+         cross join unnest($2 :: text[]) as s(body)
+       returning user_id)
+    insert into public.notification_counter
+    (institution_id, amount)
+    select $1 :: int8, (select count(distinct user_id) from xs)|]
