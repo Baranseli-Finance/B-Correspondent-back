@@ -47,18 +47,18 @@ data Transaction =
               (StripConstructor Transaction)]]
           Transaction
 
-type TransactionExt = Maybe (WithField "user" Int64 (WithField "status" Status Transaction))
+type TransactionExt = Maybe (WithField "institutionId" Int64 (WithField "status" Status Transaction))
 
 type instance ListenPsql "dashboard_transaction" TransactionExt = ()
 
 handle :: AuthenticatedUser 'Reader -> WS.Connection -> KatipHandlerM ()
 handle AuthenticatedUser {institution = Nothing} conn = 
   liftIO $ sendError conn "you haven't an institution assigned to to"
-handle AuthenticatedUser {ident, institution = Just _} conn =
+handle AuthenticatedUser {ident, institution = Just inst} conn =
   withWS @Resource conn $ \db resource -> do
      $(logTM) DebugS $ fromString $ $location <> " received " <> show resource
-     let mkResp (Just (WithField dbUser x)) 
-           | dbUser == ident = Just $ first mkStatus x
+     let mkResp (Just (WithField dbInst x)) 
+           | dbInst == inst = Just $ first mkStatus x
            | otherwise = Nothing
          mkResp _ = Nothing    
      withResource @"Transaction" conn resource $ 

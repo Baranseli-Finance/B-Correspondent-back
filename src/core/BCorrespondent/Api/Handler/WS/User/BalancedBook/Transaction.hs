@@ -41,7 +41,7 @@ data TransactionBalancedBook =
      via WithOptions DefaultOptions
      TransactionBalancedBook
 
-type TransactionBalancedBookExt = WithField "user_ident" Int64 (WithField "institution_ident" Int64 TransactionBalancedBook)
+type TransactionBalancedBookExt = WithField "institutionId" Int64 TransactionBalancedBook
 
 type instance ListenPsql "balanced_book_transaction_add" TransactionBalancedBookExt = ()
 
@@ -51,9 +51,8 @@ handle AuthenticatedUser {institution = Nothing} conn =
 handle AuthenticatedUser {ident, institution = Just inst} conn =
   withWS @Resource conn $ \db resource -> do
      $(logTM) DebugS $ fromString $ $location <> " received " <> show resource
-     let mkResp (WithField dbUser (WithField dbInst x))
-          | dbUser == ident &&
-            dbInst == inst = Just x
+     let mkResp (WithField dbInst x)
+          | dbInst == inst = Just x
           | otherwise = Nothing
      withResource @"BalancedBookTransaction" conn resource $ 
        listenPsql @"balanced_book_transaction_add" @TransactionBalancedBookExt conn db ident mkResp

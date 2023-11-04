@@ -24,7 +24,7 @@ import GHC.Generics
 import Data.Aeson (FromJSON)
 
 
-data Counter = Counter { institution_id :: Int64, count :: Int64 }
+data Counter = Counter { institutionId :: Int64, count :: Int64 }
   deriving (Generic, Show)
    deriving (FromJSON)
        via WithOptions DefaultOptions
@@ -35,11 +35,11 @@ type instance ListenPsql "notification" Counter = ()
 handle :: AuthenticatedUser 'Reader -> WS.Connection -> KatipHandlerM ()
 handle AuthenticatedUser {institution = Nothing} conn = 
   liftIO $ sendError conn "you haven't an institution assigned to to"
-handle AuthenticatedUser {ident, institution = Just i} conn =
+handle AuthenticatedUser {ident, institution = Just inst} conn =
   withWS @Resource conn $ \db resource -> do
      $(logTM) DebugS $ fromString $ $location <> " received " <> show resource
-     let mkResp (Counter {institution_id, count})
-           | institution_id == i = Just count
+     let mkResp (Counter {institutionId, count})
+           | institutionId == inst = Just count
            | otherwise = Nothing
      withResource @"Notification" conn resource $
        listenPsql @"notification" @Counter conn db ident mkResp

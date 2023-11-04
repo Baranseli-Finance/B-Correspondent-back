@@ -40,17 +40,17 @@ data Wallet =
           Wallet
 
 
-type WalletExt = WithField "user" Int64 Wallet
+type WalletExt = WithField "institutionId" Int64 Wallet
 
 type instance ListenPsql "dashboard_wallet" WalletExt = ()
 
 handle :: AuthenticatedUser 'Reader -> WS.Connection -> KatipHandlerM ()
 handle AuthenticatedUser {institution = Nothing} conn = 
   liftIO $ sendError conn "you haven't an institution assigned to to"
-handle AuthenticatedUser {ident, institution = Just _} conn =
+handle AuthenticatedUser {ident, institution = Just inst} conn =
   withWS @Resource conn $ \db resource -> do 
      $(logTM) DebugS $ fromString $ $location <> " received " <> show resource
-     let mkResp (WithField dbUser x)
-          | dbUser == ident = Just x
+     let mkResp (WithField dbInst x)
+          | dbInst == inst = Just x
           | otherwise = Nothing
      withResource @"Wallet" conn resource $ listenPsql @"dashboard_wallet" @WalletExt conn db ident mkResp
