@@ -17,6 +17,7 @@ module BCorrespondent.Statement.Invoice
          insertFailedInvoices, 
          updateStatus,
          getValidation,
+         setInvoiceInMotion,
          Status (..),
          Validation (..)
        )
@@ -206,19 +207,29 @@ register =
                       map ((uncurry snocT . swap) . first encodeInvoice) xs
 
 
-updateStatus :: HS.Statement [(Int64, Status)] ()
-updateStatus = 
-  lmap (second (V.map (toS . show)) . V.unzip . V.fromList)
+setInvoiceInMotion :: HS.Statement [Int64] ()
+setInvoiceInMotion = 
+  lmap (\xs -> (V.fromList xs, toS (show ForwardedToPaymentProvider)))
   [resultlessStatement|
      with invoices as (
        update institution.invoice 
-       set status = x.status
-       from unnest($1 :: int8[], $2 :: text[]) 
-       as x(ident, status)
+       set status = $2 :: text
+       from unnest($1 :: int8[]) 
+       as x(ident)
        where id = x.ident)
      update institution.invoice_to_institution_delivery
      set is_delivered = true 
      where invoice_id = any($1 :: int8[])|]
+
+updateStatus :: HS.Statement [(Int64, Status)] ()
+updateStatus = 
+  lmap (second (V.map (toS . show)) . V.unzip . V.fromList)
+  [resultlessStatement|
+    update institution.invoice 
+    set status = x.status
+    from unnest($1 :: int8[], $2 :: text[]) 
+    as x(ident, status)
+    where id = x.ident|]
 
 type InvoiceToBeSent = WithField "ident" Int64 (WithField "textualIdent" T.Text InvoiceToPaymentProvider)
 

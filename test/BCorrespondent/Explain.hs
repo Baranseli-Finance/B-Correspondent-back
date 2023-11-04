@@ -85,7 +85,8 @@ explainTests =
        "getInvoicesToBeSent" =>> BCorrespondent.Statement.Invoice.getInvoicesToBeSent,
        "insertFailedInvoices" =>> BCorrespondent.Statement.Invoice.insertFailedInvoices,
        "updateStatus" =>> BCorrespondent.Statement.Invoice.updateStatus,
-       "getValidation" =>> BCorrespondent.Statement.Invoice.getValidation
+       "getValidation" =>> BCorrespondent.Statement.Invoice.getValidation,
+       "setInvoiceInMotion" =>> BCorrespondent.Statement.Invoice.setInvoiceInMotion
      ] 
   , "BCorrespondent.Statement.Transaction" ==>
      [  "getTransactionsToBeSent" =>> BCorrespondent.Statement.Transaction.getTransactionsToBeSent,

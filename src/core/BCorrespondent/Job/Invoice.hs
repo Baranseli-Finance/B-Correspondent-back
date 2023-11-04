@@ -14,8 +14,9 @@ import BCorrespondent.Statement.Invoice
        (getInvoicesToBeSent, 
         insertFailedInvoices, 
         updateStatus,
+        setInvoiceInMotion,
         getValidation,
-        Status (ForwardedToPaymentProvider, Confirmed, Declined),
+        Status (Confirmed, Declined),
         Validation (..)
        )
 import BCorrespondent.Statement.Institution (updateWallet)  
@@ -33,7 +34,7 @@ import BuildInfo (location)
 import Control.Monad (forever)
 import Control.Concurrent.Lifted (threadDelay)
 import Katip.Handler
-import Control.Lens ((^.), (<&>))
+import Control.Lens ((^.))
 import Database.Transaction (statement, transactionM)
 import Data.Foldable (for_)
 import Data.Either (partitionEithers)
@@ -75,7 +76,7 @@ forwardToPaymentProvider freq =
                 toS (show ident) <> ", error: " <> error
             transactionM hasql $ do
               statement insertFailedInvoices es
-              statement updateStatus $ (map sel3 os) <&> \x -> (x, ForwardedToPaymentProvider)
+              statement setInvoiceInMotion $ map sel3 os
             let notifParams = 
                   [ (the ident, body) 
                     | (ident, body, _) <- os,
