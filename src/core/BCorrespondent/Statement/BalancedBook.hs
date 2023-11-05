@@ -131,7 +131,7 @@ initFirstBalancedBook =
           cross join (
             select
               count(*),
-              extract(dow from appearance_on_timeline) as day_of_week,
+              extract(isodow from appearance_on_timeline) as day_of_week,
               extract(hour from appearance_on_timeline) as start_point,
               extract(hour from appearance_on_timeline) + 1 as end_point
             from institution.invoice
@@ -244,7 +244,7 @@ initSecondBalancedBook =
           cross join (
             select
               count(*),
-              extract(dow from appearance_on_timeline) as day_of_week,
+              extract(isodow from appearance_on_timeline) as day_of_week,
               extract(hour from appearance_on_timeline) as start_point,
               extract(hour from appearance_on_timeline) + 1 as end_point
             from (
@@ -376,7 +376,7 @@ fetchFirstBalancedBook =
           cross join ( 
             select
               count(*),
-              extract(dow from appearance_on_timeline) as day_of_week,
+              extract(isodow from appearance_on_timeline) as day_of_week,
               extract(hour from appearance_on_timeline) as start_point,
               extract(hour from appearance_on_timeline) + 1 as end_point
             from mv.invoice_and_transaction
@@ -491,7 +491,7 @@ fetchSecondBalancedBook =
           cross join ( 
             select
               count(*),
-              extract(dow from appearance_on_timeline) as day_of_week,
+              extract(isodow from appearance_on_timeline) as day_of_week,
               extract(hour from appearance_on_timeline) as start_point,
               extract(hour from appearance_on_timeline) + 1 as end_point
             from (

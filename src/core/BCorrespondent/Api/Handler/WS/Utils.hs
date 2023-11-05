@@ -122,7 +122,7 @@ withWS conn go = do
     threadm <- Async.tryTakeMVar thread
     for_ threadm killThread
     liftIO $ Pool.putResource local db
-    $(logTM) ErrorS $ logStr @String $ $location <> " ws ends up with an error ---> " <> show error
+    $(logTM) InfoS $ logStr @String $ $location <> " ws ends up with ---> " <> show error
 
 type family ListenPsql (s :: Symbol) (b :: Type) :: Constraint
 
