@@ -10,6 +10,7 @@
 
 module BCorrespondent.Api.Handler.WS.User.Transaction (handle) where
 
+import BCorrespondent.Transport.Model.Invoice (Currency)
 import BCorrespondent.Api.Handler.Frontend.User.InitDashboard (mkStatus)
 import BCorrespondent.Auth (AuthenticatedUser (..), Role (..))
 import BCorrespondent.Statement.Invoice (Status)
@@ -35,14 +36,16 @@ data Transaction =
        transactionMin :: Int,
        transactionTextualIdent :: Text,
        transactionTm :: Text,
-       transactionIdent :: Int64
+       transactionIdent :: Int64,
+       transactionCurrency :: Currency,
+       transactionAmount :: Double
      }
     deriving stock (Generic, Show)
      deriving
      (FromJSON, ToJSON)
      via WithOptions
           '[FieldLabelModifier
-            '[UserDefined FirstLetterToLower, 
+            '[UserDefined FirstLetterToLower,
               UserDefined
               (StripConstructor Transaction)]]
           Transaction
