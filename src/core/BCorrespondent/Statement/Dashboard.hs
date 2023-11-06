@@ -114,7 +114,6 @@ getDashboard =
             tm.start,
             tm.end,
             array_agg(
-            distinct
             jsonb_build_object(
             'start_hour', extract(hour from tm.start),
             'start_minute', extract(minute from tm.start),
@@ -123,9 +122,10 @@ getDashboard =
             'textual_ident', i.textual_view, 
             'status', i.status,
             'ident', i.id,
-            'tm', cast(i.created_at as text) || 'Z',
+            'tm', cast(i.appearance_on_timeline as text) || 'Z',
             'currency', i.currency,
-            'amount', i.amount))
+            'amount', i.amount)
+            order by i.appearance_on_timeline asc)
             :: jsonb[] as values
           from (
             select
@@ -143,10 +143,10 @@ getDashboard =
             where institution_id = $3 :: int8) as i
           where 
           (i.status = $4 :: text or 
-          i.status = $5 :: text or 
-          i.status = $6 :: text) 
-          and (i.appearance_on_timeline > tm.start and 
-                i.appearance_on_timeline < tm.end)
+           i.status = $5 :: text or 
+           i.status = $6 :: text) 
+          and (i.appearance_on_timeline >= tm.start and 
+               i.appearance_on_timeline < tm.end)
           group by tm.start, tm.end, i.institution_id) as tmp) as gaps
       on i.id = gaps.ident
       inner join institution.wallet as iw
@@ -191,9 +191,10 @@ get1HourTimeline =
           'textual_ident', i.textual_view, 
           'status', i.status,
           'ident', i.id,
-          'tm', cast(i.created_at as text) || 'Z',
+          'tm', cast(i.appearance_on_timeline as text) || 'Z',
           'currency', i.currency,
-          'amount', i.amount))
+          'amount', i.amount)
+          order by i.appearance_on_timeline asc)
           :: jsonb[] as values
         from (
           select
@@ -215,7 +216,7 @@ get1HourTimeline =
         i.status = $6 :: text) 
         and (i.appearance_on_timeline > tm.start and 
             i.appearance_on_timeline < tm.end)
-        group by tm.start, tm.end) as tmp) 
+        group by tm.start, tm.end) as tmp)
     select 
       array_agg(item) filter(where item is not null) :: jsonb[]?
     from (select unnest(items) as item from tbl) as tbl|]
@@ -252,7 +253,7 @@ getGap =
         'textual_ident', textual_view, 
         'status', status,
         'ident', id,
-        'tm', cast(created_at as text) || 'Z',
+        'tm', cast(appearance_on_timeline as text) || 'Z',
         'currency', currency,
         'amount', amount) :: jsonb
     from institution.invoice 
@@ -266,7 +267,8 @@ getGap =
         cast((cast(current_date as text) || ' ' ||
               cast($4 :: int as text) || ':' || 
               cast($5 :: int as text) || ':00') 
-              as timestamp)|]
+              as timestamp)
+    order by appearance_on_timeline asc|]
 
 getTransaction :: HS.Statement (Int64, Int64) (Maybe (Either String TimelineTransaction))
 getTransaction = 

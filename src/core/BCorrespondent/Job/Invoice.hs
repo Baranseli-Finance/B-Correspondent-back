@@ -42,7 +42,7 @@ import qualified Data.Text as T
 import Data.String.Conv (toS)
 import qualified Control.Concurrent.Async.Lifted as Async
 import Data.Aeson.WithField (WithField (..))
-import qualified Request as Request
+-- import qualified Request as Request
 import Data.Int (Int64)
 import Data.Bifunctor (bimap, second)
 import Data.Tuple.Extended (sel3, consT)
@@ -97,9 +97,9 @@ sendInvoice
       {invoiceToPaymentProviderAmount = amount, 
        invoiceToPaymentProviderCurrency = currency})) = do
     let notifBody = Invoice textIdent amount currency
-    let mkResp = bimap ((ident,) . toS . show) (const (notifBody, ident))
-    let onFailure = pure . Left . show
-    fmap mkResp $ Request.makePostReq @InvoiceToPaymentProvider "https://test.com" manager [] invoice onFailure
+    let mkResp = bimap ((ident,) . toS . show @String) (const (notifBody, ident))
+    -- let onFailure = pure . Left . show
+    fmap mkResp $ pure (Right ())  -- Request.makePostReq @InvoiceToPaymentProvider "https://test.com" manager [] invoice onFailure
 
 validateAgainstTransaction :: Int -> KatipContextT ServerM ()
 validateAgainstTransaction freq = 

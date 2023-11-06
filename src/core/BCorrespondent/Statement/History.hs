@@ -53,9 +53,10 @@ initTimeline =
              'textual_ident', s.textual_view, 
              'status', s.status,
              'ident', s.invoice_ident,
-             'tm', cast(s.created_at as text) || 'Z',
+             'tm', cast(s.appearance_on_timeline as text) || 'Z',
              'currency', s.invoice_currency,
-             'amount', s.invoice_amount))
+             'amount', s.invoice_amount)
+             order by i.appearance_on_timeline asc)
           filter (where 
             s.appearance_on_timeline >= f.start 
             and s.appearance_on_timeline < f.end)
@@ -127,9 +128,10 @@ getHourShift =
           'textual_ident', i.textual_view, 
           'status', i.status,
           'ident', i.invoice_ident,
-          'tm', cast(i.created_at as text) || 'Z',
+          'tm', cast(i.appearance_on_timeline as text) || 'Z',
           'currency', i.invoice_currency,
-          'amount', i.invoice_amount))
+          'amount', i.invoice_amount)
+          order by i.appearance_on_timeline asc)
           :: jsonb[] as values
         from (
           select
