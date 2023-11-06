@@ -56,7 +56,7 @@ initTimeline =
              'tm', cast(s.appearance_on_timeline as text) || 'Z',
              'currency', s.invoice_currency,
              'amount', s.invoice_amount)
-             order by i.appearance_on_timeline asc)
+             order by s.appearance_on_timeline asc)
           filter (where 
             s.appearance_on_timeline >= f.start 
             and s.appearance_on_timeline < f.end)
