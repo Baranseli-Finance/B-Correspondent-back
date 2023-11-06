@@ -46,6 +46,8 @@ import Network.Minio
       )
 import Data.Coerce (coerce)      
 import Control.Monad.Time (currentTime)
+import Control.Concurrent.Lifted (fork)
+
 
 handle :: TransactionFromPaymentProvider -> KatipHandlerM (Response ())
 handle transaction@TransactionFromPaymentProvider 
@@ -53,17 +55,16 @@ handle transaction@TransactionFromPaymentProvider
         transactionFromPaymentProviderIdent = uuid,
         transactionFromPaymentProviderSender = sender,
         transactionFromPaymentProviderAmount = amount,
-        transactionFromPaymentProviderCurrency = currency} = do
-  let fileName = sender <> "-" <>  toS (show amount) <> "-" <> toS (show currency)          
-  resp <- commitSwiftMessage fileName swift
-  fmap (const (Ok ())) $
-    for_ resp $ \case
-      [ident] -> do
-        hasql <- fmap (^. katipEnv . hasqlDbPool) ask
-        dbRes <- transactionM hasql $ statement create (ident, transaction)
-        for_ dbRes $ \(instIdent, textualIdent) -> 
-          makeH @"transaction_processed" instIdent [Transaction textualIdent uuid]
-      _ -> $(logTM) ErrorS $ logStr @Text $ $location <> "error ---> commitSwiftMessage returns more then 1 result"   
+        transactionFromPaymentProviderCurrency = currency} = 
+  fmap (const (Ok ())) $ fork $ do
+    let fileName = sender <> "-" <>  toS (show amount) <> "-" <> toS (show currency)          
+    resp <- commitSwiftMessage fileName swift
+    for_ resp $ \[ident] -> do
+      hasql <- fmap (^. katipEnv . hasqlDbPool) ask
+      dbRes <- transactionM hasql $ statement create (ident, transaction)
+      for_ dbRes $ \(instIdent, textualIdent) -> 
+        makeH @"transaction_processed" instIdent [Transaction textualIdent uuid]
+     
 
 commitSwiftMessage :: Text -> Text -> KatipHandlerM (Either String [Int64])
 commitSwiftMessage fileName s = do

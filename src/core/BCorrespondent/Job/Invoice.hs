@@ -83,7 +83,10 @@ forwardToPaymentProvider freq =
                       then group by ident using groupWith 
                   ]    
             for_ notifParams $ uncurry (makeS @"invoice_forwarded")
-        Left err -> $(logTM) CriticalS $ logStr @T.Text $ $location <> ":forwardToPaymentProvider: decode error ---> " <> toS err
+        Left err -> 
+          $(logTM) CriticalS $ 
+            logStr @T.Text $ 
+              $location <> ":forwardToPaymentProvider: decode error ---> " <> toS err
 
 sendInvoice 
   manager 

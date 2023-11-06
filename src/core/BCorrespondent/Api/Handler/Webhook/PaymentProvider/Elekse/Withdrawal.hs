@@ -9,12 +9,14 @@ import Katip.Handler (KatipHandlerM, katipEnv, hasqlDbPool, ask)
 import BCorrespondent.Transport.Response (Response (Ok))
 import Database.Transaction (transactionM, statement)
 import Control.Lens ((^.))
+import Control.Concurrent.Lifted (fork)
 
 handle :: WithdrawalPaymentProviderResponse -> KatipHandlerM (Response ())
 handle WithdrawalPaymentProviderResponse 
        {withdrawalPaymentProviderResponseStatus = status,
-       withdrawalPaymentProviderResponseExternalId = externalId} = do
-  hasql <- fmap (^. katipEnv . hasqlDbPool) ask
-  let mkParams | status == WithdrawalPaymentProviderResponseStatusOk = (Confirmed, True, externalId)
-               | otherwise = (Declined, False, externalId)
-  fmap (const (Ok ())) $ transactionM hasql $ statement modifyWalletAfterWebhook mkParams
+       withdrawalPaymentProviderResponseExternalId = externalId} = 
+  fmap (const (Ok ())) $ fork $ do
+    hasql <- fmap (^. katipEnv . hasqlDbPool) ask
+    let mkParams | status == WithdrawalPaymentProviderResponseStatusOk = (Confirmed, True, externalId)
+                 | otherwise = (Declined, False, externalId)
+    transactionM hasql $ statement modifyWalletAfterWebhook mkParams
