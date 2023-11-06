@@ -145,8 +145,8 @@ getDashboard =
           (i.status = $4 :: text or 
            i.status = $5 :: text or 
            i.status = $6 :: text) 
-          and (i.appearance_on_timeline >= tm.start and 
-               i.appearance_on_timeline < tm.end)
+          and ((to_char(i.appearance_on_timeline, 'YYYY-MM-DD HH24:MI') >= to_char(tm.start, 'YYYY-MM-DD HH24:MI')) and 
+               (to_char(i.appearance_on_timeline, 'YYYY-MM-DD HH24:MI') < to_char(tm.end, 'YYYY-MM-DD HH24:MI')))
           group by tm.start, tm.end, i.institution_id) as tmp) as gaps
       on i.id = gaps.ident
       inner join institution.wallet as iw
@@ -214,8 +214,8 @@ get1HourTimeline =
         (i.status = $4 :: text or 
         i.status = $5 :: text or 
         i.status = $6 :: text) 
-        and (i.appearance_on_timeline > tm.start and 
-            i.appearance_on_timeline < tm.end)
+        and ((to_char(i.appearance_on_timeline, 'YYYY-MM-DD HH24:MI') >= to_char(tm.start, 'YYYY-MM-DD HH24:MI')) and 
+             (to_char(i.appearance_on_timeline, 'YYYY-MM-DD HH24:MI') < to_char(tm.end, 'YYYY-MM-DD HH24:MI')))
         group by tm.start, tm.end) as tmp)
     select 
       array_agg(item) filter(where item is not null) :: jsonb[]?
