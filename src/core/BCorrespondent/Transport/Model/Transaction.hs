@@ -41,22 +41,38 @@ import Data.Maybe (fromMaybe)
 import Database.Transaction (ParamsShow (..))
 import Data.String.Conv (toS)
 
--- { "ident": "579b254b-dd5d-40a6-9377-beb6d3af98a3"
+-- { 
+--    | there is an external ident that is sent previously in the invoice request. 
+--      you simply take it from the invoice request and forward it in the webhook
+--   "ident": "579b254b-dd5d-40a6-9377-beb6d3af98a3"
+--   | person who sends money
 --   "sender": "...",
+--   | sender's address (perhaps optional)
 --   "address": "...",
+--   | sender's phone number (perhaps optional)
 --   "phoneNumber": "...",
+--   | sender's bank (at which his bank account is held)
 --   "bank": "...",
+--   | ???  
 --   "swfitSepaCode": "...",
+--   | sender's bank account
 --   "bankAccount": "...",
+--   | amount of money to be transferred
 --   "amount": "...",
+--   | currency
 --   "currency": "usd",
+--   | the intermidiary bank through which transfer goes
 --   "correspondentBank": "...",
+--   | ???
 --   "swfitSepaCodeCorrespondentBank": "...",
+--   | message issued by swift
 --   "swiftMessage": "..."
 -- }
 data TransactionFromPaymentProvider =
      TransactionFromPaymentProvider 
-     { transactionFromPaymentProviderIdent :: !UUID,
+     { -- | there is an external ident that is sent previously in the invoice request. 
+        -- you simply take it from the invoice request and forward it in the webhook
+       transactionFromPaymentProviderIdent :: !UUID,
        transactionFromPaymentProviderSender :: !T.Text,
        transactionFromPaymentProviderAddress :: !T.Text,
        transactionFromPaymentProviderPhoneNumber :: !T.Text,
@@ -67,7 +83,7 @@ data TransactionFromPaymentProvider =
        transactionFromPaymentProviderCurrency :: !Currency,
        transactionFromPaymentProviderCorrespondentBank :: !T.Text,
        transactionFromPaymentProviderSwfitSepaCodeCorrespondentBank :: !T.Text,
-       -- base64 encoded full Swift message
+       -- base64 encoded message issued by swift
        transactionFromPaymentProviderSwiftMessage :: !T.Text
      }
      deriving stock (Generic, Show)

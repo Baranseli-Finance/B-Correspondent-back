@@ -97,7 +97,7 @@ sendInvoice
       {invoiceToPaymentProviderAmount = amount, 
        invoiceToPaymentProviderCurrency = currency})) = do
     let notifBody = Invoice textIdent amount currency
-    let mkResp = bimap ((ident,) . toS . show @String) (const (notifBody, ident))
+    let mkResp = bimap ((ident,) . toS . show) (const (notifBody, ident))
     let onFailure = pure . Left . show
     fmap mkResp $ Request.makePostReq @InvoiceToPaymentProvider "https://test.com" manager [] invoice onFailure
 

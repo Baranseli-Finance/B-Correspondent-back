@@ -227,7 +227,7 @@ logUncaughtException :: KatipLoggerIO -> Maybe Request -> SomeException -> IO ()
 logUncaughtException log reqm e =
   when (Warp.defaultShouldDisplayException e) $ do
     let withReq req = 
-          log CriticalS $ 
+          log CriticalS $
             fromString $ 
               "\"" <> 
               toS (requestMethod req) <> " " 

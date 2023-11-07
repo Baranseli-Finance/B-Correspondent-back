@@ -168,14 +168,16 @@ validateJwt cfg@JWTSettings {..} checkToken input = do
           if checkTokenIsValid
           then
             Right $ 
-              AuthenticatedUser
-                userIdentClaimsIdent 
-                checkTokenAccountType
-                userIdentClaimsJwtUUID
-                (fromMaybe V.empty $ 
-                 (fmap (V.map (read . toS)) 
-                  checkTokenRole))
-                checkTokenInstitution  
+              AuthenticatedUser 
+              { ident = userIdentClaimsIdent,
+                account = checkTokenAccountType,
+                jwtIdent = userIdentClaimsJwtUUID,
+                roles = 
+                  fromMaybe V.empty $ 
+                  fmap (V.map (read . toS)) $
+                  checkTokenRole,
+                institution = checkTokenInstitution
+              }
           else Left TokenInvalid
 
 withAuth :: forall r a.  KnownRole r => AuthResult (AuthenticatedUser r) -> (AuthenticatedUser r -> KatipHandlerM (Response a)) -> KatipHandlerM (Response a)
