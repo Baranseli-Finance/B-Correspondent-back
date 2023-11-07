@@ -243,6 +243,16 @@ getInvoicesToBeSent =
       array_agg(
       jsonb_build_object(
         'ident', i.id,
+        'seller', i.seller :: text,
+        'sellerAddress', i.seller_address :: text,
+        'sellerTaxId', i.seller_tax_id :: text?,
+        'sellerPhone', i.seller_phone_number :: text,
+        'buyer', i.buyer :: text,
+        'buyerAddress', i.buyer_address :: text,
+        'buyerTaxId', i.buyer_tax_id :: text?,
+        'buyerPhone', i.buyer_phone_number :: text,
+        'description', i.payment_description :: text,
+        'transactionExpenses', i.fee :: text,
         'currency', i.currency,
         'amount', i.amount,
         'externalId', d.external_id,
@@ -253,7 +263,7 @@ getInvoicesToBeSent =
     on f.id = i.institution_id
     inner join institution.invoice_to_institution_delivery as d
     on i.id = d.invoice_id
-    where not d.is_delivered
+    where not d.is_delivered and not is_stuck
     group by f.id|]
   where decoder xs = 
           sequence $ 
@@ -267,10 +277,10 @@ getInvoicesToBeSent =
                   in fmap decodeYs ys
 
 
-insertFailedInvoices :: HS.Statement [(Int64, T.Text)] ()
+insertFailedInvoices :: HS.Statement [(Int64, T.Text)] [(Int64, Bool)]
 insertFailedInvoices =
-  lmap (V.unzip . V.fromList)
-  [resultlessStatement|
+  dimap (V.unzip . V.fromList) V.toList
+  [vectorStatement|
     insert into institution.invoice_to_institution_delivery
     ( invoice_id, 
       institution_id, 
@@ -290,7 +300,9 @@ insertFailedInvoices =
     do update set
     attempts = invoice_to_institution_delivery.attempts + 1,
     last_attempt_sent_at = now(),
-    error = excluded.error|]
+    is_stuck = invoice_to_institution_delivery.attempts + 1 = 5,
+    error = excluded.error
+    returning invoice_id :: int8, is_stuck :: bool|]
 
 data Validation = 
      Validation 

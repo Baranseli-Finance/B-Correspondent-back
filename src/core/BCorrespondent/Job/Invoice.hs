@@ -31,7 +31,7 @@ import BCorrespondent.Transport.Model.Invoice
 import BCorrespondent.Notification (Invoice (..), makeS)
 import Katip
 import BuildInfo (location)
-import Control.Monad (forever)
+import Control.Monad (forever, when)
 import Control.Concurrent.Lifted (threadDelay)
 import Katip.Handler
 import Control.Lens ((^.))
@@ -74,15 +74,22 @@ forwardToPaymentProvider freq =
                 ":forwardToElekse: --> \
                 \ invoice failed to be sent, " <> 
                 toS (show ident) <> ", error: " <> error
-            transactionM hasql $ do
-              statement insertFailedInvoices es
+            es' <- transactionM hasql $ do
               statement setInvoiceInMotion $ map sel3 os
+              statement insertFailedInvoices es
             let notifParams = 
                   [ (the ident, body) 
                     | (ident, body, _) <- os,
                       then group by ident using groupWith 
                   ]    
             for_ notifParams $ uncurry (makeS @"invoice_forwarded")
+            for_ es' $ \(ident, is_stuck) -> 
+              when is_stuck $ 
+                $(logTM) ErrorS $ 
+                  logStr @T.Text $ 
+                    $location <> " invoice " <> 
+                    toS (show ident) <> 
+                    " has been stuck forwarding to payment provider"
         Left err -> 
           $(logTM) CriticalS $ 
             logStr @T.Text $ 

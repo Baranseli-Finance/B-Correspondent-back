@@ -198,11 +198,34 @@ deriveToSchemaFieldLabelModifier
   ''InvoiceRegisterResponse 
   [|firstLetterModify (Proxy @InvoiceRegisterResponse)|]
 
+
+-- seller text required,
+-- seller address text required,
+-- seller tax id text optional,
+-- seller phone number optional,
+-- buyer text required,
+-- buyer address text required,
+-- buyer tax id text optional,
+-- buyer phone number text optional,
+-- payment description text required,
+-- currency text required,
+-- amount double required,
+-- transaction expenses enum Fee required
 data InvoiceToPaymentProvider = 
-     InvoiceToPaymentProvider 
+     InvoiceToPaymentProvider
      { invoiceToPaymentProviderExternalId :: !UUID,
+       invoiceToPaymentProviderSeller :: !T.Text,
+       invoiceToPaymentProviderSellerAddress :: !T.Text,
+       invoiceToPaymentProviderSellerTaxId :: !(Maybe T.Text),
+       invoiceToPaymentProviderSellerPhone :: !T.Text,
+       invoiceToPaymentProviderBuyer :: !T.Text,
+       invoiceToPaymentProviderBuyerAddress :: !T.Text,
+       invoiceToPaymentProviderBuyerTaxId :: !(Maybe T.Text),
+       invoiceToPaymentProviderBuyerPhone :: !T.Text,
+       invoiceToPaymentProviderDescription :: !T.Text,
+       invoiceToPaymentProviderTransactionExpenses :: !Fee,
        invoiceToPaymentProviderCurrency :: !Currency,
-       invoiceToPaymentProviderAmount :: !Double 
+       invoiceToPaymentProviderAmount :: !Double
      }
      deriving stock (Generic, Show)
      deriving (FromJSON, ToJSON)
