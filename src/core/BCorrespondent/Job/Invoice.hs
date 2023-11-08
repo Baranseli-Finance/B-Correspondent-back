@@ -17,7 +17,8 @@ import BCorrespondent.Statement.Invoice
         setInvoiceInMotion,
         getValidation,
         Status (Confirmed, Declined),
-        Validation (..)
+        Validation (..),
+        InvoiceToBeSent
        )
 import BCorrespondent.Statement.Institution (updateWallet)  
 import BCorrespondent.Job.Utils (withElapsedTime)
@@ -30,6 +31,7 @@ import BCorrespondent.Transport.Model.Invoice
        )
 import BCorrespondent.Notification (Invoice (..), makeS)
 import Katip
+import Network.HTTP.Client (Manager)
 import BuildInfo (location)
 import Control.Monad (forever, when)
 import Control.Concurrent.Lifted (threadDelay)
@@ -95,6 +97,8 @@ forwardToPaymentProvider freq =
             logStr @T.Text $ 
               $location <> ":forwardToPaymentProvider: decode error ---> " <> toS err
 
+
+sendInvoice :: Manager -> InvoiceToBeSent -> KatipContextT ServerM (Either (Int64, T.Text) (Invoice, Int64))
 sendInvoice 
   manager 
   (WithField ident 
@@ -106,6 +110,7 @@ sendInvoice
     let notifBody = Invoice textIdent amount currency
     let mkResp = bimap ((ident,) . toS . show) (const (notifBody, ident))
     let onFailure = pure . Left . show
+    $(logTM) InfoS $ logStr @T.Text $ $location <> " invoice to payment provider:  " <> toS (show invoice) 
     fmap mkResp $ Request.makePostReq @InvoiceToPaymentProvider mempty manager [] invoice onFailure
 
 validateAgainstTransaction :: Int -> KatipContextT ServerM ()

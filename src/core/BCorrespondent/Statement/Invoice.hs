@@ -19,7 +19,8 @@ module BCorrespondent.Statement.Invoice
          getValidation,
          setInvoiceInMotion,
          Status (..),
-         Validation (..)
+         Validation (..),
+         InvoiceToBeSent
        )
        where
 
