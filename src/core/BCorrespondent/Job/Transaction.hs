@@ -43,7 +43,7 @@ forwardToInitiator freq =
             \(WithField ident transaction) -> do
                 let mkResp = bimap ((coerce ident,) . toS . show) (const ident)
                 let onFailure = pure . Left . show
-                fmap mkResp $ Request.makePostReq @TransactionToInitiator "https://test.com" manager [] transaction onFailure
+                fmap mkResp $ Request.makePostReq @TransactionToInitiator mempty manager [] transaction onFailure
           let (es, os) = partitionEithers ys
           for_ es $ \(ident, error) ->
             $(logTM) ErrorS $

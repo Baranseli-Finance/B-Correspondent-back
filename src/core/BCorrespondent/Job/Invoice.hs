@@ -78,7 +78,7 @@ forwardToPaymentProvider freq =
               statement setInvoiceInMotion $ map sel3 os
               statement insertFailedInvoices es
             let notifParams = 
-                  [ (the ident, body) 
+                  [ (the ident, body)
                     | (ident, body, _) <- os,
                       then group by ident using groupWith 
                   ]    
@@ -87,7 +87,7 @@ forwardToPaymentProvider freq =
               when is_stuck $ 
                 $(logTM) ErrorS $ 
                   logStr @T.Text $ 
-                    $location <> " invoice " <> 
+                    $location <> " invoice " <>
                     toS (show ident) <> 
                     " has been stuck forwarding to payment provider"
         Left err -> 
@@ -106,7 +106,7 @@ sendInvoice
     let notifBody = Invoice textIdent amount currency
     let mkResp = bimap ((ident,) . toS . show) (const (notifBody, ident))
     let onFailure = pure . Left . show
-    fmap mkResp $ Request.makePostReq @InvoiceToPaymentProvider "https://test.com" manager [] invoice onFailure
+    fmap mkResp $ Request.makePostReq @InvoiceToPaymentProvider mempty manager [] invoice onFailure
 
 validateAgainstTransaction :: Int -> KatipContextT ServerM ()
 validateAgainstTransaction freq = 
