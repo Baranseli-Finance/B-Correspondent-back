@@ -26,7 +26,7 @@ data AuthApi route = AuthApi
           :> "generate"
           :> RateLimit (FixedWindow (Second 1) 1) (IPAddressPolicy "fixed")
           :> Capture "key" InstitutionKey
-          :> Post '[JSON] (Response AuthToken),
+          :> Get '[JSON] (Response AuthToken),
     _authApiResetPasswordLink ::
       route
         :- "password"
