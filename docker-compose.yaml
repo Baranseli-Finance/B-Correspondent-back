@@ -123,6 +123,16 @@ services:
       b-correspondent:
          ipv4_address: 192.168.22.8
 
+  kibana:
+    image: kibana:8.10.4
+    ports:
+      - 5601:5601
+    volumes:
+      - ${HOME}/kibana.yml:/usr/share/kibana/config/kibana.yml
+    networks:
+      b-correspondent:
+         ipv4_address: 192.168.22.11
+
 volumes:
   pg_db: {}
   minio_data: {}
