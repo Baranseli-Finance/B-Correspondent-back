@@ -35,15 +35,15 @@ elastic_cred=$ELASTIC_PASSWORD
 kibana_cred=$KIBANA_SYSTEM_PASSWORD
 logstash_cred=$LOGSTASH_INTERNAL_PASSWORD
 
-curl -u "elastic:$elastic_cred" -XPUT 'localhost:9200/_security/user/sonny' \
+curl -u "elastic:$elastic_cred" -XPUT '192.168.22.12:9200/_security/user/sonny' \
  -H 'Content-Type: application/json' \
  -d @- << EOF 
 { "password" : "$kibana_cred", 
   "roles" : [ "kibana_system" ]
 }
-EOF
+EOF > /dev/null 2>&1
 
-curl -u "elastic:$elastic_cred" -XPUT 'localhost:9200/_security/role/logstash_writer' \
+curl -u "elastic:$elastic_cred" -XPUT '192.168.22.12:9200/_security/role/logstash_writer' \
  -H 'Content-Type: application/json' \
  -d @- << EOF
 { 
@@ -55,12 +55,12 @@ curl -u "elastic:$elastic_cred" -XPUT 'localhost:9200/_security/role/logstash_wr
     }
   ]
 }
-EOF
+EOF > /dev/null 2>&1
 
-curl -u "elastic:$elastic_cred" -XPUT 'localhost:9200/_security/user/logstash_internal' \
+curl -u "elastic:$elastic_cred" -XPUT '192.168.22.12:9200/_security/user/logstash_internal' \
   -H 'Content-Type: application/json' \
   -d @- << EOF 
 {"password" : "$logstash_cred", 
  "roles" : [ "logstash_writer" ]
 }
-EOF
+EOF > /dev/null 2>&1
