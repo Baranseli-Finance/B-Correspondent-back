@@ -32,9 +32,17 @@ set -o pipefail
 # sublog 'Elasticsearch is running'
 
 elastic_cred=$1
+kibana_cred=$2
+logstash_cred=$3
 
 
-curl -u "elastic:$elastic_cred" -XPUT 'localhost:9200/_security/user/sonny'  -H 'Content-Type: application/json' -d '{ "password" : "'"$2"'", "roles" : [ "kibana_system" ] }'
+curl -u "elastic:$elastic_cred" -XPUT 'localhost:9200/_security/user/sonny' \
+ -H 'Content-Type: application/json' \
+ -d @- << EOF 
+{ "password" : "$kibana_cred", 
+  "roles" : [ "kibana_system" ] 
+}
+EOF
 
 curl -u "elastic:$elastic_cred" -XPUT 'localhost:9200/_security/role/logstash_writer' \
  -H 'Content-Type: application/json' \
@@ -50,5 +58,10 @@ curl -u "elastic:$elastic_cred" -XPUT 'localhost:9200/_security/role/logstash_wr
 }
 EOF
 
-curl -u "elastic:$elastic_cred" -XPUT 'localhost:9200/_security/user/logstash_internal' -H 'Content-Type: application/json' -d '{"password" : "'"$3"'", "roles" : [ "logstash_writer" ] }'
-
+curl -u "elastic:$elastic_cred" -XPUT 'localhost:9200/_security/user/logstash_internal' \
+  -H 'Content-Type: application/json' \
+  -d @- << EOF 
+{"password" : "$logstash_cred", 
+ "roles" : [ "logstash_writer" ] 
+}
+EOF
