@@ -38,15 +38,17 @@ curl -u "elastic:$elastic_cred" -XPUT 'localhost:9200/_security/user/sonny'  -H 
 
 curl -u "elastic:$elastic_cred" -XPUT 'localhost:9200/_security/role/logstash_writer' \
  -H 'Content-Type: application/json' \
- -d '{ \
-  "cluster": ["manage_index_templates", "monitor", "manage_ilm"], \
-  "indices": [ \
-    { \
-      "names": [ "logstash-*" ], \
-      "privileges": ["write","create","create_index","manage","manage_ilm"]  \
-    } \
-  ] \
-}'
+ -d @- << EOF
+{ 
+  "cluster": ["manage_index_templates", "monitor", "manage_ilm"],
+  "indices": [
+    {
+      "names": [ "logstash-*" ],
+      "privileges": ["write","create","create_index","manage","manage_ilm"]
+    }
+  ]
+}
+EOF
 
 curl -u "elastic:$elastic_cred" -XPUT 'localhost:9200/_security/user/logstash_internal' -H 'Content-Type: application/json' -d '{"password" : "'"$3"'", "roles" : [ "logstash_writer" ] }'
 
