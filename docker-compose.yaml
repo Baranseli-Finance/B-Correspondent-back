@@ -193,6 +193,7 @@ services:
     restart: unless-stopped
 
   logstash:
+    image: logstash:8.11.0
     volumes:
       - ${HOME}/logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml:ro,Z
       - ${HOME}/logstash/pipeline:/usr/share/logstash/pipeline:ro,Z
