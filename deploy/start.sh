@@ -37,6 +37,7 @@ cat <<EOT >> .env
   PGADMINPASS=${keysmap[4]}
   MINIO_USER=${keysmap[5]}
   MINIO_PASS=${keysmap[6]}
+  ELASTICPASS=${keysmap[7]}
 EOT
 
 cp ~/ssl/front/b-correspondent.crt ./deploy/nginx/ssl/front/b-correspondent.crt
@@ -46,3 +47,5 @@ cp ~/ssl/back/b-correspondent.key ./deploy/nginx/ssl/back/b-correspondent.key
 cp ~/ssl/global.pass ./deploy/nginx/ssl/global.pass
 
 exec docker-compose up -d
+
+# curl -u elastic -XPUT 'localhost:9200/_security/user/sonny'  -H 'Content-Type: application/json' -d '{ "password" : "pxY9UnciRMACAalpX3jBSgBSB0x0f5L", "roles" : [ "kibana_system" ] }'

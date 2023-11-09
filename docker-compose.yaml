@@ -133,10 +133,34 @@ services:
       b-correspondent:
          ipv4_address: 192.168.22.11
 
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    volumes:
+      - ${HOME}/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro,Z
+      - elasticsearch:/usr/share/elasticsearch/data:Z
+    ports:
+      - 9200:9200
+      - 9300:9300
+    environment:
+      ELASTIC_PASSWORD: ${ELASTICPASS}
+      node.name: elasticsearch
+      ES_JAVA_OPTS: -Xms512m -Xmx512m
+      # Bootstrap password.
+      # Used to initialize the keystore during the initial startup of
+      # Elasticsearch. Ignored on subsequent runs.
+      # Use single node discovery in order to disable production mode and avoid bootstrap checks.
+      # see: https://www.elastic.co/guide/en/elasticsearch/reference/current/bootstrap-checks.html
+      discovery.type: single-node
+    networks:
+      b-correspondent:
+        ipv4_address: 192.168.22.12
+    restart: unless-stopped
+
 volumes:
   pg_db: {}
   minio_data: {}
   pgadmin-data: {}
+  elasticsearch: {}
 
 networks:
   b-correspondent:
