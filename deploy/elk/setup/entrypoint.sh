@@ -36,10 +36,9 @@ elastic_cred=$1
 
 curl -u "elastic:$elastic_cred" -XPUT 'localhost:9200/_security/user/sonny'  -H 'Content-Type: application/json' -d '{ "password" : "'"$2"'", "roles" : [ "kibana_system" ] }'
 
-curl -u "elastic:$elastic_cred" -XPOST 'localhost:9200/_security/role/logstash_writer' \
+curl -u "elastic:$elastic_cred" -XPUT 'localhost:9200/_security/role/logstash_writer' \
  -H 'Content-Type: application/json' \
- -d ' \
-{ \
+ -d '{ \
   "cluster": ["manage_index_templates", "monitor", "manage_ilm"], \
   "indices": [ \
     { \
@@ -49,5 +48,5 @@ curl -u "elastic:$elastic_cred" -XPOST 'localhost:9200/_security/role/logstash_w
   ] \
 }'
 
-curl -u "elastic:$elastic_cred" -XPOST 'localhost:9200/_security/user/logstash_internal' -d '{"password" : "'"$3"'", "roles" : [ "logstash_writer" ] }'
+curl -u "elastic:$elastic_cred" -XPUT 'localhost:9200/_security/user/logstash_internal' -H 'Content-Type: application/json' -d '{"password" : "'"$3"'", "roles" : [ "logstash_writer" ] }'
 
