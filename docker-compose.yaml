@@ -137,20 +137,20 @@ services:
   # due to the non-default profile it belongs to. To run it, either provide the
   # '--profile=setup' CLI flag to Compose commands, or "up" the service by name
   # such as 'docker compose up setup'.
-  setup:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
-    init: true
-    volumes:
-      - ${PWD}/deploy/elk/setup/entrypoint.sh:/entrypoint.sh:ro,Z
-      # - ${PWD}/deploy/elk/setup/lib.sh:/lib.sh:ro,Z
-    environment:
-      ELASTIC_PASSWORD: ${ELASTICPASS}
-      LOGSTASH_INTERNAL_PASSWORD: ${LOGSTASH_INTERNAL_PASSWORD}
-      KIBANA_SYSTEM_PASSWORD: ${KIBANA_SYSTEM_PASSWORD}
-    networks:
-      - b-correspondent
-    depends_on:
-      - elasticsearch
+  # setup:
+  #   image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+  #   init: true
+  #   volumes:
+  #     - ${PWD}/deploy/elk/setup/entrypoint.sh:/entrypoint.sh:ro,Z
+  #     # - ${PWD}/deploy/elk/setup/lib.sh:/lib.sh:ro,Z
+  #   environment:
+  #     ELASTIC_PASSWORD: ${ELASTICPASS}
+  #     LOGSTASH_INTERNAL_PASSWORD: ${LOGSTASH_INTERNAL_PASSWORD}
+  #     KIBANA_SYSTEM_PASSWORD: ${KIBANA_SYSTEM_PASSWORD}
+  #   networks:
+  #     - b-correspondent
+  #   depends_on:
+  #     - elasticsearch
 
   kibana:
     image: kibana:8.10.4

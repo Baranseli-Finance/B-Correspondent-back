@@ -35,7 +35,6 @@ elastic_cred=$1
 kibana_cred=$2
 logstash_cred=$3
 
-
 curl -u "elastic:$elastic_cred" -XPUT 'localhost:9200/_security/user/sonny' \
  -H 'Content-Type: application/json' \
  -d @- << EOF 
