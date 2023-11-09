@@ -35,13 +35,12 @@ configMinio:
 configCors:
   corsOrigins: 
     [ http://127.0.0.1:8080
-    , http://127.0.0.1:3001
     , https://b-correspondent.app
     ]
 
 configServerError: true
 
-configJobFrequency: 10000000
+configJobFrequency: 10
 configWebhook: https://b-correspondent.app
 
 configCountryCodeFilePath: country-code.csv
