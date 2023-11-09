@@ -137,20 +137,23 @@ services:
   # due to the non-default profile it belongs to. To run it, either provide the
   # '--profile=setup' CLI flag to Compose commands, or "up" the service by name
   # such as 'docker compose up setup'.
-  # setup:
-  #   image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
-  #   init: true
-  #   volumes:
-  #     - ${PWD}/deploy/elk/setup/entrypoint.sh:/entrypoint.sh:ro,Z
-  #     # - ${PWD}/deploy/elk/setup/lib.sh:/lib.sh:ro,Z
-  #   environment:
-  #     ELASTIC_PASSWORD: ${ELASTICPASS}
-  #     LOGSTASH_INTERNAL_PASSWORD: ${LOGSTASH_INTERNAL_PASSWORD}
-  #     KIBANA_SYSTEM_PASSWORD: ${KIBANA_SYSTEM_PASSWORD}
-  #   networks:
-  #     - b-correspondent
-  #   depends_on:
-  #     - elasticsearch
+  setup:
+    profiles:
+      - setup
+    build:
+      context: ${PWD}/deploy/elk/setup/
+    init: true
+    volumes:
+      - ${PWD}/deploy/elk/setup/entrypoint.sh:/entrypoint.sh:ro,Z
+      - ${PWD}/deploy/elk/setup/lib.sh:/lib.sh:ro,Z
+    environment:
+      ELASTIC_PASSWORD: ${ELASTICPASS}
+      LOGSTASH_INTERNAL_PASSWORD: ${LOGSTASH_INTERNAL_PASSWORD}
+      KIBANA_SYSTEM_PASSWORD: ${KIBANA_SYSTEM_PASSWORD}
+    networks:
+      - b-correspondent
+    depends_on:
+      - elasticsearch
 
   kibana:
     image: kibana:8.10.4
@@ -187,6 +190,24 @@ services:
     networks:
       b-correspondent:
         ipv4_address: 192.168.22.12
+    restart: unless-stopped
+
+  logstash:
+    volumes:
+      - ${HOME}/logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml:ro,Z
+      - ${HOME}/logstash/pipeline:/usr/share/logstash/pipeline:ro,Z
+    ports:
+      - 5044:5044
+      - 50000:50000/tcp
+      - 50000:50000/udp
+      - 9600:9600
+    environment:
+      LS_JAVA_OPTS: -Xms256m -Xmx256m
+      LOGSTASH_INTERNAL_PASSWORD: ${LOGSTASH_INTERNAL_PASSWORD}
+    networks:
+      - b-correspondent
+    depends_on:
+      - elasticsearch
     restart: unless-stopped
 
 volumes:

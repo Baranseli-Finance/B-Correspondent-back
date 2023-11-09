@@ -38,6 +38,9 @@ cat <<EOT >> .env
   MINIO_USER=${keysmap[5]}
   MINIO_PASS=${keysmap[6]}
   ELASTICPASS=${keysmap[7]}
+  KIBANA_SYSTEM_PASSWORD=${keysmap[7]}
+  LOGSTASH_INTERNAL_PASSWORD=${keysmap[7]}
+
 EOT
 
 cp ~/ssl/front/b-correspondent.crt ./deploy/nginx/ssl/front/b-correspondent.crt
@@ -47,26 +50,4 @@ cp ~/ssl/back/b-correspondent.key ./deploy/nginx/ssl/back/b-correspondent.key
 cp ~/ssl/global.pass ./deploy/nginx/ssl/global.pass
 
 exec docker-compose up -d
-
-# curl -u elastic -XPUT 'localhost:9200/_security/user/sonny'  -H 'Content-Type: application/json' -d '{ "password" : "pxY9UnciRMACAalpX3jBSgBSB0x0f5L", "roles" : [ "kibana_system" ] }'
-curl -u elastic -XPOST 'localhost:9200/security/role/logstash_writer' \
- -H 'Content-Type: application/json' \
- -d ' \
-{ \
-  "cluster": ["manage_index_templates", "monitor", "manage_ilm"], \
-  "indices": [ \
-    { \
-      "names": [ "logstash-*" ], \
-      "privileges": ["write","create","create_index","manage","manage_ilm"]  \
-    } \
-  ] \
-}'
-
-# curl -u elastic -XPOST 'localhost:9200/_xpack/security/user/logstash_internal
-# {
-#   "password" : "x-pack-test-password",
-#   "roles" : [ "logstash_writer"],
-#   "full_name" : "Internal Logstash User"
-# }
-
 
