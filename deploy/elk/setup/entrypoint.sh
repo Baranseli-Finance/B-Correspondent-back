@@ -32,7 +32,7 @@ set -o pipefail
 # sublog 'Elasticsearch is running'
 
 
-curl -u elastic -XPUT 'localhost:9200/_security/user/sonny'  -H 'Content-Type: application/json' -d '{ "password" : "'"$1"'", "roles" : [ "kibana_system" ] }'
+curl -u "elastic:ewdfdd" -XPUT 'localhost:9200/_security/user/sonny'  -H 'Content-Type: application/json' -d '{ "password" : "'"$1"'", "roles" : [ "kibana_system" ] }'
 
 curl -u elastic -XPOST 'localhost:9200/security/role/logstash_writer' \
  -H 'Content-Type: application/json' \
