@@ -141,7 +141,7 @@ services:
     profiles:
       - setup
     build:
-      context: setup/
+      context: ${PWD}/deploy/elk/setup/
     init: true
     volumes:
       - ${PWD}/deploy/elk/setup/entrypoint.sh:/entrypoint.sh:ro,Z
@@ -167,6 +167,8 @@ services:
     networks:
       b-correspondent:
          ipv4_address: 192.168.22.11
+    depends_on:
+      - elasticsearch     
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
