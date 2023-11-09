@@ -151,7 +151,7 @@ services:
       LOGSTASH_INTERNAL_PASSWORD: ${LOGSTASH_INTERNAL_PASSWORD}
       KIBANA_SYSTEM_PASSWORD: ${KIBANA_SYSTEM_PASSWORD}
     networks:
-      - correspondent
+      - b-correspondent
     depends_on:
       - elasticsearch
 
