@@ -36,7 +36,7 @@ elastic_cred=$1
 
 curl -u "elastic:$elastic_cred" -XPUT 'localhost:9200/_security/user/sonny'  -H 'Content-Type: application/json' -d '{ "password" : "'"$2"'", "roles" : [ "kibana_system" ] }'
 
-curl -u elastic -XPOST 'localhost:9200/security/role/logstash_writer' \
+curl -u "elastic:$elastic_cred" -XPOST 'localhost:9200/security/role/logstash_writer' \
  -H 'Content-Type: application/json' \
  -d ' \
 { \
