@@ -139,10 +139,6 @@ services:
   # such as 'docker compose up setup'.
   setup:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
-    profiles:
-      - setup
-    build:
-      context: ${PWD}/deploy/elk/setup/
     init: true
     volumes:
       - ${PWD}/deploy/elk/setup/entrypoint.sh:/entrypoint.sh:ro,Z
@@ -156,7 +152,6 @@ services:
     depends_on:
       - elasticsearch
 
-
   kibana:
     image: kibana:8.10.4
     ports:
@@ -169,7 +164,7 @@ services:
       b-correspondent:
          ipv4_address: 192.168.22.11
     depends_on:
-      - elasticsearch     
+      - setup
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
