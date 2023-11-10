@@ -40,7 +40,6 @@ cat <<EOT >> .env
   ELASTICPASS=${keysmap[7]}
   KIBANA_SYSTEM_PASSWORD=${keysmap[8]}
   LOGSTASH_INTERNAL_PASSWORD=${keysmap[9]}
-
 EOT
 
 cp ~/ssl/front/b-correspondent.crt ./deploy/nginx/ssl/front/b-correspondent.crt
