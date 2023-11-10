@@ -1,0 +1,28 @@
+filebeat.inputs:
+- type: docker
+  combine_partial: true
+  containers:
+    path: "/var/lib/docker/containers"
+    stream: "stdout"
+    ids:
+      - "*"
+
+filebeat.autodiscover:
+ providers:
+   - type: docker
+     hints.enabled: true
+
+processors:
+- add_docker_metadata: ~
+
+setup.kibana:
+ host: ${KIBANA_HOSTS}
+ username: ${ELASTIC_USER}
+ password: ${ELASTIC_PASSWORD}
+
+output.elasticsearch:
+ hosts: ${ELASTIC_HOSTS}
+ username: ${ELASTIC_USER}
+ password: ${ELASTIC_PASSWORD}
+ ssl.enabled: false
+#  ssl.certificate_authorities: "certs/ca/ca.crt"
