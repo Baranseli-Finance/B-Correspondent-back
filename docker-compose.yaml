@@ -139,6 +139,8 @@ services:
   # such as 'docker compose up setup'.
   setup:
     container_name: b-correspondent_log-setup
+    profiles:
+      - setup
     build:
       context: ${PWD}/deploy/elk/setup/
     init: true
@@ -167,7 +169,7 @@ services:
       b-correspondent:
          ipv4_address: 192.168.22.11
     depends_on:
-      - setup
+      - elasticsearch
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
@@ -211,7 +213,7 @@ services:
       b-correspondent:
         ipv4_address: 192.168.22.13
     depends_on:
-      - setup
+      - elasticsearch
     restart: unless-stopped
 
   filebeat:
