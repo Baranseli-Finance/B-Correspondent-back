@@ -38,8 +38,8 @@ cat <<EOT >> .env
   MINIO_USER=${keysmap[5]}
   MINIO_PASS=${keysmap[6]}
   ELASTICPASS=${keysmap[7]}
-  KIBANA_SYSTEM_PASSWORD=${keysmap[7]}
-  LOGSTASH_INTERNAL_PASSWORD=${keysmap[7]}
+  KIBANA_SYSTEM_PASSWORD=${keysmap[8]}
+  LOGSTASH_INTERNAL_PASSWORD=${keysmap[9]}
 
 EOT
 
