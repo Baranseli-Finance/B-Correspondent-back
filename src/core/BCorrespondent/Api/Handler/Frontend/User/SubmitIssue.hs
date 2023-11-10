@@ -8,14 +8,14 @@
 
 module BCorrespondent.Api.Handler.Frontend.User.SubmitIssue (handle) where
 
-import BCorrespondent.EnvKeys (Sendgrid (..))
+import BCorrespondent.EnvKeys (Sendgrid (..), Person (..))
 import BCorrespondent.Statement.Fs (fetchFiles, File (..))
 import BCorrespondent.Transport.Model.Frontend (Issue (..))
 import BCorrespondent.Transport.Response (Response (Ok))
 import Katip.Handler (KatipHandlerM, katipEnv, hasqlDbPool, ask, Minio (..), minio, sendGrid)
 import Control.Concurrent.Lifted (fork)
 import Control.Monad (void, join)
-import Control.Lens ((^.))
+import Control.Lens ((^.), (<&>))
 import Data.Traversable (for)
 import Database.Transaction (transactionM, statement)
 import qualified Network.Minio as Minio
@@ -37,7 +37,7 @@ import OpenAPI.Operations.POSTMailSend
   )
 import OpenAPI.Types.FromEmailObject (mkFromEmailObject, fromEmailObjectName)
 import "sendgrid" OpenAPI.Common
-import OpenAPI.Types.ToEmailArray (mkToEmailArrayItem)
+import OpenAPI.Types.ToEmailArray (mkToEmailArrayItem, toEmailArrayItemName)
 import Data.Foldable (for_)
 import Data.Coerce (coerce)
 import qualified Data.ByteString.Base64 as B64
@@ -79,11 +79,15 @@ go Issue {issueDescription, issueFiles} = do
     cfg <- fmap (^. katipEnv . sendGrid) ask
     for_ cfg $ \(Sendgrid {..}, sendgrid) -> do
       tm <- fmap (fromIntegral . systemSeconds) $ liftIO $ getSystemTime
+      let recipient = 
+            sendgridPersons <&> \Person {..} -> 
+              (mkToEmailArrayItem personEmail) 
+              {toEmailArrayItemName = Just personPersonalization }
       let reqBody =
-            (mkPOSTMailSendRequestBody 
+            (mkPOSTMailSendRequestBody
             [mkPOSTMailSendRequestBodyContentsendgrid "text/plain" issueDescription]
             ((mkFromEmailObject (coerce sendgridIdentity)) { fromEmailObjectName = Just "admin"})
-            [(mkPOSTMailSendRequestBodyPersonalizationssendgrid [mkToEmailArrayItem "fclaw007@gmail.com"])
+            [(mkPOSTMailSendRequestBodyPersonalizationssendgrid recipient)
               { pOSTMailSendRequestBodyPersonalizationssendgridSendAt = Just tm,
                 pOSTMailSendRequestBodyPersonalizationssendgridSubject = Just "technical issue"
               } ]

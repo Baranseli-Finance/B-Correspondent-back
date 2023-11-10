@@ -11,14 +11,14 @@ module BCorrespondent.Job.Report (makeDailyInvoices) where
 import BCorrespondent.Job.Utils (withElapsedTime)
 import BCorrespondent.Statement.Report (fetchDailyInvoices, DailyInvoices (..))
 import BCorrespondent.ServerM (ServerM)
-import BCorrespondent.EnvKeys (Sendgrid (..))
+import BCorrespondent.EnvKeys (Sendgrid (..), Person (..))
 import Katip
 import BuildInfo (location)
 import Control.Monad (forever)
 import Control.Concurrent.Lifted (threadDelay)
 import Database.Transaction (transactionM, statement)
 import Katip.Handler (hasqlDbPool, ask, sendGrid)
-import Control.Lens ((^.))
+import Control.Lens ((^.), (<&>))
 import Control.Monad.Time (currentTime)
 import Data.Time.Clock (utctDay)
 import Control.Monad (when, void)
@@ -28,7 +28,7 @@ import Data.Foldable (for_)
 import Data.Time.Clock.System (getSystemTime, systemSeconds)
 import Control.Monad.IO.Class (liftIO)
 import "sendgrid" OpenAPI.Common
-import OpenAPI.Types.ToEmailArray (mkToEmailArrayItem)
+import OpenAPI.Types.ToEmailArray (mkToEmailArrayItem, toEmailArrayItemName)
 import OpenAPI.Operations.POSTMailSend
   ( mkPOSTMailSendRequestBody,
     mkPOSTMailSendRequestBodyContentsendgrid,
@@ -77,11 +77,15 @@ makeDailyInvoices freq = do
                                 dailyInvoicesProcessed + 
                                 dailyInvoicesConfirmed + 
                                 dailyInvoicesDeclined))
+              let recipient = 
+                    sendgridPersons <&> \Person {..} -> 
+                      (mkToEmailArrayItem personEmail) 
+                      {toEmailArrayItemName = Just personPersonalization }                  
               let reqBody =
                     mkPOSTMailSendRequestBody 
                     [mkPOSTMailSendRequestBodyContentsendgrid "text/plain" report]
                     ((mkFromEmailObject (coerce sendgridIdentity)) { fromEmailObjectName = Just "admin"})
-                    [(mkPOSTMailSendRequestBodyPersonalizationssendgrid [mkToEmailArrayItem "fclaw007@gmail.com"])
+                    [(mkPOSTMailSendRequestBodyPersonalizationssendgrid recipient)
                     { pOSTMailSendRequestBodyPersonalizationssendgridSendAt = Just tm,
                         pOSTMailSendRequestBodyPersonalizationssendgridSubject = 
                         Just $ "daily report for " <> toS (show currDay)
