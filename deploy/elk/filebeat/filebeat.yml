@@ -1,11 +1,7 @@
 filebeat.inputs:
-- type: docker
-  combine_partial: true
-  containers:
-    path: "/var/lib/docker/containers"
-    stream: "stdout"
-    ids:
-      - "*"
+- type: container
+  paths:
+  - '/var/lib/docker/containers/*/*.log'
 
 filebeat.autodiscover:
  providers:

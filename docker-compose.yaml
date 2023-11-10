@@ -139,8 +139,6 @@ services:
   # such as 'docker compose up setup'.
   setup:
     container_name: b-correspondent_log-setup
-    profiles:
-      - setup
     build:
       context: ${PWD}/deploy/elk/setup/
     init: true
