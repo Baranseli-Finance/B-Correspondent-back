@@ -2,29 +2,44 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
 
 module Crypto.Cipher.Symmetric
-  ( Blowfish256,
-    Blowfish448,
-    genSecretKey,
+  ( genSecretKey,
     genRandomIV,
     encrypt,
-    decrypt
+    decrypt,
+    twofish128,
+    printKey,
+    readKey,
+    writeKey
   )
 where
 
-import Crypto.Cipher.Blowfish (Blowfish256, Blowfish448)
+import Crypto.Cipher.Twofish (Twofish128)
 import Crypto.Cipher.Types (BlockCipher (..), Cipher (..), IV, makeIV)
 import Crypto.Error (CryptoError, eitherCryptoError)
 import qualified Crypto.Random.Types as CRT
 import Data.ByteArray (ByteArray)
 import Data.ByteString (ByteString)
 import Data.Functor ((<&>))
+import Data.String.Conv (toS)
+import qualified Data.ByteString.Base64 as B64 
+import Data.Text.Encoding (decodeUtf8, encodeUtf8)
 
 
 -- | Not required, but most general implementation
 data Key c a where
   Key :: (BlockCipher c, ByteArray a) => a -> Key c a
+
+printKey :: Key c ByteString -> String
+printKey (Key k) = toS . decodeUtf8 . B64.encode $ k
+
+readKey :: forall c . BlockCipher c => FilePath -> IO (Either String (Key c ByteString))
+readKey = fmap (fmap Key . B64.decode . encodeUtf8 . toS) . readFile
+
+writeKey :: forall c . BlockCipher c => FilePath -> IO ()
+writeKey path = fmap printKey (genSecretKey @c) >>= writeFile path
 
 -- | Generates a string of bytes (key) of a specific length for a given block cipher
 genSecretKey :: forall c a m . (CRT.MonadRandom m, BlockCipher c, ByteArray a) => m (Key c a)
@@ -43,3 +58,8 @@ encrypt secretKey initIV msg = initCipher secretKey <&> \c -> ctrCombine c initI
 
 decrypt :: (BlockCipher c, ByteArray a) => Key c a -> IV c -> a -> Either CryptoError a
 decrypt = encrypt
+{-# inline decrypt #-}
+
+twofish128 :: forall a . ByteArray a => Key Twofish128 a -> IV Twofish128 -> a -> Either CryptoError a
+twofish128 = encrypt @Twofish128 @a
+{-# inline twofish128 #-}
