@@ -48,5 +48,4 @@ cp ~/ssl/back/b-correspondent.crt ./deploy/nginx/ssl/back/b-correspondent.crt
 cp ~/ssl/back/b-correspondent.key ./deploy/nginx/ssl/back/b-correspondent.key
 cp ~/ssl/global.pass ./deploy/nginx/ssl/global.pass
 
-exec docker-compose up -d
-
+exec docker-compose --profile setup --profile log --profile database --profile main up -d

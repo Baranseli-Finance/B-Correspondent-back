@@ -23,6 +23,8 @@ services:
   back:
     image: europe-west3-docker.pkg.dev/b-correspondent/back/back:${BACK_TAG}
     container_name: b-correspondent_back
+    profiles:
+      - main
     links:
       - db
       - storage
@@ -49,6 +51,8 @@ services:
   front:
     image: europe-west3-docker.pkg.dev/b-correspondent/front/front:${FRONT_TAG}
     container_name: b-correspondent_front
+    profiles:
+      - main
     restart: 'always'
     ports:
       - 3001:3000
@@ -76,9 +80,10 @@ services:
   migration:
     image: liquibase/liquibase
     container_name: b-correspondent_migration
+    profiles:
+      - setup
     depends_on:
       - db
-      - storage
     environment:
       - DB_USER=${DBUSER}
       - DB_PASSWORD=${DBPASS}
@@ -93,6 +98,8 @@ services:
   proxy-server:
     image: nginx
     container_name: b-correspondent-proxy-server
+    profiles:
+      - main
     volumes:
       - ${PWD}/deploy/nginx/proxy.conf:/etc/nginx/nginx.conf
       - ${HOME}/.htpasswd:/etc/apache2/.htpasswd
@@ -110,6 +117,8 @@ services:
   pgadmin:
     image: dpage/pgadmin4
     container_name: b-correspondent_pgadmin4
+    profiles:
+      - database
     restart: always
     ports:
       - 8888:80
@@ -152,13 +161,16 @@ services:
       LOGSTASH_INTERNAL_PASSWORD: ${LOGSTASH_INTERNAL_PASSWORD}
       KIBANA_SYSTEM_PASSWORD: ${KIBANA_SYSTEM_PASSWORD}
     networks:
-      - b-correspondent
+      b-correspondent:
+        ipv4_address: 192.168.22.15
     depends_on:
       - elasticsearch
 
   kibana:
     image: kibana:8.10.4
     container_name: b-correspondent_log-kibana
+    profiles:
+      - log
     ports:
       - 5601:5601
     volumes:
@@ -198,6 +210,8 @@ services:
   logstash:
     image: logstash:8.11.0
     container_name: b-correspondent_log-logstash
+    profiles:
+      - log
     volumes:
       - ${PWD}/deploy/elk/logstash/config.yml:/usr/share/logstash/config/logstash.yml:ro,Z
       - ${PWD}/deploy/elk/logstash/pipeline:/usr/share/logstash/pipeline:ro,Z
@@ -219,6 +233,8 @@ services:
   filebeat:
     image: elastic/filebeat:8.11.0
     container_name: b-correspondent_log-filebeat
+    profiles:
+      - log
     user: root
     volumes:
       # - ${PWD}/deploy/elk/filebeat.yml:/usr/share/filebeat/filebeat.yml
