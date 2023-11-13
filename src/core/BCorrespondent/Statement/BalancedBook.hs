@@ -130,7 +130,7 @@ initFirstBalancedBook =
             from generate_series(0, 23, 1) as el) as tm
           cross join (
             select
-              count(*),
+              count(distinct id),
               extract(isodow from appearance_on_timeline) as day_of_week,
               extract(hour from appearance_on_timeline) as start_point,
               extract(hour from appearance_on_timeline) + 1 as end_point
@@ -162,6 +162,7 @@ initFirstBalancedBook =
            from generate_series(0, 23, 1) as el) as tm
           cross join (
             select
+              distinct id,
               currency as currency,
               amount,
               extract(hour from appearance_on_timeline) as start,
@@ -243,7 +244,7 @@ initSecondBalancedBook =
             from generate_series(0, 23, 1) as el) as tm
           cross join (
             select
-              count(*),
+              count(distinct id),
               extract(isodow from appearance_on_timeline) as day_of_week,
               extract(hour from appearance_on_timeline) as start_point,
               extract(hour from appearance_on_timeline) + 1 as end_point
@@ -284,6 +285,7 @@ initSecondBalancedBook =
            from generate_series(0, 23, 1) as el) as tm
           cross join (
             select
+              distinct inv.id,
               currency as currency,
               amount,
               extract(hour from appearance_on_timeline) as start,
@@ -375,7 +377,7 @@ fetchFirstBalancedBook =
             from generate_series(0, 23, 1) as el) as tm
           cross join ( 
             select
-              count(*),
+              count(distinct invoice_ident),
               extract(isodow from appearance_on_timeline) as day_of_week,
               extract(hour from appearance_on_timeline) as start_point,
               extract(hour from appearance_on_timeline) + 1 as end_point
@@ -407,6 +409,7 @@ fetchFirstBalancedBook =
            from generate_series(0, 23, 1) as el) as tm
           cross join (
             select
+              distinct invoice_ident,
               invoice_currency as currency,
               invoice_amount as amount,
               extract(hour from appearance_on_timeline) as start,
@@ -490,7 +493,7 @@ fetchSecondBalancedBook =
             from generate_series(0, 23, 1) as el) as tm
           cross join ( 
             select
-              count(*),
+              count(distinct invoice_ident),
               extract(isodow from appearance_on_timeline) as day_of_week,
               extract(hour from appearance_on_timeline) as start_point,
               extract(hour from appearance_on_timeline) + 1 as end_point
@@ -531,6 +534,7 @@ fetchSecondBalancedBook =
            from generate_series(0, 23, 1) as el) as tm
           cross join (
             select
+              distinct invoice_ident,
               invoice_currency as currency,
               invoice_amount as amount,
               extract(hour from appearance_on_timeline) as start,
