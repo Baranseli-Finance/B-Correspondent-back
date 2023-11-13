@@ -18,8 +18,6 @@ import Katip
 import BuildInfo (location)
 import Control.Monad (forever)
 import Control.Concurrent.Lifted (threadDelay)
-import Control.Monad.Time (currentTime)
-import Data.Time.Clock (utctDay)
 import Control.Monad (when, void)
 import Control.Monad.Trans.State.Strict (evalStateT, get, modify')
 import Control.Monad.Trans.Class (lift)
@@ -44,22 +42,22 @@ import Crypto.Cipher.Symmetric (twofish128Key, twofish128IV, twofish128)
 import Data.Functor ((<&>))
 import Data.Maybe (fromMaybe)
 import Data.Bifunctor (bimap)
-import qualified Data.ByteString.Base64 as B64 
+import qualified Data.ByteString.Base64 as B64
 import Data.Text.Encoding (decodeUtf8)
+import Data.Time.Clock (getCurrentTime)
+import Data.Time.LocalTime (getCurrentTimeZone, utcToLocalTime, localTimeOfDay, todHour)
 
 
 run :: Int -> KatipContextT ServerM ()
 run freq = do
-  tm <-currentTime
-  let !day = utctDay tm
-  flip evalStateT day $ do
+  !hour <- liftIO getCurrentHour
+  flip evalStateT hour $ do
     forever $ do  
       threadDelay $ freq * 1_000_000
-      currDay <- get
-      tm <-currentTime
-      let !day = utctDay tm
-      when (day /= currDay) $ do
-        modify' (const day)
+      currHour <- get
+      !hour <- liftIO getCurrentHour
+      when (hour /= currHour) $ do
+        modify' (const hour)
         lift $ withElapsedTime ($location <> ":run") $ do
           ConnectInfo {..} <- fmap (^. psqlConn) ask
           tmp <- liftIO $ getTemporaryDirectory
@@ -102,6 +100,12 @@ run freq = do
                   logError resp
                 logError cipheredContent
               logError resp
+
+getCurrentHour :: IO Int
+getCurrentHour = do 
+  now <- getCurrentTime
+  timezone <- getCurrentTimeZone
+  return $ todHour $ localTimeOfDay $ utcToLocalTime timezone now
 
 cryptContent :: ByteString -> String -> Either String Text
 cryptContent bs content = 
