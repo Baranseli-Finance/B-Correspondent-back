@@ -15,4 +15,3 @@ site/
 *.cabal
 .lh
 env.yaml
-Makefile
