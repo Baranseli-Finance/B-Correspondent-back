@@ -58,7 +58,7 @@ run freq = do
       currDay <- get
       tm <-currentTime
       let !day = utctDay tm
-      when (day == currDay) $ do
+      when (day /= currDay) $ do
         modify' (const day)
         lift $ withElapsedTime ($location <> ":run") $ do
           ConnectInfo {..} <- fmap (^. psqlConn) ask
@@ -91,11 +91,14 @@ run freq = do
                   let part = [partBS (toS ("/b-correspondent_" <> show tm <> ".sql")) $ toS bs]
                   let hs = [(hAuthorization, toS ("Bearer " <> token)), (hContentType, "application/octet-stream")]
                   let onFailure = pure . Left . toS . show
-                  resp <- Request.safeMake @() (googleStorageUrl <> "/b-correspondent_" <> toS (show tm)) mgr hs Request.methodPost (Right part) onFailure
-                  for_ resp $ const $ $(logTM) InfoS $ logStr @Text $ $location <> ":run ---> db is backed up successfully" 
-                  whenLeft resp $ \error -> $(logTM) ErrorS $ logStr @Text $ $location <> ":run ---> " <> toS error
-                whenLeft cipheredContent $ \error -> $(logTM) ErrorS $ logStr @Text $ $location <> ":run ---> " <> toS error
-              whenLeft resp $ \error -> $(logTM) ErrorS $ logStr @Text $ $location <> ":run ---> " <> toS error
+                  let url = googleStorageUrl <> "/b-correspondent_" <> toS (show tm)
+                  resp <- Request.safeMake @() url mgr hs Request.methodPost (Right part) onFailure
+                  for_ resp $ const $
+                    $(logTM) InfoS $ logStr @Text $
+                      $location <> ":run ---> db is backed up successfully" 
+                  logError resp
+                logError cipheredContent
+              logError resp
 
 cryptContent :: ByteString -> String -> Either String Text
 cryptContent bs content = 
@@ -103,3 +106,5 @@ cryptContent bs content =
     twofish128IV bs <&> \iv -> 
       bimap show (decodeUtf8 . B64.encode) $ 
         twofish128 (twofish128Key bs) iv $ toS content
+
+logError x = whenLeft x $ \error -> $(logTM) ErrorS $ logStr @Text $ $location <> ":run ---> " <> toS error
