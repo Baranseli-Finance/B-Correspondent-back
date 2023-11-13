@@ -40,6 +40,12 @@ import Network.HTTP.Client.MultipartFormData (partBS)
 import qualified Request (safeMake, methodPost)
 import Network.HTTP.Types.Header (hAuthorization, hContentType)
 import Data.ByteString (ByteString)
+import Crypto.Cipher.Symmetric (twofish128Key, twofish128IV, twofish128)
+import Data.Functor ((<&>))
+import Data.Maybe (fromMaybe)
+import Data.Bifunctor (bimap)
+import qualified Data.ByteString.Base64 as B64 
+import Data.Text.Encoding (decodeUtf8)
 
 
 run :: Int -> KatipContextT ServerM ()
@@ -52,7 +58,7 @@ run freq = do
       currDay <- get
       tm <-currentTime
       let !day = utctDay tm
-      when (day /= currDay) $ do
+      when (day == currDay) $ do
         modify' (const day)
         lift $ withElapsedTime ($location <> ":run") $ do
           ConnectInfo {..} <- fmap (^. psqlConn) ask
@@ -91,5 +97,9 @@ run freq = do
                 whenLeft cipheredContent $ \error -> $(logTM) ErrorS $ logStr @Text $ $location <> ":run ---> " <> toS error
               whenLeft resp $ \error -> $(logTM) ErrorS $ logStr @Text $ $location <> ":run ---> " <> toS error
 
-cryptContent :: ByteString -> String -> Either String ByteString
-cryptContent _ content = Right $ toS content
+cryptContent :: ByteString -> String -> Either String Text
+cryptContent bs content = 
+  fromMaybe (Left "couldn't make IV from bs") $
+    twofish128IV bs <&> \iv -> 
+      bimap show (decodeUtf8 . B64.encode) $ 
+        twofish128 (twofish128Key bs) iv $ toS content

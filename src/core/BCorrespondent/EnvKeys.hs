@@ -96,8 +96,7 @@ data SMTP = SMTP { sMTPLogin :: !T.Text, sMTPCred :: !T.Text }
 
 data Google = 
      Google 
-     { googleStorageUrl :: !T.Text, 
-       googleKey :: !T.Text, 
+     { googleStorageUrl :: !T.Text,
        googleTokenUrl :: !T.Text,
        googleTokenEmail :: !T.Text,
        googleTokenPk :: !T.Text 
