@@ -27,6 +27,7 @@ import qualified BCorrespondent.Job.Invoice as Job.Invoice
 import qualified BCorrespondent.Job.History as Job.History
 import qualified BCorrespondent.Job.Wallet as Job.Wallet
 import qualified BCorrespondent.Job.Report as Job.Report
+import qualified BCorrespondent.Job.Backup as Job.Backup 
 import BCorrespondent.Statement.Auth (CheckToken)
 import BCorrespondent.Api
 import BCorrespondent.EnvKeys (Sendgrid)
@@ -197,6 +198,7 @@ run Cfg {..} = do
     withdrawAsync <- Async.Lifted.async $ Job.Wallet.withdraw $ jobFrequency + 11
     archiveAsync <- Async.Lifted.async $ Job.Wallet.archive $ jobFrequency + 13
     reportAsync <- Async.Lifted.async $ Job.Report.makeDailyInvoices $ jobFrequency + 15
+    backupAsync <- Async.Lifted.async $ Job.Backup.run $ jobFrequency + 17
 
     ServerState c <- get
     when (c == 50) $ throwM RecoveryFailed
@@ -209,6 +211,7 @@ run Cfg {..} = do
             withdrawAsync,
             archiveAsync,
             reportAsync,
+            backupAsync,
             forwardToInitiatorAsync, 
             forwardToProviderAsync
           ]

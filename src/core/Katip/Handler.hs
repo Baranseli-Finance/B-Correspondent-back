@@ -41,6 +41,9 @@ module Katip.Handler
     tokenLife,
     templateDir,
     smtpCfg,
+    psqlConn,
+    google,
+    symmetricKeyBase,
 
     -- * run
     runKatipHandler,
@@ -84,6 +87,9 @@ import Servant.Server.Internal.ServerError
 import Data.Tuple.Extended (del3)
 import Cache (Cache)
 import Data.Aeson (Value)
+import Database.PostgreSQL.Simple.Internal (ConnectInfo)
+import Data.ByteString (ByteString)
+
 
 type KatipLoggerIO = Severity -> LogStr -> IO ()
 
@@ -103,7 +109,10 @@ data KatipEnv = KatipEnv
     katipEnvCountryCode :: !T.Text,
     katipEnvTokenLife :: !Int,
     katipEnvTemplateDir :: !T.Text,
-    katipEnvSmtpCfg :: !(Maybe SMTP)
+    katipEnvSmtpCfg :: !(Maybe SMTP),
+    katipEnvPsqlConn :: !ConnectInfo,
+    katipEnvGoogle :: !(Maybe Google),
+    katipEnvSymmetricKeyBase :: !ByteString
   }
 
 data Minio = Minio {minioConn :: !Minio.MinioConn, minioBucketPrefix :: !T.Text}

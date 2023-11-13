@@ -209,6 +209,7 @@ library:
     - ede
     - smtp-mail
     - mime-mail
+    - google-oauth2-jwt
 
   source-dirs:
     - src/core
@@ -243,6 +244,7 @@ executables:
       - aeson
       - string-conv
       - postgresql-simple
+      - base64-bytestring
 
 tests:
   tasty:

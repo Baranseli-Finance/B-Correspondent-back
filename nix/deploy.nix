@@ -3,5 +3,5 @@ let
 in
 pkgs.mkShell {
   LOCALE_ARCHIVE = "${pkgs.glibcLocales}/lib/locale/locale-archive"; 
-  buildInputs = [ pkgs.postgresql pkgs.lzma pkgs.zlib pkgs.imagemagick pkgs.glibcLocales];
+  buildInputs = [ pkgs.postgresql_15 pkgs.lzma pkgs.zlib pkgs.imagemagick pkgs.glibcLocales pkgs.gnumake ];
   }

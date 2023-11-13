@@ -3,7 +3,7 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE TypeApplications #-}
 
-module Hash (mkHash, mkHash512, mkHashWhirlpool) where
+module Hash (mkHash, mkHash512, mkHashWhirlpool, mkHashMd5) where
 
 import "hashing" Crypto.Hash
 import Data.Text
@@ -20,3 +20,6 @@ mkHash512 = mkHashG @SHA512
 
 mkHashWhirlpool :: Show a => a -> Text
 mkHashWhirlpool = mkHashG @Whirlpool
+
+mkHashMd5 :: Show a => a -> Text
+mkHashMd5 = mkHashG @MD5

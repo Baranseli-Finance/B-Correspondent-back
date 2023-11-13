@@ -94,12 +94,31 @@ data SMTP = SMTP { sMTPLogin :: !T.Text, sMTPCred :: !T.Text }
               UserDefined (StripConstructor SMTP)]]
           SMTP
 
+data Google = 
+     Google 
+     { googleStorageUrl :: !T.Text, 
+       googleKey :: !T.Text, 
+       googleTokenUrl :: !T.Text,
+       googleTokenEmail :: !T.Text,
+       googleTokenPk :: !T.Text 
+     }
+  deriving stock (Generic)
+  deriving stock (Show)
+  deriving
+    (FromJSON)
+    via WithOptions
+        '[FieldLabelModifier 
+          '[UserDefined ToLower, 
+            UserDefined (StripConstructor Google)]]
+        Google
+
 data EnvKeys = 
      EnvKeys
      { envKeysSendgrid :: !(Maybe Sendgrid),
        envKeysTelegram :: !(Maybe Telegram),
        envKeysGithub :: !(Maybe Github),
-       envKeysSmtp :: !(Maybe SMTP)
+       envKeysSmtp :: !(Maybe SMTP),
+       envKeysGoogle :: !(Maybe Google)
      }
      deriving stock (Generic)
      deriving stock (Show)
@@ -115,3 +134,4 @@ makeFields ''EnvKeys
 makeFields ''Sendgrid
 makeFields ''Github
 makeFields ''SMTP
+makeFields ''Google

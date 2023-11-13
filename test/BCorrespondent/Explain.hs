@@ -21,6 +21,7 @@ import qualified BCorrespondent.Statement.Institution
 import qualified BCorrespondent.Statement.BalancedBook
 import qualified BCorrespondent.Statement.Report
 import qualified BCorrespondent.Statement.Mail
+import qualified BCorrespondent.Statement.Backup
 
 import Control.Lens
 import Control.Monad.IO.Class
@@ -134,4 +135,6 @@ explainTests =
       "fetchMail" =>> BCorrespondent.Statement.Mail.fetchMail, 
       "update" =>> BCorrespondent.Statement.Mail.update
     ]
+  , "BCorrespondent.Statement.Backup" ==>
+     ["insert" =>> BCorrespondent.Statement.Backup.insert]  
   ]

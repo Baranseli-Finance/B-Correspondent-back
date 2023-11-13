@@ -69,6 +69,9 @@ import Data.String.Conv (toS)
 import Database.PostgreSQL.Simple.Internal (ConnectInfo (..), connect, close)
 import BuildInfo (getSystemInfo)
 import qualified Cache.MVar as Cache
+import qualified Data.ByteString.Base64 as B64 
+import Data.Text.Encoding (encodeUtf8)
+
 
 data PrintCfg = Y | N deriving stock (Generic)
 
@@ -95,6 +98,7 @@ data Cmd w = Cmd
     localport :: w ::: Maybe Int <?> "override db port if needed",
     pathToKatip :: w ::: Maybe FilePath <?> "path to katip log",
     pathToJwk :: w ::: FilePath <?> "path to jwk",
+    pathToSymmetricBase :: w ::: FilePath <?> "path to ByteString upon which Twofish128 is made",
     minioHost :: w ::: Maybe String <?> "minio host",
     minioPort :: w ::: Maybe String <?> "minio port",
     minioAccessKey :: w ::: String <?> "minio access key",
@@ -320,8 +324,9 @@ main = do
   cache <- Cache.init  
 
   jwke <- liftIO $ fmap (eitherDecode' @JWK) $ B.readFile pathToJwk
+  symmetricKeyBasee <- fmap (B64.decode . encodeUtf8 . toS) $ B.readFile pathToSymmetricBase
 
-  jwkRes <- for jwke $ \jwk -> do
+  jwkRes <- for ((,) <$> jwke <*> symmetricKeyBasee) $ \(jwk, symmetricKeyBase)  -> do
 
     print "--------- jwk ------------"
     putStrLn $ (take 200 (show jwk)) <> ".... }"
@@ -344,7 +349,10 @@ main = do
               katipEnvCountryCode = cfg^.countryCodeFilePath,
               katipEnvTokenLife = cfg^.sourceTokenLife,
               katipEnvTemplateDir = cfg^.BCorrespondent.Config.templateDir,
-              katipEnvSmtpCfg = envKeys >>= envKeysSmtp
+              katipEnvSmtpCfg = envKeys >>= envKeysSmtp,
+              katipEnvPsqlConn = psqlConnInfo,
+              katipEnvGoogle = envKeys >>= envKeysGoogle,
+              katipEnvSymmetricKeyBase = symmetricKeyBase
           }
 
     let shutdownMsg = print "------ server is shut down --------"

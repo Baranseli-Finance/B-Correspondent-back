@@ -1,15 +1,18 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TypeOperators #-}
 
 module Request 
        ( make,
          safeMake, 
-         makePostReq, 
+         makePostReq,
+         makePostReq',
          withError, 
          forConcurrentlyNRetry, 
          retry, 
-         HTTP.methodPost
+         HTTP.methodPost,
+         HTTP.methodPut
         ) where
 
 import qualified Network.HTTP.Types as HTTP
@@ -117,3 +120,13 @@ makePostReq ::
   -> m (Either String B.ByteString)
 makePostReq url manager headers body = safeMake @a url manager headers HTTP.methodPost (Left (Just body))
 {-# inline makePostReq #-}
+
+makePostReq' ::
+  forall a m .
+  (ToJSON a, a ~ (), MonadCatch m, MonadIO m) =>
+  T.Text
+  -> HTTP.Manager
+  -> (HttpException -> m (Either String B.ByteString))
+  -> m (Either String B.ByteString)
+makePostReq' url manager = safeMake @a url manager [] HTTP.methodPost (Left Nothing)
+{-# inline makePostReq' #-}

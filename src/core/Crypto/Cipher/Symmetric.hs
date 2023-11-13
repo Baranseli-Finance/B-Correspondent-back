@@ -12,7 +12,11 @@ module Crypto.Cipher.Symmetric
     twofish128,
     printKey,
     readKey,
-    writeKey
+    writeKey,
+    writeRandomBytes,
+    twofish128Key,
+    twofish128IV,
+    Key (..)
   )
 where
 
@@ -41,6 +45,11 @@ readKey = fmap (fmap Key . B64.decode . encodeUtf8 . toS) . readFile
 writeKey :: forall c . BlockCipher c => FilePath -> IO ()
 writeKey path = fmap printKey (genSecretKey @c) >>= writeFile path
 
+writeRandomBytes :: forall c . BlockCipher c => FilePath -> IO ()
+writeRandomBytes path = do 
+  d <- fmap (toS . decodeUtf8 . B64.encode) $ CRT.getRandomBytes $ blockSize (undefined :: c)
+  writeFile path d
+
 -- | Generates a string of bytes (key) of a specific length for a given block cipher
 genSecretKey :: forall c a m . (CRT.MonadRandom m, BlockCipher c, ByteArray a) => m (Key c a)
 genSecretKey = fmap Key $ CRT.getRandomBytes $ blockSize (undefined :: c)
@@ -60,6 +69,16 @@ decrypt :: (BlockCipher c, ByteArray a) => Key c a -> IV c -> a -> Either Crypto
 decrypt = encrypt
 {-# inline decrypt #-}
 
+twofish128Key :: ByteString -> Key Twofish128 ByteString
+twofish128Key = Key
+{-# inline twofish128Key #-}
+
+twofish128IV :: ByteString -> Maybe (IV Twofish128)
+twofish128IV = makeIV
+{-# inline twofish128IV #-}
+
 twofish128 :: forall a . ByteArray a => Key Twofish128 a -> IV Twofish128 -> a -> Either CryptoError a
 twofish128 = encrypt @Twofish128 @a
 {-# inline twofish128 #-}
+
+

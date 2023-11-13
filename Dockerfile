@@ -60,6 +60,6 @@ ENV PATH="${PATH}:/server/bin"
 COPY --from=server-build --chown=nix:nix /build/bin /server/bin
 COPY --from=server-build --chown=nix:nix /build/deploy /server/deploy
 COPY --from=server-build --chown=nix:nix /build/migration /server/migration
-COPY --from=server-build --chown=nix:nix /build/package.yaml /build/nix/deploy.nix /build/stack.yaml /build/Setup.hs /server/
+COPY --from=server-build --chown=nix:nix /build/package.yaml /build/nix/deploy.nix /build/stack.yaml /build/Setup.hs /build/Makefile /server/
 
 ENTRYPOINT ["/server/deploy/init.sh"]
