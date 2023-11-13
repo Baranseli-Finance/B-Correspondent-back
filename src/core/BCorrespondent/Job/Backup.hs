@@ -89,7 +89,10 @@ run freq = do
                 let cipheredContent = cryptContent k content
                 for_ cipheredContent $ \bs -> do
                   let part = [partBS (toS ("/b-correspondent_" <> show tm <> ".sql")) $ toS bs]
-                  let hs = [(hAuthorization, toS ("Bearer " <> token)), (hContentType, "application/octet-stream")]
+                  let hs = 
+                        [(hAuthorization, toS ("Bearer " <> token)), 
+                         (hContentType, "application/octet-stream")
+                        ]
                   let onFailure = pure . Left . toS . show
                   let url = googleStorageUrl <> "/b-correspondent_" <> toS (show tm)
                   resp <- Request.safeMake @() url mgr hs Request.methodPost (Right part) onFailure
@@ -107,4 +110,6 @@ cryptContent bs content =
       bimap show (decodeUtf8 . B64.encode) $ 
         twofish128 (twofish128Key bs) iv $ toS content
 
+
+logError :: Either String a -> KatipContextT ServerM ()
 logError x = whenLeft x $ \error -> $(logTM) ErrorS $ logStr @Text $ $location <> ":run ---> " <> toS error
