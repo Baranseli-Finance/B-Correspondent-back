@@ -22,7 +22,7 @@ newtype InvoiceApi route =
         { _invoiceApiRegister ::
             route
               :- "register"
-                :> RateLimit (FixedWindow (Second 1) 1) (KeyPolicy "Token")
+                :> RateLimit (FixedWindow (Second 1) 20) (KeyPolicy "Token")
                 :> SA.Auth '[JWT] (AuthenticatedUser Source)
                 :> ReqBody '[JSON] [InvoiceRegisterRequest]
                 :> Put '[JSON] (Response [InvoiceRegisterResponse])
