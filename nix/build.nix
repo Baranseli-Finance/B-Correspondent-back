@@ -39,7 +39,7 @@ pkgs.mkShell {
     pkgs.python3
     pkgs.expat
     pkgs.gcc
-    psql.postgresql_15
+    pkgs.postgresql_15
     pkgs.gnumake
   ];
   # Configure the Nix path to our own `pkgs`, to ensure Stack-with-Nix uses the correct one rather than the global <nixpkgs> when looking for the right `ghc` argument to pass in `nix/stack-integration.nix`
