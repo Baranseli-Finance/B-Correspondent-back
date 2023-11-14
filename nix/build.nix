@@ -21,7 +21,7 @@ let
         "
     '';
   };
-  openapi-generator = import ./openapi3-haskell.nix { inherit pkgs; };
+  openapi-generator = import ./openapi3-haskell.nix {};
 
   #  for  using BERT in sentimental analysis
   pythonEnv = pkgs.python3.withPackages (ps: [ ps.openai ]);
