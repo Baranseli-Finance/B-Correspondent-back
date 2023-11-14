@@ -14,6 +14,8 @@ import BCorrespondent.Transport.Model.Auth (Credentials, AuthToken, NewPassword,
 import BCorrespondent.Api.Handler.SendGrid.Mail (SendGridSendMailRequest)
 import BCorrespondent.Config (Email)
 import BCorrespondent.Api.Foreign.SendGrid (SendGridApi)
+import BCorrespondent.Api.Foreign.Webhook (WebhookApi)
+import BCorrespondent.Api.Foreign.Github (GithubApi)
 import BCorrespondent.Transport.Model.Frontend (ProcuratoryRequest)
 import BCorrespondent.Transport.Model.Invoice (InvoiceRegisterResponse)
 import BCorrespondent.Transport.Model.Frontend 
@@ -92,3 +94,7 @@ spec_api =
       validateEveryToJSON (genericApi (Proxy @InstitutionApi))
     context "ToJSON matches ToSchema (FrontendApi)" $
       validateEveryToJSON (genericApi (Proxy @FrontendApi))
+    context "ToJSON matches ToSchema (WebhookApi)" $
+      validateEveryToJSON (genericApi (Proxy @WebhookApi))
+    context "ToJSON matches ToSchema (GithubApi)" $
+      validateEveryToJSON (genericApi (Proxy @GithubApi))
