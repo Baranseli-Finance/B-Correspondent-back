@@ -30,6 +30,11 @@ RUN touch .bash_profile && /home/nix/install.sh
 
 ENV PATH="/home/nix/bin:${PATH}"
 
+RUN sh -c 'echo "deb https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list' && \
+    wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add - && \
+    apt update && \
+    apt -y install postgresql-16
+
 FROM base as server-build
 
 WORKDIR /build
