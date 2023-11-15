@@ -8,6 +8,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 module BCorrespondent.Job.Webhook.Impl.Tochka (make) where
 
@@ -33,8 +34,14 @@ import Data.String.Conv (toS)
 import Request (makePostReq)
 import Control.Monad (join)
 import Data.Bifunctor (second)
-import Network.HTTP.Client (Manager)
-import Network.HTTP.Types (hContentType)
+import Network.HTTP.Client 
+      (Manager, 
+       responseStatus, 
+       HttpException (HttpExceptionRequest), 
+       HttpExceptionContent (StatusCodeException)
+      )
+import Network.HTTP.Types (hContentType, hAuthorization)
+import Network.HTTP.Types.Status (status401)
 
 
 data Method = Login | Callback
@@ -128,10 +135,29 @@ make =
                 { requestMethod = Callback }
   }
 
+data Success = Success { success :: Bool }
+     deriving stock (Generic, Show)
+     deriving (FromJSON)
+      via WithOptions DefaultOptions Success
+
+
 go :: Manager -> Text -> Text -> Request Value -> IO (Either String ())
-go manager login pass _ = do
+go manager login pass req = do
   tokene <- fetchAuthToken manager login pass
-  for tokene $ \token -> undefined
+  fmap join $ 
+    for tokene $ \(Token token) -> do
+      let hs = [(hContentType, "application/json"), (hAuthorization, toS token)]
+      let mkResp = second (const ()) . join . fmap toEither . eitherDecode @(Response Success) . toS
+      let onFailure error =
+           case error of 
+              HttpExceptionRequest  _ (StatusCodeException resp _) -> 
+                if status401 == responseStatus resp
+                then fmap (second (const mempty)) $ go manager login pass req
+                else pure . Left . toS . show $ error
+              _ -> pure . Left . toS . show $ error
+      fmap (join . second mkResp) $ 
+        makePostReq @(Request Value) "https://letspay.to/api/v1/jrpc/b-correspondent" manager hs req onFailure
+
 
 -- request:
 -- curl --location --request POST 'letspay.to/api/v1/jrpc/auth' \
@@ -167,4 +193,5 @@ fetchAuthToken manager login pass = do
   let req = defRequest $ Auth login pass
   let mkResp = join . fmap toEither . eitherDecode @(Response Token) . toS
   let hs = [(hContentType, "application/json")]
-  fmap (join . second mkResp) $ makePostReq @(Request Auth) "https://letspay.to/api/v1/jrpc/auth" manager hs req onFailure
+  fmap (join . second mkResp) $ 
+    makePostReq @(Request Auth) "https://letspay.to/api/v1/jrpc/auth" manager hs req onFailure
