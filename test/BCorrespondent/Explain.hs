@@ -22,6 +22,7 @@ import qualified BCorrespondent.Statement.BalancedBook
 import qualified BCorrespondent.Statement.Report
 import qualified BCorrespondent.Statement.Mail
 import qualified BCorrespondent.Statement.Backup
+import qualified BCorrespondent.Statement.Webhook 
 
 import Control.Lens
 import Control.Monad.IO.Class
@@ -136,5 +137,9 @@ explainTests =
       "update" =>> BCorrespondent.Statement.Mail.update
     ]
   , "BCorrespondent.Statement.Backup" ==>
-     ["insert" =>> BCorrespondent.Statement.Backup.insert]  
+     ["insert" =>> BCorrespondent.Statement.Backup.insert]
+  , "BCorrespondent.Statement.Webhook" ==>
+     ["fetch" =>> BCorrespondent.Statement.Webhook.fetch,
+      "markDelivered" =>> BCorrespondent.Statement.Webhook.markDelivered 
+     ] 
   ]
