@@ -326,7 +326,7 @@ main = do
   jwke <- liftIO $ fmap (eitherDecode' @JWK) $ B.readFile pathToJwk
   symmetricKeyBasee <- fmap (B64.decode . encodeUtf8 . toS) $ B.readFile pathToSymmetricBase
 
-  jwkRes <- for ((,) <$> jwke <*> symmetricKeyBasee) $ \(jwk, symmetricKeyBase)  -> do
+  keysRes <- for ((,) <$> jwke <*> symmetricKeyBasee) $ \(jwk, symmetricKeyBase)  -> do
 
     print "--------- jwk ------------"
     putStrLn $ (take 200 (show jwk)) <> ".... }"
@@ -359,4 +359,4 @@ main = do
     let runServer le = runKatipContextT le (mempty @LogContexts) mempty $ flip Server.addServerNm "server" $ Server.run serverCfg
     bracket env (flip (>>) shutdownMsg . closeScribes) $ void . (\x -> evalRWST (Server.runServerM x) katipEnv def) . runServer
 
-  whenLeft jwkRes $ print . ((<>) "jwk decode error")
+  whenLeft keysRes $ print . ((<>) "jwk or cipher key decode error ---> ")

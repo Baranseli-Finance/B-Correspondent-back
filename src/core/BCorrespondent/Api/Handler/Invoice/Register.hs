@@ -9,8 +9,9 @@
 
 module BCorrespondent.Api.Handler.Invoice.Register (handle) where
 
-import qualified BCorrespondent.Statement.Invoice as Invoice (register)
-import BCorrespondent.Transport.Response (Response, fromEither)
+import qualified BCorrespondent.Statement.Invoice as Invoice (register, RegisteredInvoice)
+import BCorrespondent.Transport.Response (Response (Error, Warnings))
+import BCorrespondent.Transport.Error (asError)
 import BCorrespondent.Transport.Model.Invoice
        (InvoiceRegisterRequest (InvoiceRegisterRequest), 
         InvoiceRegisterResponse, 
@@ -28,7 +29,6 @@ import qualified Data.Text as T
 import Control.Lens ((^.), to, (<&>))
 import Database.Transaction (statement, transactionM)
 import Data.String.Conv (toS)
-import Data.Bifunctor (first)
 import Data.Csv (FromRecord, decodeWith, defaultDecodeOptions, HasHeader (NoHeader))
 import GHC.Generics (Generic)
 import qualified Data.ByteString.Lazy as B
@@ -81,8 +81,7 @@ handle Auth.AuthenticatedUser {..} xs = do
                      in Left $ msg <> show (xs \\ map fst xs')
     res <- withEither cmpRes $ const $ do 
       hasql <- fmap (^. katipEnv . hasqlDbPool) ask
-      fmap (fromEither @T.Text . first toS) $ 
-        transactionM hasql $ statement Invoice.register (ident, xs')
+      fmap (mkResp xs) $ transactionM hasql $ statement Invoice.register (ident, xs')
     
     let response = flip fmap res $ \xs ->  xs <&> \(WithField _ (WithField _ r)) -> r
     let notifXxs =
@@ -96,3 +95,14 @@ handle Auth.AuthenticatedUser {..} xs = do
                 i == coerce invoiceRegisterRequestInvoiceIdent
               ]
     fmap (const response) $ for_ res $ const $ for_ notifXxs (makeH @"new_invoice_issued" @Invoice ident . concat)
+
+mkResp :: [InvoiceRegisterRequest] -> Either String [Invoice.RegisteredInvoice] -> Response [Invoice.RegisteredInvoice]
+mkResp _ (Left error) = Error Nothing $ asError @T.Text $ toS error
+mkResp ys (Right xs) = Warnings xs ws'
+  where 
+    xs' = xs <&> \(WithField ident _) -> ident
+    ws = 
+      flip filter ys $ \InvoiceRegisterRequest {invoiceRegisterRequestInvoiceIdent} -> 
+        notElem (coerce invoiceRegisterRequestInvoiceIdent) xs'
+    ws' = ws <&> \InvoiceRegisterRequest{invoiceRegisterRequestInvoiceIdent} -> 
+                    asError @T.Text $ coerce invoiceRegisterRequestInvoiceIdent

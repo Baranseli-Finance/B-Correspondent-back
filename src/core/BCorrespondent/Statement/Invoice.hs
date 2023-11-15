@@ -20,7 +20,8 @@ module BCorrespondent.Statement.Invoice
          setInvoiceInMotion,
          Status (..),
          Validation (..),
-         InvoiceToBeSent
+         InvoiceToBeSent,
+         RegisteredInvoice
        )
        where
 
@@ -72,9 +73,11 @@ instance FromJSON Status where
 
 mkArbitrary ''Status
 
-register :: HS.Statement (Int64, [(InvoiceRegisterRequest, T.Text)]) (Either String [WithField "ident" T.Text (WithField "textualView" T.Text InvoiceRegisterResponse)])
+type RegisteredInvoice = WithField "ident" T.Text (WithField "textualView" T.Text InvoiceRegisterResponse)
+
+register :: HS.Statement (Int64, [(InvoiceRegisterRequest, T.Text)]) (Either String [RegisteredInvoice])
 register = 
-  dimap mkEncoder (sequence . map (eitherDecode @(WithField "ident" T.Text (WithField "textualView" T.Text InvoiceRegisterResponse)) . encode) . V.toList) $ 
+  dimap mkEncoder (sequence . map (eitherDecode @RegisteredInvoice . encode) . V.toList) $ 
   [vectorStatement|
     with
        series as (
