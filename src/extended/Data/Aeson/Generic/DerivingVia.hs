@@ -154,6 +154,7 @@ module Data.Aeson.Generic.DerivingVia
     StripConstructorNullary,
     ToLower,
     FirstLetterToLower,
+    FirstLetterToUpper,
     StripConstructorParamType,
   )
 where
@@ -171,7 +172,7 @@ import Data.Aeson
     genericToJSON,
   )
 import qualified Data.Aeson as Aeson
-import Data.Char (toLower)
+import Data.Char (toLower, toUpper)
 import Data.Kind (Constraint, Type)
 import Data.List (stripPrefix)
 import Data.Maybe (fromMaybe)
@@ -353,6 +354,11 @@ data FirstLetterToLower
 
 instance Reifies FirstLetterToLower (String -> String) where
   reflect _ = \(h : t) -> toLower h : t
+
+data FirstLetterToUpper
+
+instance Reifies FirstLetterToUpper (String -> String) where
+  reflect _ = \(h : t) -> toUpper h : t
 
 data StripConstructorParamType a
 
