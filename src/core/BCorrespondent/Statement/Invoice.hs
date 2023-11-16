@@ -21,7 +21,8 @@ module BCorrespondent.Statement.Invoice
          Status (..),
          Validation (..),
          InvoiceToBeSent,
-         RegisteredInvoice
+         RegisteredInvoice,
+         QueryCredentials (..)
        )
        where
 
@@ -243,51 +244,80 @@ type InvoiceToBeSent =
       (WithField "textualIdent" T.Text 
        InvoiceToPaymentProvider))
 
-getInvoicesToBeSent :: HS.Statement () (Either String [(Int64, [InvoiceToBeSent])])
+data QueryCredentials = 
+     QueryCredentials 
+     { provider :: Int64, 
+       login :: T.Text, 
+       password :: T.Text 
+     }
+    deriving stock (Generic)
+     deriving
+     (FromJSON)
+     via WithOptions DefaultOptions
+         QueryCredentials
+
+getInvoicesToBeSent :: HS.Statement () (Either String [(Int64, Maybe QueryCredentials, [InvoiceToBeSent])])
 getInvoicesToBeSent =
   rmap decoder
   [vectorStatement|
     select
       f.id :: int8,
-      array_agg(
-      jsonb_build_object(
-        'ident', i.id,
-        'seller', i.seller :: text,
-        'sellerAddress', i.seller_address :: text,
-        'sellerTaxId', i.seller_tax_id :: text?,
-        'sellerPhone', i.seller_phone_number :: text?,
-        'buyer', i.buyer :: text,
-        'buyerAddress', i.buyer_address :: text,
-        'buyerTaxId', i.buyer_tax_id :: text?,
-        'buyerPhone', i.buyer_phone_number :: text?,
-        'description', i.payment_description :: text,
-        'transactionExpenses', i.fee :: text,
-        'currency', i.currency,
-        'amount', i.amount,
-        'externalId', d.external_id,
-        'textualIdent', i.textual_view,
-        'external', iei.external_id)) 
-      :: jsonb[]?
-    from auth.institution as f
-    left join institution.invoice as i
-    on f.id = i.institution_id
-    inner join institution.invoice_to_institution_delivery as d
-    on i.id = d.invoice_id
-    inner join institution.invoice_external_ident as iei
-    on iei.invoice_id = i.id
-    where not d.is_delivered and not is_stuck
-    group by f.id|]
+      (select
+        jsonb_build_object(
+          'provider', coalesce(rf.second_id, rs.first_id),
+          'login', qc.login,
+          'password', qc.password) as cred
+      from auth.institution as i
+      left join institution.relation rf
+      on i.id = rf.first_id and rf.first_id = f.id
+      left join institution.relation rs
+      on i.id = rs.second_id and rs.second_id = f.id
+      inner join auth.query_credentials as qc
+      on rs.first_id = qc.institution_id or rf.second_id = qc.institution_id
+      where rf.second_id is not null or rs.first_id is not null) :: jsonb?,
+      f.xs :: jsonb[]?
+    from (
+      select
+        f.id :: int8,
+        array_agg(
+        jsonb_build_object(
+          'ident', i.id,
+          'seller', i.seller :: text,
+          'sellerAddress', i.seller_address :: text,
+          'sellerTaxId', i.seller_tax_id :: text?,
+          'sellerPhone', i.seller_phone_number :: text?,
+          'buyer', i.buyer :: text,
+          'buyerAddress', i.buyer_address :: text,
+          'buyerTaxId', i.buyer_tax_id :: text?,
+          'buyerPhone', i.buyer_phone_number :: text?,
+          'description', i.payment_description :: text,
+          'transactionExpenses', i.fee :: text,
+          'currency', i.currency,
+          'amount', i.amount,
+          'externalId', d.external_id,
+          'textualIdent', i.textual_view,
+          'external', iei.external_id))
+        :: jsonb[]? as xs 
+      from auth.institution as f
+      left join institution.invoice as i
+      on f.id = i.institution_id
+      inner join institution.invoice_to_institution_delivery as d
+      on i.id = d.invoice_id
+      inner join institution.invoice_external_ident as iei
+      on iei.invoice_id = i.id 
+      where not d.is_delivered and not is_stuck
+      group by f.id) as f|]
   where decoder xs = 
           sequence $ 
-            V.toList xs <&> \(ident, ys) -> 
-              fmap (ident,) $ 
-                fromMaybe (Right []) $ 
+            V.toList xs <&> \(ident, cred, ys) -> do  
+                ys' <- fromMaybe (Right []) $ 
                   let decodeYs = 
                         sequence . 
                         map (eitherDecode @InvoiceToBeSent . encode) .  
                         V.toList
                   in fmap decodeYs ys
-
+                cred' <- sequence $ fmap (eitherDecode @QueryCredentials . encode) cred
+                pure (ident, cred', ys')
 
 insertFailedInvoices :: HS.Statement [(Int64, T.Text)] [(Int64, Bool)]
 insertFailedInvoices =

@@ -10,7 +10,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module BCorrespondent.Job.Webhook.Impl.Tochka (make) where
+module BCorrespondent.Job.Webhook.Institution.Tochka (make) where
 
 import BCorrespondent.Job.Webhook.Factory (Webhook (..))
 import Data.Aeson.Types (Value)

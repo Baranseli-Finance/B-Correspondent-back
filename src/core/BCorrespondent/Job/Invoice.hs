@@ -10,9 +10,12 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE DerivingVia #-}
+{-# LANGUAGE NamedFieldPuns #-}
 
 module BCorrespondent.Job.Invoice (forwardToPaymentProvider, validateAgainstTransaction) where
 
+import qualified BCorrespondent.Job.Invoice.Provider.Elekse as Elekse (make)
+import BCorrespondent.Job.Invoice.Query (Query (..))
 import BCorrespondent.Statement.Invoice 
        (getInvoicesToBeSent, 
         insertFailedInvoices, 
@@ -21,7 +24,8 @@ import BCorrespondent.Statement.Invoice
         getValidation,
         Status (Confirmed, Declined),
         Validation (..),
-        InvoiceToBeSent
+        InvoiceToBeSent,
+        QueryCredentials (..)
        )
 import BCorrespondent.Statement.Institution (updateWallet)  
 import BCorrespondent.Job.Utils (withElapsedTime)
@@ -48,7 +52,6 @@ import qualified Data.Text as T
 import Data.String.Conv (toS)
 import qualified Control.Concurrent.Async.Lifted as Async
 import Data.Aeson.WithField (WithField (..))
-import qualified Request as Request
 import Data.Int (Int64)
 import Data.Bifunctor (bimap, second)
 import Data.Tuple.Extended (sel3, consT)
@@ -59,6 +62,9 @@ import Data.Aeson (ToJSON)
 import Data.Aeson.Generic.DerivingVia
 import GHC.Generics (Generic)
 import Data.Default (def)
+import Data.Traversable (for)
+import Control.Monad.IO.Class (liftIO)
+import Data.Maybe (fromMaybe)
 
 
 data WebhookMsg =
@@ -74,7 +80,8 @@ instance ParamsShow WebhookMsg where
   render (WebhookMsg ident tm) = render ident <> render tm
 
 forwardToPaymentProvider :: Int -> KatipContextT ServerM ()
-forwardToPaymentProvider freq =
+forwardToPaymentProvider freq = do
+  let queries = [(2, Elekse.make)]
   forever $ do 
     threadDelay $ freq * 1_000_000
     withElapsedTime ($location <> ":forwardToPaymentProvider") $ do
@@ -84,10 +91,10 @@ forwardToPaymentProvider freq =
         Right xs -> do
           manager <- fmap (^.httpReqManager) ask
           yss <- Async.forConcurrently xs $ 
-            \(ident, zs) -> 
+            \(ident, cred, zs) -> 
               fmap (map (second (consT ident))) $ 
                 Async.forConcurrently zs $ 
-                  sendInvoice manager
+                  sendInvoice manager queries cred
 
           for_ yss $ \ys -> do
             let (es, os) = partitionEithers ys
@@ -127,21 +134,27 @@ forwardToPaymentProvider freq =
               $location <> ":forwardToPaymentProvider: decode error ---> " <> toS err
 
 
-sendInvoice :: Manager -> InvoiceToBeSent -> KatipContextT ServerM (Either (Int64, T.Text) (Invoice, Int64, UUID))
-sendInvoice 
+sendInvoice :: Manager -> [(Int64, Query)] -> Maybe QueryCredentials -> InvoiceToBeSent -> KatipContextT ServerM (Either (Int64, T.Text) (Invoice, Int64, UUID))
+sendInvoice _ _ Nothing (WithField _ (WithField ident _)) = 
+  pure $ Left (ident, "payment provider credentials aren't set")
+sendInvoice
   manager
+  queries
+  (Just QueryCredentials {..})
   (WithField external
    (WithField ident
-    (WithField 
+    (WithField
       textIdent 
       invoice@InvoiceToPaymentProvider 
       {invoiceToPaymentProviderAmount = amount, 
        invoiceToPaymentProviderCurrency = currency}))) = do
+    $(logTM) InfoS $ logStr @T.Text $ $location <> " invoice to payment provider:  " <> toS (show invoice)    
+    let msg = "provider not found"
     let notifBody = Invoice textIdent amount currency
-    let mkResp = bimap ((ident,) . toS . show) (const (notifBody, ident, external))
-    let onFailure = pure . Left . show
-    $(logTM) InfoS $ logStr @T.Text $ $location <> " invoice to payment provider:  " <> toS (show invoice) 
-    fmap mkResp $ Request.makePostReq @InvoiceToPaymentProvider mempty manager [] invoice onFailure
+    let mkResp = bimap ((ident,) . toS) (const (notifBody, ident, external))
+    fmap (fromMaybe (Left (ident, msg))) $ 
+      for (lookup provider queries) $ \(Query {query}) -> 
+        fmap mkResp $ liftIO $ query manager login password invoice
 
 validateAgainstTransaction :: Int -> KatipContextT ServerM ()
 validateAgainstTransaction freq = 
