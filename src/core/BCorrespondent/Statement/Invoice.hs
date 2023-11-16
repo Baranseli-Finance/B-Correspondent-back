@@ -55,6 +55,7 @@ import Data.Tuple (swap)
 import Data.Aeson.Generic.DerivingVia
 import BuildInfo (location)
 import Data.Maybe (fromMaybe)
+import Data.UUID (UUID)
 
 
 data Status = 
@@ -236,7 +237,11 @@ updateStatus =
     as x(ident, status)
     where id = x.ident|]
 
-type InvoiceToBeSent = WithField "ident" Int64 (WithField "textualIdent" T.Text InvoiceToPaymentProvider)
+type InvoiceToBeSent =
+     WithField "external" UUID
+     (WithField "ident" Int64 
+      (WithField "textualIdent" T.Text 
+       InvoiceToPaymentProvider))
 
 getInvoicesToBeSent :: HS.Statement () (Either String [(Int64, [InvoiceToBeSent])])
 getInvoicesToBeSent =
@@ -260,13 +265,16 @@ getInvoicesToBeSent =
         'currency', i.currency,
         'amount', i.amount,
         'externalId', d.external_id,
-        'textualIdent', i.textual_view)) 
+        'textualIdent', i.textual_view,
+        'external', iei.external_id)) 
       :: jsonb[]?
     from auth.institution as f
     left join institution.invoice as i
     on f.id = i.institution_id
     inner join institution.invoice_to_institution_delivery as d
     on i.id = d.invoice_id
+    inner join institution.invoice_external_ident as iei
+    on iei.invoice_id = i.id
     where not d.is_delivered and not is_stuck
     group by f.id|]
   where decoder xs = 

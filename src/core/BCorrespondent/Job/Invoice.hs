@@ -7,6 +7,9 @@
 {-# LANGUAGE TransformListComp #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE DerivingVia #-}
 
 module BCorrespondent.Job.Invoice (forwardToPaymentProvider, validateAgainstTransaction) where
 
@@ -22,6 +25,7 @@ import BCorrespondent.Statement.Invoice
        )
 import BCorrespondent.Statement.Institution (updateWallet)  
 import BCorrespondent.Job.Utils (withElapsedTime)
+import qualified BCorrespondent.Statement.Webhook as Webhook
 import BCorrespondent.ServerM
 import BCorrespondent.Transport.Model.Invoice 
        (InvoiceToPaymentProvider (..), 
@@ -37,7 +41,7 @@ import Control.Monad (forever, when)
 import Control.Concurrent.Lifted (threadDelay)
 import Katip.Handler
 import Control.Lens ((^.))
-import Database.Transaction (statement, transactionM)
+import Database.Transaction (statement, transactionM, ParamsShow (..))
 import Data.Foldable (for_)
 import Data.Either (partitionEithers)
 import qualified Data.Text as T
@@ -49,7 +53,25 @@ import Data.Int (Int64)
 import Data.Bifunctor (bimap, second)
 import Data.Tuple.Extended (sel3, consT)
 import GHC.Exts (groupWith, the)
+import Data.UUID (UUID)
+import Data.Time.Clock (UTCTime)
+import Data.Aeson (ToJSON)
+import Data.Aeson.Generic.DerivingVia
+import GHC.Generics (Generic)
+import Data.Default (def)
 
+
+data WebhookMsg =
+     WebhookMsg 
+     { externalIdent :: UUID, 
+       acceptedAt :: UTCTime 
+     }
+     deriving stock (Generic, Show)
+     deriving (ToJSON)
+      via WithOptions DefaultOptions WebhookMsg
+
+instance ParamsShow WebhookMsg where
+  render (WebhookMsg ident tm) = render ident <> render tm
 
 forwardToPaymentProvider :: Int -> KatipContextT ServerM ()
 forwardToPaymentProvider freq =
@@ -81,10 +103,17 @@ forwardToPaymentProvider freq =
               statement insertFailedInvoices es
             let notifParams = 
                   [ (the ident, body)
-                    | (ident, body, _) <- os,
+                    | (ident, body, _, _) <- os,
                       then group by ident using groupWith 
-                  ]    
+                  ]
+            let webhookParams =
+                  [ (the ident, message)
+                    | (ident, _, _, external) <- os,
+                      let message = WebhookMsg external def,
+                      then group by ident using groupWith 
+                  ]   
             for_ notifParams $ uncurry (makeS @"invoice_forwarded")
+            for_ webhookParams $ transactionM hasql . statement Webhook.insert
             for_ es' $ \(ident, is_stuck) -> 
               when is_stuck $ 
                 $(logTM) ErrorS $ 
@@ -98,17 +127,18 @@ forwardToPaymentProvider freq =
               $location <> ":forwardToPaymentProvider: decode error ---> " <> toS err
 
 
-sendInvoice :: Manager -> InvoiceToBeSent -> KatipContextT ServerM (Either (Int64, T.Text) (Invoice, Int64))
+sendInvoice :: Manager -> InvoiceToBeSent -> KatipContextT ServerM (Either (Int64, T.Text) (Invoice, Int64, UUID))
 sendInvoice 
-  manager 
-  (WithField ident 
-   (WithField 
+  manager
+  (WithField external
+   (WithField ident
+    (WithField 
       textIdent 
       invoice@InvoiceToPaymentProvider 
       {invoiceToPaymentProviderAmount = amount, 
-       invoiceToPaymentProviderCurrency = currency})) = do
+       invoiceToPaymentProviderCurrency = currency}))) = do
     let notifBody = Invoice textIdent amount currency
-    let mkResp = bimap ((ident,) . toS . show) (const (notifBody, ident))
+    let mkResp = bimap ((ident,) . toS . show) (const (notifBody, ident, external))
     let onFailure = pure . Left . show
     $(logTM) InfoS $ logStr @T.Text $ $location <> " invoice to payment provider:  " <> toS (show invoice) 
     fmap mkResp $ Request.makePostReq @InvoiceToPaymentProvider mempty manager [] invoice onFailure

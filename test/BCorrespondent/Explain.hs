@@ -140,6 +140,7 @@ explainTests =
      ["insert" =>> BCorrespondent.Statement.Backup.insert]
   , "BCorrespondent.Statement.Webhook" ==>
      ["fetch" =>> BCorrespondent.Statement.Webhook.fetch,
-      "markDelivered" =>> BCorrespondent.Statement.Webhook.markDelivered 
+      "markDelivered" =>> BCorrespondent.Statement.Webhook.markDelivered,
+      "insert" =>> BCorrespondent.Statement.Webhook.insert @()
      ] 
   ]
