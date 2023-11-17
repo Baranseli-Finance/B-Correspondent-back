@@ -32,6 +32,8 @@ import qualified Servant.Auth.Server as SA
 import Servant.Swagger.Internal.Extended ()
 import RateLimit (RateLimit, FixedWindow, KeyPolicy)
 import Data.Time.TypeLevel (TimePeriod (Second))
+import Data.Int (Int64)
+
 
 data UserApi route = UserApi
   { _userApiIntTimelineHistory ::
@@ -102,6 +104,7 @@ data UserApi route = UserApi
         :- "notifications"
           :> RateLimit (FixedWindow (Second 1) 50) (KeyPolicy "Token")
           :> SA.Auth '[JWT] (AuthenticatedUser 'Reader)
+          :> QueryParam' '[Optional] "from" Int64
           :> Get '[JSON] (Response Notifications),
     _userApiMarkNotificationRead ::
       route

@@ -39,8 +39,9 @@ go freq = do
       hasql <- fmap (^. hasqlDbPool) ask
       manager <- fmap (^. httpReqManager) ask
       xs <- transactionM hasql $ statement fetch ()
-      xs' <- forConcurrently @[] xs $ \x ->
-        fmap (join . maybe (Left "") Right) $ 
+      xs' <- forConcurrently @[] xs $ \x -> do 
+        let msg = "recipient " <>  show (sel2 x) <> " for webhook not found"
+        fmap (join . maybe (Left msg) Right) $
           for (lookup (sel2 x) webhooks) $ \Webhook {..} ->
             fmap (second (const (sel1 x))) $ liftIO $ send manager (sel4 x) (sel5 x) $ sel3 x
       let (es, os) = partitionEithers xs'

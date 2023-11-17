@@ -11,9 +11,9 @@ import Katip.Handler (KatipHandlerM, katipEnv, hasqlDbPool, ask)
 import BCorrespondent.Api.Handler.Utils  (withError)
 import Control.Lens ((^.))
 import Database.Transaction (statement, transactionM)
+import Data.Int (Int64)
 
-handle :: Auth.AuthenticatedUser 'Auth.Reader -> KatipHandlerM (Response Notifications) 
-handle user = do
+handle :: Auth.AuthenticatedUser 'Auth.Reader -> Maybe Int64 -> KatipHandlerM (Response Notifications) 
+handle user from = do
   hasql <- fmap (^. katipEnv . hasqlDbPool) ask
-  fmap (`withError` id) $ transactionM hasql $ statement loadNotification $ Auth.ident user
-
+  fmap (`withError` id) $ transactionM hasql $ statement loadNotification (Auth.ident user, from)

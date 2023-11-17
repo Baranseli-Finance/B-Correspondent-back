@@ -376,20 +376,27 @@ refreshWalletMV = HS.Statement [uncheckedSql|refresh materialized view mv.wallet
 readNotification :: HS.Statement [Int64] ()
 readNotification = lmap V.fromList [resultlessStatement|update public.notification set is_read = true where id = any($1 :: int8[]) and not is_read|]
 
-loadNotification :: HS.Statement Int64 (Either String Notifications)
+loadNotification :: HS.Statement (Int64, Maybe Int64) (Either String Notifications)
 loadNotification = 
   rmap (fmap (Notifications 0) . fromMaybe (Right []) . fmap (sequence . map (eitherDecode @Notification . encode) . V.toList))
   [singletonStatement|
-     select
-       array_agg(
-        jsonb_build_object(
-          'ident', id,
-          'created', cast(created_at as text) || 'Z',
-          'text', body)
-        order by created_at desc) 
-       :: jsonb[]?
-     from public.notification
-     where not is_read and user_id = $1 :: int8|]
+    select
+      array_agg(
+      jsonb_build_object(
+        'ident', tbl.id,
+        'created', cast(tbl.created_at as text) || 'Z',
+        'text', tbl.body))
+      :: jsonb[]?
+    from (
+      select 
+        id,
+        created_at,
+        body  
+      from public.notification
+      where not is_read 
+      and user_id = $1 :: int8
+      and coalesce(id < $2 :: int8?, true)
+      order by created_at desc limit 20) as tbl|]
 
 loadUnreadNotification :: HS.Statement Int64 Int
 loadUnreadNotification = 

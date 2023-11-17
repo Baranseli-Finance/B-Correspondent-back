@@ -223,12 +223,12 @@ user nm =
            katipAddNamespace
            (Namespace [nm,  "dashboard", "timeline", "transaction"])
            (Frontend.User.GetTimelineTransaction.handle user ident),
-    _userApiGetNotifications = \auth ->
+    _userApiGetNotifications = \auth from ->
        auth `Auth.withAuth` \user ->
          flip logExceptionM ErrorS $
            katipAddNamespace
            (Namespace [nm, "notification"]) $
-           User.GetNotifications.handle user,
+           User.GetNotifications.handle user from,
     _userApiMarkNotificationRead = \auth ident ->
        auth `Auth.withAuth` \user ->
          flip logExceptionM ErrorS $

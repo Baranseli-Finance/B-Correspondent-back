@@ -1,0 +1,1 @@
+alter table auth.institution drop constraint auth_institution__title__uk;
