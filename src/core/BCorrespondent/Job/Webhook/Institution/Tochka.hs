@@ -130,10 +130,10 @@ data Token = Token { accessToken :: Text }
 -- Right (Ok (Token {accessToken = "1234"}))
 --
 -- >>> :{
---  let msg = "{\"jsonrpc\": \"2.0\", \"error\": { \"code\": -32602, \"message\": \"Invalid login/password\" }, \"id\": \"refer\"}"
+--  let msg = "{\"jsonrpc\": \"2.0\", \"error\": { \"code\": -32602, \"message\": \"Invalid login/password\", \"data\": \"error\" }, \"id\": \"refer\"}"
 --  in eitherDecode @(Response ()) msg  
 -- :}
--- Right (Failure (Error {code = -32602, message = "Invalid login/password"}))
+-- Right (Failure (Error {errorCode = -32602, errorMessage = "Invalid login/password", errorData = "error"}))
 instance FromJSON a => FromJSON (Response a) where
     parseJSON = 
       withObject ($location <> ":Response") $ \o -> do
