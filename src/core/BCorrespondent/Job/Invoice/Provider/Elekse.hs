@@ -13,6 +13,7 @@ module BCorrespondent.Job.Invoice.Provider.Elekse (make) where
 
 import BCorrespondent.Transport.Model.Invoice (InvoiceToPaymentProvider)
 import BCorrespondent.Job.Invoice.Query (Query (..))
+import qualified BCorrespondent.Job.Invoice.Query as Q
 import Data.Text (Text)
 import Network.HTTP.Client 
       (Manager, 
@@ -49,20 +50,20 @@ toEither Response {..} | errorCode == 0 = Right body
 make :: Query
 make = Query { query = go }
 
-go :: Manager -> Text -> Text -> InvoiceToPaymentProvider -> IO (Either String ())
+go :: Manager -> Text -> Text -> InvoiceToPaymentProvider -> IO (Either String Q.Response)
 go manager login pass req = do 
   tokene <- fetchAuthToken manager login pass
   fmap join $
     for tokene $ \token -> do 
       let hs = [(hContentType, "application/json"), (hAuthorization, "Bearer " <> toS token)]
       let onFailure error = 
-            case error of 
+            case error of
               HttpExceptionRequest  _ (StatusCodeException resp _) ->
                 if status401 == responseStatus resp
                 then fmap (second (const mempty)) $ go manager login pass req
                 else pure . Left . toS . show $ error
               _ -> pure . Left . toS . show $ error
-      let mkResp = second (const ()) . join . fmap toEither . eitherDecode @(Response ()) . toS 
+      let mkResp = join . fmap toEither . eitherDecode @(Response Q.Response) . toS 
       fmap (join . second mkResp) $
         makePostReq @InvoiceToPaymentProvider "https://apigwtest.elekse.com/api/hoppa/corporate/correspondent/invoice" manager hs req onFailure
 

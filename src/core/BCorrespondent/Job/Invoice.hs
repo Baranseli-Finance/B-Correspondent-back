@@ -16,6 +16,7 @@ module BCorrespondent.Job.Invoice (forwardToPaymentProvider, validateAgainstTran
 
 import qualified BCorrespondent.Job.Invoice.Provider.Elekse as Elekse (make)
 import BCorrespondent.Job.Invoice.Query (Query (..))
+import qualified BCorrespondent.Job.Invoice.Query as Q
 import BCorrespondent.Statement.Invoice 
        (getInvoicesToBeSent, 
         insertFailedInvoices, 
@@ -61,7 +62,6 @@ import Data.Time.Clock (UTCTime)
 import Data.Aeson (ToJSON)
 import Data.Aeson.Generic.DerivingVia
 import GHC.Generics (Generic)
-import Data.Default (def)
 import Data.Traversable (for)
 import Control.Monad.IO.Class (liftIO)
 import Data.Maybe (fromMaybe)
@@ -110,13 +110,13 @@ forwardToPaymentProvider freq = do
               statement insertFailedInvoices es
             let notifParams = 
                   [ (the ident, body)
-                    | (ident, body, _, _) <- os,
+                    | (ident, body, _, _, _) <- os,
                       then group by ident using groupWith 
                   ]
             let webhookParams =
                   [ (the ident, message)
-                    | (ident, _, _, external) <- os,
-                      let message = WebhookMsg external def,
+                    | (ident, _, _, external, tm) <- os,
+                      let message = WebhookMsg external tm,
                       then group by ident using groupWith 
                   ]   
             for_ notifParams $ uncurry (makeS @"invoice_forwarded")
@@ -134,7 +134,7 @@ forwardToPaymentProvider freq = do
               $location <> ":forwardToPaymentProvider: decode error ---> " <> toS err
 
 
-sendInvoice :: Manager -> [(Int64, Query)] -> Maybe QueryCredentials -> InvoiceToBeSent -> KatipContextT ServerM (Either (Int64, T.Text) (Invoice, Int64, UUID))
+sendInvoice :: Manager -> [(Int64, Query)] -> Maybe QueryCredentials -> InvoiceToBeSent -> KatipContextT ServerM (Either (Int64, T.Text) (Invoice, Int64, UUID, UTCTime))
 sendInvoice _ _ Nothing (WithField _ (WithField ident _)) = 
   pure $ Left (ident, "payment provider credentials aren't set")
 sendInvoice
@@ -144,14 +144,14 @@ sendInvoice
   (WithField external
    (WithField ident
     (WithField
-      textIdent 
+      textIdent
       invoice@InvoiceToPaymentProvider 
       {invoiceToPaymentProviderAmount = amount, 
        invoiceToPaymentProviderCurrency = currency}))) = do
     $(logTM) InfoS $ logStr @T.Text $ $location <> " invoice to payment provider:  " <> toS (show invoice)    
     let msg = "provider not found"
     let notifBody = Invoice textIdent amount currency
-    let mkResp = bimap ((ident,) . toS) (const (notifBody, ident, external))
+    let mkResp = bimap ((ident,) . toS) ((notifBody, ident, external,) . Q.acceptedAt)
     fmap (fromMaybe (Left (ident, msg))) $ 
       for (lookup provider queries) $ \(Query {query}) -> 
         fmap mkResp $ liftIO $ query manager login password invoice

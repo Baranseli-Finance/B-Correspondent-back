@@ -1,7 +1,23 @@
-module BCorrespondent.Job.Invoice.Query (Query (..)) where
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE DerivingVia #-}
+
+module BCorrespondent.Job.Invoice.Query (Query (..), Response (..)) where
 
 import BCorrespondent.Transport.Model.Invoice (InvoiceToPaymentProvider)
 import Network.HTTP.Client (Manager)
 import Data.Text (Text)
+import GHC.Generics (Generic)
+import Data.Aeson.Generic.DerivingVia
+import Data.Aeson (FromJSON)
+import Data.Time.Clock (UTCTime)
 
-data Query = Query { query :: Manager -> Text -> Text -> InvoiceToPaymentProvider -> IO (Either String ()) }
+data Response = Response { acceptedAt :: UTCTime }
+    deriving stock (Generic, Show)
+    deriving
+      (FromJSON)
+      via WithOptions DefaultOptions
+      Response
+
+data Query = Query { query :: Manager -> Text -> Text -> InvoiceToPaymentProvider -> IO (Either String Response) }
