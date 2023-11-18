@@ -4,4 +4,4 @@ import Data.Aeson.Types (Value)
 import Network.HTTP.Client (Manager)
 import Data.Text (Text)
 
-data Webhook = Webhook { send :: Manager -> Text -> Text -> Value -> IO (Either String ()) }
+data Webhook = Webhook { send :: Manager -> (Text -> IO ()) -> Text -> Text -> Value -> IO (Either String ()) }

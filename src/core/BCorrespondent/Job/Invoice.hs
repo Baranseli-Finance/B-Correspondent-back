@@ -65,19 +65,21 @@ import GHC.Generics (Generic)
 import Data.Traversable (for)
 import Control.Monad.IO.Class (liftIO)
 import Data.Maybe (fromMaybe)
+import Data.Time.Format (formatTime, defaultTimeLocale)
 
 
 data WebhookMsg =
      WebhookMsg 
-     { externalIdent :: UUID, 
-       acceptedAt :: UTCTime 
+     { externalId :: UUID,
+       createdAt :: T.Text,
+       status :: T.Text
      }
      deriving stock (Generic, Show)
      deriving (ToJSON)
-      via WithOptions DefaultOptions WebhookMsg
+      via WithOptions '[FieldLabelModifier '[CamelTo2 "_"]] WebhookMsg
 
 instance ParamsShow WebhookMsg where
-  render (WebhookMsg ident tm) = render ident <> render tm
+  render (WebhookMsg ident tm status) = render ident <> render tm <> render status
 
 forwardToPaymentProvider :: Int -> KatipContextT ServerM ()
 forwardToPaymentProvider freq = do
@@ -116,7 +118,8 @@ forwardToPaymentProvider freq = do
             let webhookParams =
                   [ (the ident, message)
                     | (ident, _, _, external, tm) <- os,
-                      let message = WebhookMsg external tm,
+                      let formatTm = toS . formatTime defaultTimeLocale "%Y-%m-%dT%H:%M:%S.00Z",
+                      let message = WebhookMsg external (formatTm tm) "accepted",
                       then group by ident using groupWith 
                   ]   
             for_ notifParams $ uncurry (makeS @"invoice_forwarded")

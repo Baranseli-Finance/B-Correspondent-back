@@ -22,7 +22,8 @@ import Data.Aeson
         FromJSON (parseJSON), 
         (.:?), 
         withObject, 
-        eitherDecode
+        eitherDecode,
+        encode
        )
 import Data.Aeson.Generic.DerivingVia
 import GHC.Generics (Generic)
@@ -63,14 +64,27 @@ data Request a =
        requestId :: !Text,
        requestParams :: !a
      }
+    
+instance ToJSON a => Show (Request a) where
+  show = toS . encode
+
  
+-- |
+--
+-- >>> :set -XTypeApplications
+-- >>> :set -XOverloadedStrings
+-- >>> import Data.Aeson (encode)
+--
+-- >>> let req = Request "2.0" Callback "refer" "{\"status\":\"accepted\",\"accepted_at\":\"2023-11-18T08:55:19.8836435Z\",\"external_id\":\"9185dc07-772f-452e-9fc2-b77f671133d3\"}"
+-- >>> encode req
+-- "{\"id\":\"refer\",\"jsonrpc\":\"2.0\",\"method\":\"callback\",\"params\":\"{\\\"status\\\":\\\"accepted\\\",\\\"accepted_at\\\":\\\"2023-11-18T08:55:19.8836435Z\\\",\\\"external_id\\\":\\\"9185dc07-772f-452e-9fc2-b77f671133d3\\\"}\"}"
 instance ToJSON a => ToJSON (Request a) where
   toJSON Request {..} = 
     object 
     [ "jsonrpc" .= toJSON requestJsonrpc, 
       "method" .= toJSON requestMethod, 
       "id" .= toJSON requestId, 
-      "params" .= toJSON requestParams 
+      "params" .= toJSON requestParams
     ]
 
 defRequest :: a -> Request a
@@ -81,16 +95,20 @@ data Auth = Auth { email :: Text, password :: Text }
      deriving (ToJSON)
       via WithOptions DefaultOptions Auth
 
-data Error = Error { code :: Int, message :: Text }
+data Error = Error { errorCode :: Int, errorMessage :: Text, errorData :: Text }
      deriving stock (Generic, Show)
      deriving (FromJSON)
-      via WithOptions DefaultOptions Error
+      via WithOptions
+          '[FieldLabelModifier 
+            '[UserDefined ToLower,
+              UserDefined (StripConstructor Error)]]
+          Error
 
 data Response a = Ok a | Failure Error deriving Show
 
 toEither :: Response a -> Either String a
 toEither (Ok x) = Right x
-toEither (Failure (Error _ msg)) = Left $ toS msg
+toEither (Failure (Error {..})) = Left $ toS errorMessage <> ", " <> toS errorData
 
 data Token = Token { accessToken :: Text }
      deriving stock (Generic, Show)
@@ -124,13 +142,13 @@ instance FromJSON a => FromJSON (Response a) where
         resp <- for r $ fmap Ok . parseJSON @a
         err <- for e $ fmap Failure . parseJSON @Error
         let msg = toS $ $location <> " couldn't parse Response, raw: " <> show o
-        pure $ fromMaybe (Failure (Error 0 msg)) $ resp <|> err
+        pure $ fromMaybe (Failure (Error 0 msg mempty)) $ resp <|> err
 
 make :: Webhook
 make =  
   Webhook 
-  { send = \manager login pass msg -> 
-              go manager login pass $ 
+  { send = \manager log login pass msg -> 
+              go manager log login pass $ 
                 (defRequest msg) 
                 { requestMethod = Callback }
   }
@@ -141,8 +159,9 @@ data Success = Success { success :: Bool }
       via WithOptions DefaultOptions Success
 
 
-go :: Manager -> Text -> Text -> Request Value -> IO (Either String ())
-go manager login pass req = do
+go :: Manager -> (Text -> IO ()) -> Text -> Text -> Request Value -> IO (Either String ())
+go manager log login pass req = do
+  log $ $location <> " webhook request ---->  " <> toS (show req)
   tokene <- fetchAuthToken manager login pass
   fmap join $ 
     for tokene $ \(Token token) -> do
@@ -152,7 +171,7 @@ go manager login pass req = do
            case error of 
               HttpExceptionRequest  _ (StatusCodeException resp _) -> 
                 if status401 == responseStatus resp
-                then fmap (second (const mempty)) $ go manager login pass req
+                then fmap (second (const mempty)) $ go manager log login pass req
                 else pure . Left . toS . show $ error
               _ -> pure . Left . toS . show $ error
       fmap (join . second mkResp) $ 
