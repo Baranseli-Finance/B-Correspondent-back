@@ -38,7 +38,7 @@ import BCorrespondent.Transport.Model.Invoice
        )
 import qualified Hasql.Statement as HS
 import Hasql.TH
-import Data.Int (Int64)
+import Data.Int (Int64, Int32)
 import Control.Lens
 import Data.Coerce (coerce)
 import Data.String.Conv (toS)
@@ -256,7 +256,7 @@ data QueryCredentials =
      via WithOptions DefaultOptions
          QueryCredentials
 
-getInvoicesToBeSent :: HS.Statement () (Either String [(Int64, Maybe QueryCredentials, [InvoiceToBeSent])])
+getInvoicesToBeSent :: HS.Statement Int32 (Either String [(Int64, Maybe QueryCredentials, [InvoiceToBeSent])])
 getInvoicesToBeSent =
   rmap decoder
   [vectorStatement|
@@ -306,7 +306,7 @@ getInvoicesToBeSent =
       inner join institution.invoice_external_ident as iei
       on iei.invoice_id = i.id 
       where not d.is_delivered and not is_stuck
-      group by f.id) as f|]
+      group by f.id limit $1 :: int) as f|]
   where decoder xs = 
           sequence $ 
             V.toList xs <&> \(ident, cred, ys) -> do  

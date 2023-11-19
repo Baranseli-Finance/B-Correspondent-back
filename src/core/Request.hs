@@ -2,6 +2,7 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE NumericUnderscores #-}
 
 module Request 
        ( make,
@@ -81,15 +82,16 @@ withError (Left err) onError _ = onError err
 
 forConcurrentlyNRetry 
   :: (MonadUnliftIO m, Traversable t) 
-  => Int 
+  => Int
+  -> Int
   -> Int 
   -> (b -> m Bool) 
   -> t a 
   -> (a -> m b) 
   -> m (t b)
-forConcurrentlyNRetry threads delay shouldRetry xs go =
+forConcurrentlyNRetry attempts threads delay shouldRetry xs go =
   Async.pooledForConcurrentlyN threads xs $ \x ->
-    let retryPolicy = constantDelay (delay * 10 ^ 6) <> limitRetries 5
+    let retryPolicy = constantDelay (delay * 1_000_000) <> limitRetries attempts
     in retrying retryPolicy (const shouldRetry) (const (go x))
 
 retry :: MonadUnliftIO m => Int -> (a -> m Bool) -> m a -> m a

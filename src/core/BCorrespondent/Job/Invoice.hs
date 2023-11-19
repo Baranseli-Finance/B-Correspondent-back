@@ -66,6 +66,8 @@ import Data.Traversable (for)
 import Control.Monad.IO.Class (liftIO)
 import Data.Maybe (fromMaybe)
 import Data.Time.Format (formatTime, defaultTimeLocale)
+import Request (forConcurrentlyNRetry)
+import Data.Either (isRight)
 
 
 data WebhookMsg =
@@ -88,14 +90,14 @@ forwardToPaymentProvider freq = do
     threadDelay $ freq * 1_000_000
     withElapsedTime ($location <> ":forwardToPaymentProvider") $ do
       hasql <- fmap (^. hasqlDbPool) ask
-      res <- transactionM hasql $ statement getInvoicesToBeSent ()
+      res <- transactionM hasql $ statement getInvoicesToBeSent 20
       case res of
         Right xs -> do
           manager <- fmap (^.httpReqManager) ask
           yss <- Async.forConcurrently xs $ 
             \(ident, cred, zs) -> 
               fmap (map (second (consT ident))) $ 
-                Async.forConcurrently zs $ 
+                forConcurrentlyNRetry 3 1 3 (pure . isRight) zs $ 
                   sendInvoice manager queries cred
 
           for_ yss $ \ys -> do
