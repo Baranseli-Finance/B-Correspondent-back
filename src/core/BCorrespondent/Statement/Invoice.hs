@@ -281,32 +281,39 @@ getInvoicesToBeSent =
         f.id :: int8,
         array_agg(
         jsonb_build_object(
-          'ident', i.id,
-          'seller', i.seller :: text,
-          'sellerAddress', i.seller_address :: text,
-          'sellerTaxId', i.seller_tax_id :: text?,
-          'sellerPhone', i.seller_phone_number :: text?,
-          'buyer', i.buyer :: text,
-          'buyerAddress', i.buyer_address :: text,
-          'buyerTaxId', i.buyer_tax_id :: text?,
-          'buyerPhone', i.buyer_phone_number :: text?,
-          'description', i.payment_description :: text,
-          'transactionExpenses', i.fee :: text,
-          'currency', i.currency,
-          'amount', i.amount,
-          'externalId', d.external_id,
-          'textualIdent', i.textual_view,
-          'external', iei.external_id))
-        :: jsonb[]? as xs 
+          'ident', s.id,
+          'seller', s.seller :: text,
+          'sellerAddress', s.seller_address :: text,
+          'sellerTaxId', s.seller_tax_id :: text?,
+          'sellerPhone', s.seller_phone_number :: text?,
+          'buyer', s.buyer :: text,
+          'buyerAddress', s.buyer_address :: text,
+          'buyerTaxId', s.buyer_tax_id :: text?,
+          'buyerPhone', s.buyer_phone_number :: text?,
+          'description', s.payment_description :: text,
+          'transactionExpenses', s.fee :: text,
+          'currency', s.currency,
+          'amount', s.amount,
+          'externalId', s.delivery_ext_id,
+          'textualIdent', s.textual_view,
+          'external', s.invoice_ext_id))
+        :: jsonb[]? as xs
       from auth.institution as f
-      left join institution.invoice as i
-      on f.id = i.institution_id
-      inner join institution.invoice_to_institution_delivery as d
-      on i.id = d.invoice_id
-      inner join institution.invoice_external_ident as iei
-      on iei.invoice_id = i.id 
-      where not d.is_delivered and not is_stuck
-      group by f.id limit $1 :: int) as f|]
+      inner join (
+        select
+          i.*,
+          d.external_id as delivery_ext_id,
+          iei.external_id as invoice_ext_id
+        from institution.invoice as i
+        inner join institution.invoice_to_institution_delivery as d
+        on i.id = d.invoice_id
+        inner join institution.invoice_external_ident as iei
+        on iei.invoice_id = i.id
+        where not d.is_delivered and not is_stuck
+        order by i.id asc
+        limit $1 :: int) as s
+      on f.id = s.institution_id
+      group by f.id) as f|]
   where decoder xs = 
           sequence $ 
             V.toList xs <&> \(ident, cred, ys) -> do  
@@ -342,7 +349,7 @@ insertFailedInvoices =
     do update set
     attempts = invoice_to_institution_delivery.attempts + 1,
     last_attempt_sent_at = now(),
-    is_stuck = invoice_to_institution_delivery.attempts + 1 = 5,
+    is_stuck = invoice_to_institution_delivery.attempts + 1 = 50,
     error = excluded.error
     returning invoice_id :: int8, is_stuck :: bool|]
 

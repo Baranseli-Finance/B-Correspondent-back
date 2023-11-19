@@ -90,14 +90,14 @@ forwardToPaymentProvider freq = do
     threadDelay $ freq * 1_000_000
     withElapsedTime ($location <> ":forwardToPaymentProvider") $ do
       hasql <- fmap (^. hasqlDbPool) ask
-      res <- transactionM hasql $ statement getInvoicesToBeSent 20
+      res <- transactionM hasql $ statement getInvoicesToBeSent 1
       case res of
         Right xs -> do
           manager <- fmap (^.httpReqManager) ask
           yss <- Async.forConcurrently xs $ 
             \(ident, cred, zs) -> 
               fmap (map (second (consT ident))) $ 
-                forConcurrentlyNRetry 3 1 3 (pure . isRight) zs $ 
+                forConcurrentlyNRetry 1 1 2 (pure . isRight) zs $ 
                   sendInvoice manager queries cred
 
           for_ yss $ \ys -> do
@@ -133,10 +133,7 @@ forwardToPaymentProvider freq = do
                     $location <> " invoice " <>
                     toS (show ident) <> 
                     " has been stuck forwarding to payment provider"
-        Left err -> 
-          $(logTM) CriticalS $ 
-            logStr @T.Text $ 
-              $location <> ":forwardToPaymentProvider: decode error ---> " <> toS err
+        Left err -> $(logTM) CriticalS $ logStr @T.Text $ $location <> ":forwardToPaymentProvider: decode error ---> " <> toS err
 
 
 sendInvoice :: Manager -> [(Int64, Query)] -> Maybe QueryCredentials -> InvoiceToBeSent -> KatipContextT ServerM (Either (Int64, T.Text) (Invoice, Int64, UUID, UTCTime))
