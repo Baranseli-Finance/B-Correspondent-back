@@ -74,8 +74,7 @@ initDayOfWeeksHourly idx =
             then [fromEnum Monday .. fromEnum Sunday] 
             else [fromEnum Sunday, fromEnum Saturday .. fromEnum Monday],
       let xs = map (`DayOfWeek` 0) weekdays,
-      let e' = if e == 24 then 0 else e,
-      let item = DayOfWeeksHourly s e' xs []
+      let item = DayOfWeeksHourly s e xs []
   ]
 
 transform :: [DayOfWeeksHourly] -> [DayOfWeeksHourly] -> [F.DayOfWeeksHourly]
