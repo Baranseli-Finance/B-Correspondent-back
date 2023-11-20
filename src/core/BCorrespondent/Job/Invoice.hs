@@ -63,7 +63,6 @@ import Data.Aeson (ToJSON)
 import Data.Aeson.Generic.DerivingVia
 import GHC.Generics (Generic)
 import Data.Traversable (for)
-import Control.Monad.IO.Class (liftIO)
 import Data.Maybe (fromMaybe)
 import Data.Time.Format (formatTime, defaultTimeLocale)
 import Request (forConcurrentlyNRetry)
@@ -155,7 +154,7 @@ sendInvoice
     let mkResp = bimap ((ident,) . toS) ((notifBody, ident, external,) . Q.acceptedAt)
     fmap (fromMaybe (Left (ident, msg))) $ 
       for (lookup provider queries) $ \(Query {query}) -> 
-        fmap mkResp $ liftIO $ query manager login password invoice
+        fmap mkResp $ query manager login password invoice
 
 validateAgainstTransaction :: Int -> KatipContextT ServerM ()
 validateAgainstTransaction freq = 

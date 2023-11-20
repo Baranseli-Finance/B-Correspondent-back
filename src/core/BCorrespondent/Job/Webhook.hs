@@ -23,13 +23,10 @@ import Data.Foldable (for_)
 import Data.Traversable (for)
 import Control.Concurrent.Async.Lifted (forConcurrently)
 import Data.Tuple.Extended (sel1, sel2, sel3, sel4, sel5)
-import Control.Monad.IO.Class (liftIO)
 import Data.Bifunctor (second)
 import Data.Either (partitionEithers)
 import Data.Text (Text)
 import Data.String.Conv (toS)
-import Katip.Monadic (askLoggerIO)
-import Katip (Severity (InfoS), ls)
 
 
 go :: Int -> KatipContextT ServerM ()
@@ -44,9 +41,8 @@ go freq = do
       xs' <- forConcurrently @[] xs $ \x -> do 
         let msg = "recipient " <>  show (sel2 x) <> " for webhook not found"
         fmap (join . maybe (Left msg) Right) $
-          for (lookup (sel2 x) webhooks) $ \Webhook {..} -> do 
-            mkLogger <- askLoggerIO  
-            fmap (second (const (sel1 x))) $ liftIO $ send manager (mkLogger InfoS . ls) (sel4 x) (sel5 x) $ sel3 x
+          for (lookup (sel2 x) webhooks) $ \Webhook {..} ->
+            fmap (second (const (sel1 x))) $ send manager (sel4 x) (sel5 x) $ sel3 x
       let (es, os) = partitionEithers xs'
       transactionM hasql $ statement markDelivered os
       for_ es $ \error -> $(logTM) ErrorS $ logStr @Text $ $location <> ":go ---> " <> toS error

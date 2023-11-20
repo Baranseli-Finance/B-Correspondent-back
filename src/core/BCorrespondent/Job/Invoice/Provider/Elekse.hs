@@ -11,6 +11,7 @@
 
 module BCorrespondent.Job.Invoice.Provider.Elekse (make) where
 
+import BCorrespondent.ServerM (ServerM)
 import BCorrespondent.Transport.Model.Invoice (InvoiceToPaymentProvider)
 import BCorrespondent.Job.Invoice.Query (Query (..))
 import qualified BCorrespondent.Job.Invoice.Query as Q
@@ -32,6 +33,7 @@ import Data.Traversable (for)
 import Data.Bifunctor (second)
 import Network.HTTP.Types (hContentType, hAuthorization)
 import Network.HTTP.Types.Status (status401)
+import Katip (KatipContextT)
 
 
 data Response a = Response { errorCode :: Int, body :: a }
@@ -50,7 +52,7 @@ toEither Response {..} | errorCode == 0 = Right body
 make :: Query
 make = Query { query = go }
 
-go :: Manager -> Text -> Text -> InvoiceToPaymentProvider -> IO (Either String Q.Response)
+go :: Manager -> Text -> Text -> InvoiceToPaymentProvider -> KatipContextT ServerM (Either String Q.Response)
 go manager login pass req = do 
   tokene <- fetchAuthToken manager login pass
   fmap join $
@@ -72,14 +74,14 @@ data Credentials = Credentials { credentialsUsername :: Text, credentialsPasswor
     deriving stock (Generic, Show)
     deriving
       (ToJSON, FromJSON)
-      via WithOptions 
+      via WithOptions
           '[FieldLabelModifier
             '[UserDefined
               (StripConstructor 
                Credentials)]]
       Credentials
 
-fetchAuthToken :: Manager -> Text -> Text -> IO (Either String Text)
+fetchAuthToken :: Manager -> Text -> Text -> KatipContextT ServerM (Either String Text)
 fetchAuthToken manager login password = do
   let hs = [(hContentType, "application/json")]
   let onFailure = pure . Left . toS . show

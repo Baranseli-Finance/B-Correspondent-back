@@ -12,6 +12,7 @@
 
 module BCorrespondent.Job.Webhook.Institution.Tochka (make) where
 
+import BCorrespondent.ServerM (ServerM)
 import BCorrespondent.Job.Webhook.Factory (Webhook (..))
 import Data.Aeson.Types (Value)
 import Data.Text (Text)
@@ -43,6 +44,7 @@ import Network.HTTP.Client
       )
 import Network.HTTP.Types (hContentType, hAuthorization)
 import Network.HTTP.Types.Status (status401)
+import Katip (KatipContextT, logTM, Severity (DebugS), ls)
 
 
 data Method = Login | Callback
@@ -147,8 +149,8 @@ instance FromJSON a => FromJSON (Response a) where
 make :: Webhook
 make =  
   Webhook 
-  { send = \manager log login pass msg -> 
-              go manager log login pass $ 
+  { send = \manager login pass msg -> 
+              go manager login pass $ 
                 (defRequest msg) 
                 { requestMethod = Callback }
   }
@@ -159,9 +161,9 @@ data Success = Success { success :: Bool }
       via WithOptions DefaultOptions Success
 
 
-go :: Manager -> (Text -> IO ()) -> Text -> Text -> Request Value -> IO (Either String ())
-go manager log login pass req = do
-  log $ $location <> " webhook request ---->  " <> toS (show req)
+go :: Manager -> Text -> Text -> Request Value -> KatipContextT ServerM (Either String ())
+go manager login pass req = do
+  $(logTM) DebugS $ ls @Text $ $location <> " webhook request ---->  " <> toS (show req)
   tokene <- fetchAuthToken manager login pass
   fmap join $ 
     for tokene $ \(Token token) -> do
@@ -171,7 +173,7 @@ go manager log login pass req = do
            case error of 
               HttpExceptionRequest  _ (StatusCodeException resp _) -> 
                 if status401 == responseStatus resp
-                then fmap (second (const mempty)) $ go manager log login pass req
+                then fmap (second (const mempty)) $ go manager login pass req
                 else pure . Left . toS . show $ error
               _ -> pure . Left . toS . show $ error
       fmap (join . second mkResp) $ 
@@ -206,7 +208,7 @@ go manager log login pass req = do
 --     },
 --     "id": "refer"
 -- }
-fetchAuthToken :: Manager -> Text -> Text -> IO (Either String Token)
+fetchAuthToken :: Manager -> Text -> Text -> KatipContextT ServerM (Either String Token)
 fetchAuthToken manager login pass = do
   let onFailure = pure . Left . toS . show
   let req = defRequest $ Auth login pass
