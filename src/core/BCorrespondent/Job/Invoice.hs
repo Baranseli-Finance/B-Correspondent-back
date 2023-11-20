@@ -90,16 +90,15 @@ forwardToPaymentProvider freq = do
     threadDelay $ freq * 1_000_000
     withElapsedTime ($location <> ":forwardToPaymentProvider") $ do
       hasql <- fmap (^. hasqlDbPool) ask
-      res <- transactionM hasql $ statement getInvoicesToBeSent 1
+      res <- transactionM hasql $ statement getInvoicesToBeSent 20
       case res of
         Right xs -> do
           manager <- fmap (^.httpReqManager) ask
           yss <- Async.forConcurrently xs $ 
             \(ident, cred, zs) -> 
               fmap (map (second (consT ident))) $ 
-                forConcurrentlyNRetry 1 1 2 (pure . isRight) zs $ 
+                forConcurrentlyNRetry 1 10 2 (pure . isRight) zs $ 
                   sendInvoice manager queries cred
-
           for_ yss $ \ys -> do
             let (es, os) = partitionEithers ys
             for_ es $ \(ident, error) ->
