@@ -49,4 +49,4 @@ configSourceTokenLife: 10000
 
 configTemplateDir: ./template
 
-backupBigDB: false
+configBackupBigDB: false
