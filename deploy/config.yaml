@@ -48,3 +48,5 @@ configCountryCodeFilePath: country-code.csv
 configSourceTokenLife: 10000
 
 configTemplateDir: ./template
+
+backupBigDB: false

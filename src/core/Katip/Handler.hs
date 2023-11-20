@@ -44,6 +44,7 @@ module Katip.Handler
     psqlConn,
     google,
     symmetricKeyBase,
+    backupBigDB,
 
     -- * run
     runKatipHandler,
@@ -112,7 +113,8 @@ data KatipEnv = KatipEnv
     katipEnvSmtpCfg :: !(Maybe SMTP),
     katipEnvPsqlConn :: !ConnectInfo,
     katipEnvGoogle :: !(Maybe Google),
-    katipEnvSymmetricKeyBase :: !ByteString
+    katipEnvSymmetricKeyBase :: !ByteString,
+    katipEnvBackupBigDB :: !Bool
   }
 
 data Minio = Minio {minioConn :: !Minio.MinioConn, minioBucketPrefix :: !T.Text}

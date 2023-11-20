@@ -54,6 +54,7 @@ module BCorrespondent.Config
     countryCodeFilePath,
     sourceTokenLife,
     templateDir,
+    backupBigDB,
 
     -- * Iso
     isoEnv,
@@ -154,7 +155,8 @@ data Config = Config
     configWebhook :: !T.Text,
     configCountryCodeFilePath :: !T.Text,
     configSourceTokenLife :: !Int,
-    configTemplateDir :: !T.Text
+    configTemplateDir :: !T.Text,
+    configBackupBigDB :: !Bool
   }
   deriving (Show)
 

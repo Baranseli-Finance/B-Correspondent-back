@@ -210,6 +210,7 @@ library:
     - smtp-mail
     - mime-mail
     - google-oauth2-jwt
+    - parallel
 
   source-dirs:
     - src/core

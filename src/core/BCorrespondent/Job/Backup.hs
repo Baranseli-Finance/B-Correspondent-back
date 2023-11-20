@@ -26,7 +26,7 @@ import System.Process (readProcess)
 import Control.Monad.IO.Class (liftIO)
 import Database.PostgreSQL.Simple.Internal (ConnectInfo (..))
 import Control.Lens ((^.))
-import Katip.Handler (psqlConn, hasqlDbPool, google, httpReqManager, symmetricKeyBase, ask)
+import Katip.Handler (psqlConn, hasqlDbPool, google, httpReqManager, symmetricKeyBase, backupBigDB, ask)
 import System.Directory (getTemporaryDirectory)
 import Data.Time.Clock.POSIX (getPOSIXTime)
 import Database.Transaction (statement, transactionM)
@@ -55,11 +55,12 @@ run :: Int -> KatipContextT ServerM ()
 run freq = do
   !hour <- liftIO getCurrentHour
   flip evalStateT hour $ do
-    forever $ do  
+    forever $ do 
       threadDelay $ freq * 1_000_000
+      doBackup <- fmap (^. backupBigDB) ask
       currHour <- get
       !hour <- liftIO getCurrentHour
-      when (hour /= currHour) $ do
+      when (hour /= currHour && doBackup) $ do
         modify' (const hour)
         lift $ withElapsedTime ($location <> ":run") $ do
           ConnectInfo {..} <- fmap (^. psqlConn) ask
@@ -86,7 +87,7 @@ run freq = do
             for_ cfg $ \Google {..} -> do
               resp <- liftIO $ obtainAccessToken mgr googleTokenUrl googleTokenEmail googleTokenPk
               for_ resp $ \(AccessToken token) -> do
-                k <- fmap (^. symmetricKeyBase) ask 
+                k <- fmap (^. symmetricKeyBase) ask
                 let cipheredContent = cryptContent k $ toS content
                 for_ cipheredContent $ \bs -> do
                   let part = [partBS (toS ("/b-correspondent_" <> show tm <> ".sql")) $ toS bs]
@@ -100,9 +101,9 @@ run freq = do
                   for_ resp $ const $
                     $(logTM) InfoS $ logStr @Text $
                       $location <> ":run ---> db is backed up successfully" 
-                  logError resp
-                logError cipheredContent
-              logError resp
+                  whenLeft resp $ \error -> $(logTM) ErrorS $ logStr @Text $ $location <> ":run ---> " <> toS error
+                whenLeft cipheredContent $ \error -> $(logTM) ErrorS $ logStr @Text $ $location <> ":run ---> " <> toS error
+              whenLeft resp $ \error -> $(logTM) ErrorS $ logStr @Text $ $location <> ":run ---> " <> toS error
 
 getCurrentHour :: IO Int
 getCurrentHour = do 
@@ -145,6 +146,3 @@ mkChunks n bs =
 
 cryptInPar :: ByteString -> [ByteString] -> Either String [Text]
 cryptInPar bs = sequence . Par.parMap (Par.rparWith Par.rdeepseq) (cryptContentImpl bs)
-
-logError :: Either String a -> KatipContextT ServerM ()
-logError x = whenLeft x $ \error -> $(logTM) ErrorS $ logStr @Text $ $location <> ":run ---> " <> toS error

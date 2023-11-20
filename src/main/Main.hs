@@ -352,7 +352,8 @@ main = do
               katipEnvSmtpCfg = envKeys >>= envKeysSmtp,
               katipEnvPsqlConn = psqlConnInfo,
               katipEnvGoogle = envKeys >>= envKeysGoogle,
-              katipEnvSymmetricKeyBase = symmetricKeyBase
+              katipEnvSymmetricKeyBase = symmetricKeyBase,
+              katipEnvBackupBigDB = cfg^.BCorrespondent.Config.backupBigDB
           }
 
     let shutdownMsg = print "------ server is shut down --------"
