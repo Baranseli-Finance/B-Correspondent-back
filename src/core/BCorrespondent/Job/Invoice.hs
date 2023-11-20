@@ -108,7 +108,7 @@ forwardToPaymentProvider freq = do
                 \ invoice failed to be sent, " <> 
                 toS (show ident) <> ", error: " <> error
             es' <- transactionM hasql $ do
-              statement setInvoiceInMotion $ map sel3 os
+              for_ (map sel3 os) $ statement setInvoiceInMotion . flip (:) []
               statement insertFailedInvoices es
             let notifParams = 
                   [ (the ident, body)
