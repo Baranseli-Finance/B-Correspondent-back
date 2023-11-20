@@ -27,13 +27,14 @@ import Control.Monad.Trans.Control
 import Control.Monad.IO.Unlift (MonadUnliftIO (withRunInIO))
 import Control.Monad.Time
 import Katip.Handler
-import Data.Default.Class
+import Katip (KatipContextT)
+import Cache (Cache)
+import Data.Text (Text)
+import Data.Aeson (Value)
 
-newtype ServerState = ServerState Int
-  deriving newtype Num
 
-instance Default ServerState where
-  def = ServerState 0
+data ServerState = ServerState { errorCounter :: Int, cache :: Cache (KatipContextT ServerM) Text Value }
+
 
 newtype ServerM a = ServerM {runServerM :: RWS.RWST KatipEnv KatipLogger ServerState IO a}
   deriving newtype (Functor)
@@ -52,7 +53,7 @@ newtype ServerM a = ServerM {runServerM :: RWS.RWST KatipEnv KatipLogger ServerS
   deriving newtype (MonadTime)
 
 instance MonadUnliftIO (RWS.RWST KatipEnv KatipLogger ServerState IO) where
-  withRunInIO inner = 
+  withRunInIO inner =
     RWS.RWST $ \r s -> do
       x <- withRunInIO $ \run -> 
         inner $ \m ->

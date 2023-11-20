@@ -202,7 +202,7 @@ run Cfg {..} = do
     backupAsync <- Async.Lifted.async $ Job.Backup.run $ jobFrequency + 17
     webhookAsync <- Async.Lifted.async $ Job.Webhook.go $ jobFrequency + 19
 
-    ServerState c <- get
+    ServerState c _ <- get
     when (c == 50) $ throwM RecoveryFailed
     end <- fmap snd $ 
       flip logExceptionM ErrorS $
@@ -219,7 +219,7 @@ run Cfg {..} = do
             forwardToProviderAsync
           ]
     whenLeft end $ \e -> do
-      ST.modify' (+1)
+      ST.modify' $ \s -> s { errorCounter = errorCounter s + 1 }
       let msg =
             "server has been \
             \ terminated with error "

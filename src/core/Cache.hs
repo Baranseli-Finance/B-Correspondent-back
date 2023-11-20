@@ -8,5 +8,6 @@ data Cache m k v =
      Cache
      { insert :: MonadIO m => k -> v -> m (),
        get ::  MonadIO m => k -> m (Maybe v),
-       update :: MonadIO m => k -> v -> m ()
+       update :: MonadIO m => k -> v -> m (),
+       delete :: MonadIO m => k -> m ()
      }

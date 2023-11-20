@@ -8,10 +8,12 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE NamedFieldPuns #-}
+
 
 module BCorrespondent.Job.Invoice.Provider.Elekse (make) where
 
-import BCorrespondent.ServerM (ServerM)
+import BCorrespondent.ServerM (ServerM, ServerState (..))
 import BCorrespondent.Transport.Model.Invoice (InvoiceToPaymentProvider)
 import BCorrespondent.Job.Invoice.Query (Query (..))
 import qualified BCorrespondent.Job.Invoice.Query as Q
@@ -22,7 +24,7 @@ import Network.HTTP.Client
        HttpException (HttpExceptionRequest), 
        HttpExceptionContent (StatusCodeException)
       )
-import Data.Aeson (FromJSON (..), (.:), withObject, ToJSON, eitherDecode)
+import Data.Aeson (FromJSON (..), (.:), withObject, ToJSON, eitherDecode, toJSON, encode)
 import BuildInfo (location)
 import GHC.Generics (Generic)
 import Data.Aeson.Generic.DerivingVia
@@ -33,7 +35,11 @@ import Data.Traversable (for)
 import Data.Bifunctor (second)
 import Network.HTTP.Types (hContentType, hAuthorization)
 import Network.HTTP.Types.Status (status401)
-import Katip (KatipContextT)
+import Katip (KatipContextT, logTM, Severity (DebugS), ls)
+import Cache (Cache (..))
+import qualified Control.Monad.State.Class as ST
+import Control.Monad.Trans.Class (lift)
+import Data.Foldable (for_)
 
 
 data Response a = Response { errorCode :: Int, body :: a }
@@ -49,6 +55,8 @@ toEither :: Show a => Response a -> Either String a
 toEither Response {..} | errorCode == 0 = Right body
                        | otherwise = Left $ show body
 
+tokenKey = "elekse_token" :: Text
+
 make :: Query
 make = Query { query = go }
 
@@ -62,7 +70,11 @@ go manager login pass req = do
             case error of
               HttpExceptionRequest  _ (StatusCodeException resp _) ->
                 if status401 == responseStatus resp
-                then fmap (second (const mempty)) $ go manager login pass req
+                then 
+                  fmap (second (const mempty)) $ do
+                    ServerState {cache} <- lift $ ST.get
+                    (delete cache) tokenKey
+                    go manager login pass req
                 else pure . Left . toS . show $ error
               _ -> pure . Left . toS . show $ error
       let mkResp = join . fmap toEither . eitherDecode @(Response Q.Response) . toS 
@@ -83,13 +95,19 @@ data Credentials = Credentials { credentialsUsername :: Text, credentialsPasswor
 
 fetchAuthToken :: Manager -> Text -> Text -> KatipContextT ServerM (Either String Text)
 fetchAuthToken manager login password = do
-  let hs = [(hContentType, "application/json")]
-  let onFailure = pure . Left . toS . show
-  let req = Credentials login password
-  let mkResp bs = 
-        let tmp = eitherDecode @(Response Text) . toS $ bs
-        in join $ for tmp $ \(Response {..}) -> 
-                    if errorCode == 0
-                    then Right body
-                    else Left $ "auth failed: " <> show errorCode
-  fmap (join . second mkResp) $ makePostReq @Credentials "https://apigwtest.elekse.com/api/hoppa/auth/login/corporate" manager hs req onFailure
+  ServerState {cache} <- lift $ ST.get
+  tokenRes <- fmap (fmap (eitherDecode @Text . encode)) $ (get cache) tokenKey
+  case tokenRes of 
+    Just v -> fmap (const v) $ $(logTM) DebugS $ ls @Text $ $location <> " elekse token ---> " <> toS (show v)
+    Nothing -> do
+      let hs = [(hContentType, "application/json")]
+      let onFailure = pure . Left . toS . show
+      let req = Credentials login password
+      let mkResp bs = 
+            let tmp = eitherDecode @(Response Text) . toS $ bs
+            in join $ for tmp $ \(Response {..}) -> 
+                        if errorCode == 0
+                        then Right body
+                        else Left $ "auth failed: " <> show errorCode
+      resp <- fmap (join . second mkResp) $ makePostReq @Credentials "https://apigwtest.elekse.com/api/hoppa/auth/login/corporate" manager hs req onFailure
+      fmap (const resp) $ for_ resp $ \token -> (insert cache) tokenKey $ toJSON token

@@ -21,4 +21,5 @@ init = do
   let insert key val = MVar.modifyMVar_ @m var (return . Map.insert key val)
   let get key = fmap (Map.lookup key) $ MVar.readMVar var
   let update key val = MVar.modifyMVar_ @m var (return . Map.adjust (const val) key)
+  let delete key = MVar.modifyMVar_ @m var (return . Map.delete key)
   return Cache {..}

@@ -19,7 +19,7 @@ module Main (main) where
 import qualified BCorrespondent.Server as Server
 import BCorrespondent.Config
 import BCorrespondent.EnvKeys
-
+import BCorrespondent.ServerM (ServerState (..))
 import BuildInfo (gitCommit)
 import qualified Cfg.SendGrid as SendGrid
 import Control.Applicative ((<|>))
@@ -29,7 +29,6 @@ import Control.Lens.Iso.Extended
 import Control.Monad
 import Control.Monad.RWS.Strict (evalRWST)
 import Data.Char (isUpper, toLower)
-import Data.Default.Class
 import Data.Foldable (for_)
 import Data.Maybe
 import Data.Monoid.Colorful (hGetTerm)
@@ -356,6 +355,8 @@ main = do
               katipEnvBackupBigDB = cfg^.BCorrespondent.Config.backupBigDB
           }
 
+    serverCache <- Cache.init
+    let def = ServerState 0 serverCache
     let shutdownMsg = print "------ server is shut down --------"
     let runServer le = runKatipContextT le (mempty @LogContexts) mempty $ flip Server.addServerNm "server" $ Server.run serverCfg
     bracket env (flip (>>) shutdownMsg . closeScribes) $ void . (\x -> evalRWST (Server.runServerM x) katipEnv def) . runServer
