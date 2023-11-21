@@ -84,6 +84,7 @@ data Role =
      | None
       -- any entity that can initiate an invoice query 
      | Source
+     | Sink
   deriving (Eq, Show, Read)
 
 newtype RRole (r :: Role) = UnsafeRRole Role
@@ -99,6 +100,9 @@ instance KnownRole 'Writer where
 
 instance KnownRole 'Source where
   roleSing = UnsafeRRole Source
+
+instance KnownRole 'Sink where
+  roleSing = UnsafeRRole Sink
 
 instance KnownRole 'Admin where
   roleSing = UnsafeRRole Admin

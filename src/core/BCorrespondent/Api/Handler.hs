@@ -157,11 +157,12 @@ github =
 webhook :: WebhookApi (AsServerT KatipHandlerM)
 webhook =
   WebhookApi
-  { _webhookApiCatchPaymentProvider = \kind ->
-      flip logExceptionM ErrorS
-        . katipAddNamespace
+  { _webhookApiCatchPaymentProvider = \auth kind payload ->
+      auth `Auth.withAuth` \_ ->
+        flip logExceptionM ErrorS $
+          katipAddNamespace
           (Namespace ["webhook", "payment_provider"])
-        . (Webhook.CatchPaymentProvider.catch kind)
+          (Webhook.CatchPaymentProvider.catch kind payload)
   }
 
 frontend :: FrontendApi (AsServerT KatipHandlerM)
