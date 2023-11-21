@@ -11,8 +11,9 @@
 {-# LANGUAGE NamedFieldPuns #-}
 
 
-module BCorrespondent.Job.Invoice.Provider.Elekse (make) where
+module BCorrespondent.Job.Invoice.Provider.Elekse (make, tokenKey) where
 
+import BCorrespondent.Statement.Institution.Auth (Institution (Elekse), insertToken)
 import BCorrespondent.ServerM (ServerM, ServerState (..))
 import BCorrespondent.Transport.Model.Invoice (InvoiceToPaymentProvider)
 import BCorrespondent.Job.Invoice.Query (Query (..))
@@ -40,6 +41,9 @@ import Cache (Cache (..))
 import qualified Control.Monad.State.Class as ST
 import Control.Monad.Trans.Class (lift)
 import Data.Foldable (for_)
+import Database.Transaction (transactionM, statement, ask)
+import Control.Lens ((^.))
+import Katip.Handler (hasqlDbPool)
 
 
 data Response a = Response { errorCode :: Int, body :: a }
@@ -55,7 +59,8 @@ toEither :: Show a => Response a -> Either String a
 toEither Response {..} | errorCode == 0 = Right body
                        | otherwise = Left $ show body
 
-tokenKey = "elekse_token" :: Text
+tokenKey :: Text
+tokenKey = "elekse_token"
 
 make :: Query
 make = Query { query = go }
@@ -110,4 +115,7 @@ fetchAuthToken manager login password = do
                         then Right body
                         else Left $ "auth failed: " <> show errorCode
       resp <- fmap (join . second mkResp) $ makePostReq @Credentials "https://apigwtest.elekse.com/api/hoppa/auth/login/corporate" manager hs req onFailure
-      fmap (const resp) $ for_ resp $ \token -> (insert cache) tokenKey $ toJSON token
+      fmap (const resp) $ for_ resp $ \token -> do
+        (insert cache) tokenKey $ toJSON token
+        hasql <- fmap (^. hasqlDbPool) ask
+        transactionM hasql $ statement insertToken (Elekse, token)

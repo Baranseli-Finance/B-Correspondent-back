@@ -17,13 +17,16 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE NumericUnderscores #-}
+{-# LANGUAGE NamedFieldPuns #-}
 {-# OPTIONS_GHC -fno-warn-unused-local-binds #-}
 {-# OPTIONS_GHC -fno-warn-unused-top-binds #-}
 
-module BCorrespondent.Server (Cfg (..), ServerM (..), run, addServerNm) where
+module BCorrespondent.Server (Cfg (..), ServerM (..), run, populateCache, addServerNm) where
 
+import BCorrespondent.Statement.Institution.Auth (Institution (Elekse), fetchToken)
 import qualified BCorrespondent.Job.Transaction as Job.Transaction
 import qualified BCorrespondent.Job.Invoice as Job.Invoice
+import BCorrespondent.Job.Invoice.Provider.Elekse (tokenKey)
 import qualified BCorrespondent.Job.History as Job.History
 import qualified BCorrespondent.Job.Wallet as Job.Wallet
 import qualified BCorrespondent.Job.Report as Job.Report
@@ -73,7 +76,7 @@ import Servant.Swagger.UI
 import qualified Katip.Wai as Katip.Wai
 import Control.Monad.IO.Unlift (MonadUnliftIO (withRunInIO))
 import qualified Network.Minio as Minio
-import Database.Transaction (transactionIO, statement)
+import Database.Transaction (transactionIO, transactionM, statement)
 import Data.UUID (UUID)
 import Network.Wai.RateLimit.Backend
 import Data.ByteString (ByteString)
@@ -85,6 +88,8 @@ import qualified Control.Monad.State.Class as ST
 import Data.String (fromString)
 import Pretty (mkPretty)
 import Servant.RawM.Server ()
+import Cache (Cache (Cache, insert))
+import Data.Foldable (for_)
 
 
 data Cfg = Cfg
@@ -298,3 +303,9 @@ mkApplication :: Application -> Katip.Wai.ApplicationT (KatipContextT IO)
 mkApplication hoistedApp =
   Katip.Wai.middleware DebugS $ \request send ->
     withRunInIO $ \toIO -> hoistedApp request (toIO . send)
+
+populateCache :: Cache (KatipContextT ServerM) T.Text Value -> KatipContextT ServerM ()
+populateCache Cache {insert} = do
+  hasql <- fmap (^. hasqlDbPool) ask
+  res <- transactionM hasql $ statement fetchToken Elekse
+  for_ res $ insert tokenKey . toJSON

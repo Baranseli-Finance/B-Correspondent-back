@@ -358,7 +358,10 @@ main = do
     serverCache <- Cache.init
     let def = ServerState 0 serverCache
     let shutdownMsg = print "------ server is shut down --------"
-    let runKatip le = runKatipContextT le (mempty @LogContexts) mempty $ flip Server.addServerNm "server" $ Server.run serverCfg
+    let runKatip le = 
+          runKatipContextT le (mempty @LogContexts) mempty $ 
+            flip Server.addServerNm "server" $ 
+              Server.populateCache serverCache >> Server.run serverCfg
     bracket env (flip (>>) shutdownMsg . closeScribes) $ void . (\serverM -> evalRWST (Server.runServerM serverM) katipEnv def) . runKatip
 
   whenLeft keysRes $ print . ((<>) "jwk or cipher key decode error ---> ")
