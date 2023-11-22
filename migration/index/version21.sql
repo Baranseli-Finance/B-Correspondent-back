@@ -1,0 +1,1 @@
+insert into auth.role (role, parent_id) values ('Sink', 1);
