@@ -32,15 +32,16 @@ import Data.Bifunctor (first)
 import Control.Monad.IO.Class (liftIO, MonadIO)
 import Control.Monad.Catch (handle, MonadCatch)
 import Network.HTTP.Client (HttpException)
+import Control.Monad.Catch (MonadThrow, throwM)
 
 make ::
-  (ToJSON a, MonadIO m) =>
+  (ToJSON a, MonadIO m, MonadThrow m) =>
   T.Text
   -> HTTP.Manager
   -> [HTTP.Header]
   -> HTTP.Method
   -> Either (Maybe a) [Part]
-  -> m (Either String B.ByteString)
+  -> m B.ByteString
 make url manager headers method bodye = do
  req_tmp <- liftIO $ HTTP.parseRequest $ T.unpack url
  let req =
@@ -59,15 +60,14 @@ make url manager headers method bodye = do
  response <- liftIO $ flip HTTP.httpLbs manager =<< req
  let response_status = HTTP.statusCode $ HTTP.responseStatus response
  let response_body = toS $ HTTP.responseBody response
- return $
-   if response_status ==
-      HTTP.statusCode HTTP.status200 ||
+ if response_status ==
+     HTTP.statusCode HTTP.status200 ||
     response_status == 
       HTTP.statusCode HTTP.status202 ||
     response_status == 
       HTTP.statusCode HTTP.status201
-   then Right response_body
-   else Left $ show response
+ then pure response_body
+ else liftIO req >>= \r -> throwM $ HTTP.HttpExceptionRequest r $ HTTP.StatusCodeException (fmap (const ()) response) mempty
 
 withError :: 
   forall a b e. 
@@ -108,7 +108,7 @@ safeMake ::
   -> Either (Maybe a) [Part]
   -> (HttpException -> m (Either String B.ByteString))
   -> m (Either String B.ByteString)
-safeMake url manager headers method bodye onError = onError `handle` make url manager headers method bodye
+safeMake url manager headers method bodye onError = onError `handle` fmap Right (make url manager headers method bodye)
 {-# inline safeMake #-}
 
 makePostReq ::

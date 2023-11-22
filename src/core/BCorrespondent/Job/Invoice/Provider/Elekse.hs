@@ -35,7 +35,7 @@ import Control.Monad (join)
 import Data.Traversable (for)
 import Data.Bifunctor (second)
 import Network.HTTP.Types (hContentType, hAuthorization)
-import Network.HTTP.Types.Status (status401)
+import Network.HTTP.Types.Status (unauthorized401)
 import Katip (KatipContextT, logTM, Severity (DebugS), ls)
 import Cache (Cache (..))
 import qualified Control.Monad.State.Class as ST
@@ -74,9 +74,12 @@ go manager login pass req = do
       let onFailure error = 
             case error of
               HttpExceptionRequest  _ (StatusCodeException resp _) ->
-                if status401 == responseStatus resp
-                then 
+                if unauthorized401 == 
+                   responseStatus resp
+                then
                   fmap (second (const mempty)) $ do
+                    $(logTM) DebugS $ ls @Text $ 
+                      $location <> " elekse ----> 401 error, regenerate token"
                     ServerState {cache} <- lift $ ST.get
                     (delete cache) tokenKey
                     go manager login pass req

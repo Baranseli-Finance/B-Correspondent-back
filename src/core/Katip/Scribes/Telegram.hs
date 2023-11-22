@@ -32,7 +32,6 @@ import Control.Concurrent.Async
 import Control.Concurrent.STM (atomically)
 import BuildInfo (location)
 import Control.Monad (forever)
-import Data.Either.Combinators (whenLeft)
 
 
 data Body = 
@@ -69,8 +68,7 @@ mkScribe manager Telegram {..} permitF verbosity = do
                  parse_mode = "markdown" 
                }
           let contTypeH = (HTTP.hContentType, "application/json")
-          resp <- Request.make url manager [contTypeH] HTTP.methodPost $ Left $ Just body
-          whenLeft resp $ \e -> print $ $location <> " ---> failed to send a message " <> toS msg <> ", error " <> show e
+          Request.make url manager [contTypeH] HTTP.methodPost (Left (Just body))
 
   let finalize = do
         lock `putMVar` () 
