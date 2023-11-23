@@ -18,7 +18,13 @@ import Control.Monad.Trans.Control
 init :: forall m k v . (Ord k, MonadIO m, MonadBaseControl IO m) => IO (Cache m k v)
 init = do
   var <- newMVar Map.empty
-  let insert key val = MVar.modifyMVar_ @m var (return . Map.insert key val)
+  let insert key val = 
+        MVar.modifyMVar @m var $ \old ->
+          let already = Map.member key old
+              new = Map.insert key val old
+          in if already 
+             then pure (old, False)
+             else pure (new, True)
   let get key = fmap (Map.lookup key) $ MVar.readMVar var
   let update key val = MVar.modifyMVar_ @m var (return . Map.adjust (const val) key)
   let delete key = MVar.modifyMVar_ @m var (return . Map.delete key)

@@ -23,4 +23,8 @@ data Response = Response { acceptedAt :: UTCTime }
       via WithOptions DefaultOptions
       Response
 
-data Query = Query { query :: Manager -> Text -> Text -> InvoiceToPaymentProvider -> KatipContextT ServerM (Either String Response) }
+data Query = 
+     Query 
+     { getAuthToken :: Manager -> Text  -> Text  -> KatipContextT ServerM (Either String Text),  
+       query :: Manager -> Text -> InvoiceToPaymentProvider  -> KatipContextT ServerM (Either String Response) 
+     }

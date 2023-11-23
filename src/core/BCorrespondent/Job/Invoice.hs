@@ -45,7 +45,7 @@ import BuildInfo (location)
 import Control.Monad (forever, when)
 import Control.Concurrent.Lifted (threadDelay)
 import Katip.Handler
-import Control.Lens ((^.))
+import Control.Lens ((^.), (<&>))
 import Database.Transaction (statement, transactionM, ParamsShow (..))
 import Data.Foldable (for_)
 import Data.Either (partitionEithers)
@@ -94,10 +94,9 @@ forwardToPaymentProvider freq = do
         Right xs -> do
           manager <- fmap (^.httpReqManager) ask
           yss <- Async.forConcurrently xs $ 
-            \(ident, cred, zs) -> 
-              fmap (map (second (consT ident))) $ 
-                forConcurrentlyNRetry 1 10 2 (pure . isRight) zs $ 
-                  sendInvoice manager queries cred
+            \(ident, cred, zs) ->
+              fmap (map (second (consT ident))) $
+                sendInvoices manager queries cred zs
           for_ yss $ \ys -> do
             let (es, os) = partitionEithers ys
             for_ es $ \(ident, error) ->
@@ -134,27 +133,32 @@ forwardToPaymentProvider freq = do
         Left err -> $(logTM) CriticalS $ logStr @T.Text $ $location <> ":forwardToPaymentProvider: decode error ---> " <> toS err
 
 
-sendInvoice :: Manager -> [(Int64, Query)] -> Maybe QueryCredentials -> InvoiceToBeSent -> KatipContextT ServerM (Either (Int64, T.Text) (Invoice, Int64, UUID, UTCTime))
-sendInvoice _ _ Nothing (WithField _ (WithField ident _)) = 
-  pure $ Left (ident, "payment provider credentials aren't set")
-sendInvoice
-  manager
-  queries
-  (Just QueryCredentials {..})
-  (WithField external
-   (WithField ident
-    (WithField
-      textIdent
-      invoice@InvoiceToPaymentProvider 
-      {invoiceToPaymentProviderAmount = amount, 
-       invoiceToPaymentProviderCurrency = currency}))) = do
-    $(logTM) InfoS $ logStr @T.Text $ $location <> " invoice to payment provider:  " <> toS (show invoice)    
-    let msg = "provider not found"
-    let notifBody = Invoice textIdent amount currency
-    let mkResp = bimap ((ident,) . toS) ((notifBody, ident, external,) . Q.acceptedAt)
-    fmap (fromMaybe (Left (ident, msg))) $ 
-      for (lookup provider queries) $ \(Query {query}) -> 
-        fmap mkResp $ query manager login password invoice
+sendInvoices :: Manager -> [(Int64, Query)] -> Maybe QueryCredentials -> [InvoiceToBeSent] -> KatipContextT ServerM [Either (Int64, T.Text) (Invoice, Int64, UUID, UTCTime)]
+sendInvoices _ _ Nothing xs = for xs $ \(WithField _ (WithField ident _)) -> pure $ Left (ident, "payment provider credentials aren't set")
+sendInvoices manager queries (Just QueryCredentials {..}) xs = do
+  let mkErrorMsg msg = xs <&> \(WithField _ (WithField ident _)) -> Left (ident, msg) 
+  fmap (fromMaybe (mkErrorMsg "provider not found")) $
+    for (lookup provider queries) $ \(Query {getAuthToken, query}) -> do
+      authRes <- getAuthToken manager login password
+      let withAuth (Left error) = pure $ mkErrorMsg $ toS error
+          withAuth (Right token) = 
+            forConcurrentlyNRetry 1 10 2 (pure . isRight) xs $ send query token
+      withAuth authRes
+  where
+    send
+      query
+      token
+      (WithField external
+       (WithField ident
+        (WithField
+         textIdent
+         invoice@InvoiceToPaymentProvider 
+         {invoiceToPaymentProviderAmount = amount, 
+          invoiceToPaymentProviderCurrency = currency}))) = do
+      $(logTM) InfoS $ logStr @T.Text $ $location <> " invoice to payment provider:  " <> toS (show invoice)
+      let notifBody = Invoice textIdent amount currency
+      let mkResp = bimap ((ident,) . toS) ((notifBody, ident, external,) . Q.acceptedAt)
+      fmap mkResp $ query manager token invoice
 
 validateAgainstTransaction :: Int -> KatipContextT ServerM ()
 validateAgainstTransaction freq = 
