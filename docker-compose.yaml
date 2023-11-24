@@ -95,7 +95,7 @@ services:
       - b-correspondent
 
   proxy-server:
-    image: nginx
+    image: byjg/nginx-extras
     container_name: b-correspondent-proxy-server
     profiles:
       - main
