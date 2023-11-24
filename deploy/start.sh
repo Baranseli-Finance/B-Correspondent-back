@@ -26,7 +26,9 @@ sha_back=$(curl -L \
 echo "back sha --> $sha_front"
 echo "front sha --> $sha_back"
 
-$server_header='Server: B-Correspondent<$sha_back>'
+short_sha_back=$(echo ${sha_back} | awk '{print substr($0,0,5)}')
+
+server_header="Server: B-Correspondent<$short_sha_back>"
 
 cat <<EOT >> .env
   DBUSER=sonny
