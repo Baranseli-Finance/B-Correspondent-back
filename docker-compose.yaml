@@ -112,12 +112,7 @@ services:
     ports:
       - 443:443
       - 80:80
-    command: > 
-      /bin/sh -c
-       "envsubst '$${SERVER}'
-       < /etc/nginx/nginx.conf.template
-       > /etc/nginx/nginx.conf
-       && nginx -g 'daemon off;'"
+    command: /bin/sh -c "envsubst '$${SERVER}' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf && nginx -g 'daemon off;'"
     networks:
       - b-correspondent
 
