@@ -26,6 +26,8 @@ sha_back=$(curl -L \
 echo "back sha --> $sha_front"
 echo "front sha --> $sha_back"
 
+$server_header='Server: B-Correspondent<$sha_back>'
+
 cat <<EOT >> .env
   DBUSER=sonny
   DATABASE=b-correspondent
@@ -40,6 +42,7 @@ cat <<EOT >> .env
   ELASTICPASS=${keysmap[7]}
   KIBANA_SYSTEM_PASSWORD=${keysmap[8]}
   LOGSTASH_INTERNAL_PASSWORD=${keysmap[9]}
+  SERVER_HEADER=$server_header
 EOT
 
 cp ~/ssl/front/b-correspondent.crt ./deploy/nginx/ssl/front/b-correspondent.crt

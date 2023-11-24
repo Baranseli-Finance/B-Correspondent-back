@@ -99,6 +99,8 @@ services:
     container_name: b-correspondent-proxy-server
     profiles:
       - main
+    environment:
+      - SERVER_HEADER=${SERVER_HEADER}
     volumes:
       - ${PWD}/deploy/nginx/proxy.conf:/etc/nginx/nginx.conf
       - ${HOME}/.htpasswd:/etc/apache2/.htpasswd
