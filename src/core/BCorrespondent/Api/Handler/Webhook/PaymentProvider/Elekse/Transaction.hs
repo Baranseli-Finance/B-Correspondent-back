@@ -47,17 +47,19 @@ import Network.Minio
 import Data.Coerce (coerce)      
 import Control.Monad.Time (currentTime)
 import Control.Concurrent.Lifted (fork)
+import Network.Mime (defaultMimeLookup, fileNameExtensions)
 
 
 handle :: TransactionFromPaymentProvider -> KatipHandlerM (Response ())
 handle transaction@TransactionFromPaymentProvider 
        {transactionFromPaymentProviderSwiftMessage = swift,
+        transactionFromPaymentProviderSwiftMessageExt = ext,
         transactionFromPaymentProviderIdent = uuid,
         transactionFromPaymentProviderSender = sender,
         transactionFromPaymentProviderAmount = amount,
         transactionFromPaymentProviderCurrency = currency} = 
   fmap (const (Ok ())) $ fork $ do
-    let fileName = sender <> "-" <>  toS (show amount) <> "-" <> toS (show currency)          
+    let fileName = sender <> "-" <>  toS (show amount) <> "-" <> toS (show currency) <> "." <> ext       
     resp <- commitSwiftMessage fileName swift
     for_ resp $ \[ident] -> do
       hasql <- fmap (^. katipEnv . hasqlDbPool) ask
@@ -76,14 +78,14 @@ commitSwiftMessage fileName s = do
     let path = tmp </> toS hash
     liftIO $ B.writeFile path bs
     let bucket = "transaction"
-    let fileMime = "application/octet-stream"
+    let fileMime = toS $ defaultMimeLookup fileName
     let file =
           File
           { fileHash = hash, 
             fileName = fileName,
             fileMime = fileMime,
             fileBucket = bucket,
-            fileExts = []
+            fileExts = fileNameExtensions fileName
           }
     let err = "file server failed to respond"
     minioRes <- liftIO $  

@@ -1,0 +1,1 @@
+drop table institution.transaction_to_institution_delivery;

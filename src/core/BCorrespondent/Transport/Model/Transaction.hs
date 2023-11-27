@@ -36,7 +36,7 @@ import Test.QuickCheck.Extended (Arbitrary)
 import Database.Transaction (ParamsShow)
 import qualified Data.Text as T
 import TH.Mk (mkEncoder, mkArbitrary)
-import Data.Tuple.Extended (del12, app9)
+import Data.Tuple.Extended (del12, del13, app9)
 import Data.Maybe (fromMaybe)
 import Database.Transaction (ParamsShow (..))
 import Data.String.Conv (toS)
@@ -96,7 +96,8 @@ data TransactionFromPaymentProvider =
        transactionFromPaymentProviderCorrespondentBank :: !T.Text,
        transactionFromPaymentProviderSwfitSepaCodeCorrespondentBank :: !T.Text,
        -- base64 encoded message issued by swift
-       transactionFromPaymentProviderSwiftMessage :: !T.Text
+       transactionFromPaymentProviderSwiftMessage :: !T.Text,
+       transactionFromPaymentProviderSwiftMessageExt :: !T.Text
      }
      deriving stock (Generic, Show)
      deriving (ToJSON, FromJSON)
@@ -119,7 +120,7 @@ encodeTransactionFromPaymentProvider
       Double, T.Text, T.Text, T.Text)
 encodeTransactionFromPaymentProvider = 
     fromMaybe undefined 
-  . fmap (app9 (toS @_ @T.Text . encode) . del12)
+  . fmap (app9 (toS @_ @T.Text . encode) . del12 . del13)
   . mkEncoderTransactionFromPaymentProvider
 
 instance ParamsShow TransactionFromPaymentProvider where
