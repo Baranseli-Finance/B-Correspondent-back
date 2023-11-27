@@ -24,7 +24,6 @@
 module BCorrespondent.Server (Cfg (..), ServerM (..), run, populateCache, addServerNm) where
 
 import BCorrespondent.Statement.Institution.Auth (Institution (Elekse), fetchToken)
-import qualified BCorrespondent.Job.Transaction as Job.Transaction
 import qualified BCorrespondent.Job.Invoice as Job.Invoice
 import BCorrespondent.Job.Invoice.Provider.Elekse (tokenKey)
 import qualified BCorrespondent.Job.History as Job.History
@@ -197,7 +196,6 @@ run Cfg {..} = do
                 let app = serveWithContext (withSwagger api) mkContext hoistedServer
                 mkApplication app
 
-    forwardToInitiatorAsync <- Async.Lifted.async $ Job.Transaction.forwardToInitiator jobFrequency
     forwardToProviderAsync <- Async.Lifted.async $ Job.Invoice.forwardToPaymentProvider $ jobFrequency + 3
     validateAsync <- Async.Lifted.async $ Job.Invoice.validateAgainstTransaction $ jobFrequency + 6
     refreshMVAsync <- Async.Lifted.async $ Job.History.refreshMV $ jobFrequency + 9
@@ -219,8 +217,7 @@ run Cfg {..} = do
             webhookAsync,
             validateAsync,
             refreshMVAsync,
-            withdrawAsync,
-            forwardToInitiatorAsync, 
+            withdrawAsync, 
             forwardToProviderAsync
           ]
     whenLeft end $ \e -> do

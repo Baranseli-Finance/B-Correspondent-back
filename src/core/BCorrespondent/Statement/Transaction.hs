@@ -9,43 +9,21 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# OPTIONS_GHC -fno-warn-unused-top-binds #-}
 
-module BCorrespondent.Statement.Transaction 
-       (getTransactionsToBeSent,
-        create,
-       ) 
-       where
+module BCorrespondent.Statement.Transaction (create) where
 
 import BCorrespondent.Transport.Model.Transaction 
-       (TransactionToInitiator,
-        TransactionFromPaymentProvider,
+       (TransactionFromPaymentProvider,
         encodeTransactionFromPaymentProvider)
 import BCorrespondent.Statement.Invoice 
        (Status (ProcessedByPaymentProvider, ForwardedToPaymentProvider))
 import qualified Hasql.Statement as HS
 import Hasql.TH
 import qualified Data.Text as T
-import qualified Data.Vector.Extended as V
 import Control.Lens
-import Data.Aeson (encode, eitherDecode)
-import Data.Aeson.WithField (WithField)
-import Data.UUID (UUID)
 import Data.Int (Int64)
 import Data.Tuple.Extended (snocT)
 import Data.String.Conv (toS)
 
-
-getTransactionsToBeSent :: HS.Statement () (Either String [WithField "id" UUID TransactionToInitiator])
-getTransactionsToBeSent =
-  rmap (sequence . map (eitherDecode @(WithField "id" UUID TransactionToInitiator) . encode) .  V.toList)
-  [vectorStatement|
-    select
-      jsonb_build_object(
-        'id', t.id, 
-        'senderName', t.sender_name) :: jsonb
-    from institution.transaction as t
-    inner join institution.transaction_to_institution_delivery as d
-    on t.id = d.transaction_id
-    where not is_delivered|]
 
 -- { "ident": "579b254b-dd5d-40a6-9377-beb6d3af98a3"
 --   "sender": "...",

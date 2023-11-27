@@ -92,9 +92,7 @@ explainTests =
        "setInvoiceInMotion" =>> BCorrespondent.Statement.Invoice.setInvoiceInMotion
      ] 
   , "BCorrespondent.Statement.Transaction" ==>
-     [  "getTransactionsToBeSent" =>> BCorrespondent.Statement.Transaction.getTransactionsToBeSent,
-        "create" =>> BCorrespondent.Statement.Transaction.create
-     ]
+     [ "create" =>> BCorrespondent.Statement.Transaction.create ]
   , "BCorrespondent.Statement.Fs" ==> 
      [ "insertFiles" =>> BCorrespondent.Statement.Fs.insertFiles]
   , "BCorrespondent.Statement.Dashboard" ==>
