@@ -42,43 +42,22 @@ import Database.Transaction (ParamsShow (..))
 import Data.String.Conv (toS)
 
 
--- {
---     "ident": "579b254b-dd5d-40a6-9377-beb6d3af98a3",
---     "sender": {
---         "name": "",
---         "country": "",
---         "city": "",
---         "address": "",
---         "phone": "",
---         "bank": {
---             "name": "",
---             "country": "",
---             "city": ""
---         }
---     },
---     "recipient": {
---         "name": "",
---         "country": "",
---         "city": "",
---         "address": "",
---         "phone": "..."
---     },
---     "bankAccount": "",
---     "amount": "",
---     "currency": "",
---     // the purpose of a payment
---     "description": "",
---     // who's responsibility for transaction expenses, 
---     // enum: our | sha
---     "expenses": "",
---     "swiftSepaCode": "",
---     // full message issued by swift
---     "swiftMessage": "",
---     "correspondentBank": {
---         "name": "",
---         "country": "",
---         "city": ""
---     }
+-- { 
+--    | there is an external ident that is sent previously in the invoice request. 
+--      you simply take it from the invoice request and forward it in the webhook
+--   "ident": "579b254b-dd5d-40a6-9377-beb6d3af98a3"
+--   "sender": "...",
+--   "address": "...",
+--   "phoneNumber": "...",
+--   "bank": "...",
+--   "swiftSepaCode": "...",
+--   "bankAccount": "...",
+--   "amount": "...",
+--   "currency": "usd",
+--   "correspondentBank": "...",
+--   "swfitSepaCodeCorrespondentBank": "...",
+--   "swiftMessage": "..."
+--   "swiftMessageTxt": "txt"
 -- }
 data TransactionFromPaymentProvider =
      TransactionFromPaymentProvider 
@@ -89,7 +68,7 @@ data TransactionFromPaymentProvider =
        transactionFromPaymentProviderAddress :: !T.Text,
        transactionFromPaymentProviderPhoneNumber :: !T.Text,
        transactionFromPaymentProviderBank :: !T.Text,
-       transactionFromPaymentProviderSwfitSepaCode :: !T.Text,
+       transactionFromPaymentProviderSwiftSepaCode :: !T.Text,
        transactionFromPaymentProviderBankAccount :: !T.Text,
        transactionFromPaymentProviderAmount :: !Double,
        transactionFromPaymentProviderCurrency :: !Currency,

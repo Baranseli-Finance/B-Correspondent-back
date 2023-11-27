@@ -28,6 +28,6 @@ forwardToInitiator freq =
     withElapsedTime ($location <> ":forwardToInitiator") $ do
       hasql <- fmap (^. hasqlDbPool) ask
       res <- transactionM hasql $ statement getTransactionsToBeSent ()
-      case res of 
+      case res of
         Right _ -> return ()
         Left err -> $(logTM) CriticalS $ logStr @T.Text $ $location <> ":forwardToInitiator: decode error ---> " <> toS err

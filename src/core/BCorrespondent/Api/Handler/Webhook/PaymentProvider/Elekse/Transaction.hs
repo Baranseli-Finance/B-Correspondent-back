@@ -48,6 +48,8 @@ import Data.Coerce (coerce)
 import Control.Monad.Time (currentTime)
 import Control.Concurrent.Lifted (fork)
 import Network.Mime (defaultMimeLookup, fileNameExtensions)
+import Data.Time.Clock.System (getSystemTime, systemSeconds)
+import System.FilePath (extSeparator)
 
 
 handle :: TransactionFromPaymentProvider -> KatipHandlerM (Response ())
@@ -59,7 +61,14 @@ handle transaction@TransactionFromPaymentProvider
         transactionFromPaymentProviderAmount = amount,
         transactionFromPaymentProviderCurrency = currency} = 
   fmap (const (Ok ())) $ fork $ do
-    let fileName = sender <> "-" <>  toS (show amount) <> "-" <> toS (show currency) <> "." <> ext       
+    tm <- liftIO $ fmap systemSeconds getSystemTime
+    let fileName = 
+          sender <> "_" <> 
+          toS (show amount) <> "_" <> 
+          toS (show currency) <> "_" <> 
+          toS (show tm) <> 
+          toS [extSeparator] <>
+          ext
     resp <- commitSwiftMessage fileName swift
     for_ resp $ \[ident] -> do
       hasql <- fmap (^. katipEnv . hasqlDbPool) ask
