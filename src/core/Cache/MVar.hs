@@ -14,7 +14,7 @@ import Control.Monad.IO.Class (MonadIO, liftIO)
 import Cache
 import qualified Data.Map.Strict as Map
 import Control.Monad.Trans.Control
-import Data.Time.Clock (getCurrentTime)
+import Data.Time.Clock (getCurrentTime, addUTCTime)
 
 
 init :: forall m k v . (Ord k, MonadIO m, MonadBaseControl IO m) => IO (Cache m k v)
@@ -33,4 +33,12 @@ init = do
         tm <- liftIO getCurrentTime
         MVar.modifyMVar_ @m var (return . Map.adjust (const (tm, val)) key)
   let delete key = MVar.modifyMVar_ @m var (return . Map.delete key)
+  let clean = 
+        MVar.modifyMVar_ @m var $ \x -> do 
+          tm <- liftIO getCurrentTime
+          flip Map.traverseMaybeWithKey x $ 
+            \_ (tm', v) -> 
+              if addUTCTime 3600 tm' > tm 
+              then pure Nothing 
+              else pure $ Just (tm', v)
   return Cache {..}

@@ -77,6 +77,9 @@ data Withdraw =
 
 deriveToSchemaFieldLabelModifier ''Withdraw [|firstLetterModify (Proxy @Withdraw)|]
 
+instance ParamsShow Withdraw where
+  render (Withdraw i a) = render i <> render a
+
 data WithdrawResultStatus = 
        NotEnoughFunds 
      | WithdrawalRegistered

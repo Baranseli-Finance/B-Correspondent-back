@@ -30,7 +30,8 @@ import qualified BCorrespondent.Job.History as Job.History
 import qualified BCorrespondent.Job.Wallet as Job.Wallet
 import qualified BCorrespondent.Job.Report as Job.Report
 import qualified BCorrespondent.Job.Backup as Job.Backup
-import qualified BCorrespondent.Job.Webhook as Job.Webhook 
+import qualified BCorrespondent.Job.Webhook as Job.Webhook
+import qualified BCorrespondent.Job.Cache as Job.Cache 
 import BCorrespondent.Statement.Auth (CheckToken)
 import BCorrespondent.Api
 import BCorrespondent.EnvKeys (Sendgrid)
@@ -140,7 +141,7 @@ run Cfg {..} = do
               :<|> swaggerSchemaUIServerT
                 (swaggerHttpApi
                  cfgHost 
-                 cfgSwaggerPort 
+                 cfgSwaggerPort
                  packageVersion)
           )
   excep <- askLoggerIO `addServerNm` "exception"
@@ -204,6 +205,7 @@ run Cfg {..} = do
     reportAsync <- Async.Lifted.async $ Job.Report.makeDailyInvoices $ jobFrequency + 15
     backupAsync <- Async.Lifted.async $ Job.Backup.run $ jobFrequency + 17
     webhookAsync <- Async.Lifted.async $ Job.Webhook.go $ jobFrequency + 19
+    cleanCacheAsync <- Async.Lifted.async $ Job.Cache.removeExpiredItems $ jobFrequency + 21 
 
     ServerState c _ <- get
     when (c == 50) $ throwM RecoveryFailed
@@ -217,7 +219,8 @@ run Cfg {..} = do
             webhookAsync,
             validateAsync,
             refreshMVAsync,
-            withdrawAsync, 
+            withdrawAsync,
+            cleanCacheAsync,
             forwardToProviderAsync
           ]
     whenLeft end $ \e -> do

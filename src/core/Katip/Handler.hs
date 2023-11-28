@@ -142,15 +142,7 @@ newtype KatipControllerWriter = KatipControllerWriter [String]
   deriving newtype (Semigroup)
 
 -- ServerM
-newtype KatipHandlerM a = KatipHandlerM
-  { unwrap ::
-      RWS.RWST
-        Config
-        KatipControllerWriter
-        State
-        Handler
-        a
-  }
+newtype KatipHandlerM a = KatipHandlerM { unwrap :: RWS.RWST Config KatipControllerWriter State Handler a }
   deriving newtype (Functor)
   deriving newtype (Applicative)
   deriving newtype (Monad)

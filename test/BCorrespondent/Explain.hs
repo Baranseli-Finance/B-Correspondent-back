@@ -24,6 +24,7 @@ import qualified BCorrespondent.Statement.Mail
 import qualified BCorrespondent.Statement.Backup
 import qualified BCorrespondent.Statement.Webhook
 import qualified BCorrespondent.Statement.Institution.Auth
+import qualified BCorrespondent.Statement.Cache
 
 import Control.Lens
 import Control.Monad.IO.Class
@@ -144,5 +145,9 @@ explainTests =
   , "BCorrespondent.Statement.Institution.Auth" ==>
     [ "insertToken" =>> BCorrespondent.Statement.Institution.Auth.insertToken,
       "fetchToken" =>> BCorrespondent.Statement.Institution.Auth.fetchToken 
+    ]
+  , "BCorrespondent.Statement.Cache" ==>
+    [ "insert" =>> BCorrespondent.Statement.Cache.insert @(),
+      "get" =>> BCorrespondent.Statement.Cache.get @() 
     ]
   ]

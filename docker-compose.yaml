@@ -2,7 +2,7 @@
 services:
 
   db:
-    image: postgres:16
+    image: sclaw/postgres16-pg-cron
     container_name: b-correspondent_db
     restart: 'always'
     ports:
@@ -84,8 +84,8 @@ services:
     depends_on:
       - db
     environment:
-      - DB_USER=${DBUSER}
-      - DB_PASSWORD=${DBPASS}
+      - DB_USER=postgres
+      - DB_PASSWORD=${DBPOSTGRESPASS}
       - DB_DATABASE=${DATABASE}
     volumes:
       - ${PWD}/migration/:/liquibase/changelog

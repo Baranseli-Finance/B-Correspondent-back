@@ -24,10 +24,28 @@ readonly REQUIRED_ENV_VARS=(
 main() {
   check_env_vars_set
   init_user_and_db
+  setupCron
   echo "user $DB_USER with passowrd $DB_PASSWORD has been created"
   echo "database $DB_DATABASE has been created"
 }
 
+
+setupCron() {
+  # Remove last line "shared_preload_libraries='citus'"
+  sed -i '$ d' ${PGDATA}/postgresql.conf
+
+ cat <<EOT >> ${PGDATA}/postgresql.conf
+  shared_preload_libraries='pg_cron'
+  cron.database_name='${DB_DATABASE:-DB_USER}'
+EOT
+
+  # Required to load pg_cron
+  pg_ctl restart
+
+  psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" -d "$DB_DATABASE" <<-EOSQL
+    create extension pg_cron;
+EOSQL
+}
 
 # Checks if all of the required environment
 # variables are set. If one of them isn't,

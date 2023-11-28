@@ -11,18 +11,18 @@ module BCorrespondent.Api.Handler.Institution.RegisterWithdrawal (handle, mkWith
 import BCorrespondent.EnvKeys (Sendgrid (..))
 import BCorrespondent.Statement.Institution (getWithdrawalCode)
 import BCorrespondent.Api.Handler.Frontend.User.Utils (checkInstitution)
+import qualified BCorrespondent.Statement.Cache as Cache (insert)
 import qualified BCorrespondent.Auth as Auth
 import BCorrespondent.Statement.Mail as Mail
 import BCorrespondent.Transport.Error (asError)
 import BCorrespondent.Transport.Response (Response (Error, Ok))
 import BCorrespondent.Transport.Model.Institution (Withdraw (..))
-import Katip.Handler (KatipHandlerM, katipEnv, hasqlDbPool, cache, sendGrid, ask)
+import Katip.Handler (KatipHandlerM, katipEnv, hasqlDbPool, sendGrid, ask)
 import Database.Transaction (transactionM, statement)
 import Control.Lens ((^.))
 import Data.Text (Text)
 import GHC.Float (floatToDigits)
-import Data.Int (Int32)
-import Cache (Cache (Cache, insert))
+import Data.Int (Int32, Int64)
 import Data.String.Conv (toS)
 import Katip (logTM, Severity (InfoS))
 import OpenAPI.Operations.POSTMailSend
@@ -47,7 +47,8 @@ import Data.Aeson.KeyMap (singleton)
 import BuildInfo (location)
 import Data.String (fromString)
 import Data.Foldable (for_)
-import Control.Monad (when)
+import qualified Data.Pool as Pool
+import qualified Hasql.Connection as Hasql
 
 
 mkWithdrawKey :: Int32 -> Text
@@ -60,11 +61,16 @@ handle user (Withdraw _ amount)
 handle user withdraw = 
   checkInstitution user $ \(user_id, _) -> do
     hasql <- fmap (^. katipEnv . hasqlDbPool) ask
-    x <- transactionM hasql $ statement getWithdrawalCode user_id
-    let key = mkWithdrawKey $ snd x
-    Cache {insert} <- fmap (^. katipEnv . cache) ask
-    isOk <- insert key $ toJSON withdraw
-    fmap (const (Ok ())) $ when isOk $ void $ fork $ uncurry sendCode x
+    x <- generateCode hasql user_id withdraw
+    fmap (const (Ok ())) $ void $ fork $ uncurry sendCode x
+
+generateCode :: Pool.Pool Hasql.Connection -> Int64 -> Withdraw -> KatipHandlerM (Text, Int32)
+generateCode hasql ident withdraw = do 
+  x <- transactionM hasql $ statement getWithdrawalCode ident
+  let key = mkWithdrawKey $ snd x
+  isOk <- transactionM hasql $ statement Cache.insert (key, withdraw)
+  if isOk then pure x
+  else generateCode hasql ident withdraw
 
 sendCode :: Text -> Int32 -> KatipHandlerM ()
 sendCode email code = do
