@@ -9,7 +9,7 @@
 module BCorrespondent.Api.Institution.Fiat (FiatApi (..)) where
 
 import BCorrespondent.Transport.Model.Institution 
-       (Withdraw, InitWithdrawal, WithdrawResult, WithdrawalHistory)
+       (Withdraw, InitWithdrawal, WithdrawResult, WithdrawalHistory, WithdrawalCode)
 import BCorrespondent.Transport.Response (Response)
 import BCorrespondent.Auth (AuthenticatedUser, JWT, Role (..))
 import Servant.API.Extended
@@ -24,10 +24,19 @@ data FiatApi route =
      { _fiatApiRegisterWithdrawal ::
          route
           :- "withdraw"
+          :> "register"
           :> RateLimit (FixedWindow (Second 1) 1) (KeyPolicy "Token")
           :> SA.Auth '[JWT] (AuthenticatedUser 'Writer)
           :> ReqBody '[JSON] Withdraw
-          :> Put '[JSON] (Response WithdrawResult),
+          :> Post '[JSON] (Response ()),
+       _fiatApiConfirmWithdrawal ::
+         route
+          :- "withdraw"
+          :> "confirm"
+          :> RateLimit (FixedWindow (Second 1) 1) (KeyPolicy "Token")
+          :> SA.Auth '[JWT] (AuthenticatedUser 'Writer)
+          :> ReqBody '[JSON] WithdrawalCode
+          :> Put '[JSON] (Response WithdrawResult),    
        _fiatApiInitWithdrawal ::
          route
           :- "withdraw"

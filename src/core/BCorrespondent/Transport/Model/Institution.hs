@@ -25,7 +25,8 @@ module BCorrespondent.Transport.Model.Institution
          WithdrawalPaymentProviderRequest 
            (WithdrawalPaymentProviderRequest),
          WithdrawalPaymentProviderResponse (..),
-         WithdrawalPaymentProviderResponseStatus (..)
+         WithdrawalPaymentProviderResponseStatus (..),
+         WithdrawalCode (..)
        ) where
 
 import BCorrespondent.Transport.Model.Invoice (Currency)
@@ -34,17 +35,29 @@ import Data.Proxy (Proxy (..))
 import Data.Swagger.Schema.Extended 
       ( deriveToSchemaFieldLabelModifier, 
         firstLetterModify, 
-        deriveToSchemaConstructorTag
+        deriveToSchemaConstructorTag,
+        deriveToSchema
       )
 import Data.Aeson (ToJSON, FromJSON, toJSON)
 import GHC.Generics (Generic)
-import Data.Int (Int64)
+import Data.Int (Int64, Int32)
 import Data.Char (toLower)
 import Data.Time.Clock (UTCTime)
 import Data.Text (Text)
 import Database.Transaction (ParamsShow (..))
 import Data.UUID (UUID)
 import TH.Mk (mkArbitrary)
+
+
+data WithdrawalCode = WithdrawalCode { code :: Int32 }
+    deriving stock (Generic, Show)
+    deriving 
+      (FromJSON, ToJSON)
+      via WithOptions DefaultOptions WithdrawalCode
+
+deriveToSchema ''WithdrawalCode
+
+mkArbitrary ''WithdrawalCode
 
 data Withdraw = 
      Withdraw 

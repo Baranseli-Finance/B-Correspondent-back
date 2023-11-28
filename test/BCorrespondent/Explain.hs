@@ -107,6 +107,7 @@ explainTests =
     ]
   , "BCorrespondent.Statement.Institution" ==>
     [
+      "getWithdrawalCode" =>> BCorrespondent.Statement.Institution.getWithdrawalCode,
       "initWithdrawal" =>> BCorrespondent.Statement.Institution.initWithdrawal,
       "registerWithdrawal" =>> BCorrespondent.Statement.Institution.registerWithdrawal,
       "getWithdrawalPage" =>> BCorrespondent.Statement.Institution.getWithdrawalPage,

@@ -38,6 +38,7 @@ import qualified BCorrespondent.Api.Handler.WS.User.Transaction as WS.User.Trans
 import qualified BCorrespondent.Api.Handler.WS.User.Wallet as WS.User.Wallet
 import qualified BCorrespondent.Api.Handler.Frontend.User.GetTimelineTransaction as Frontend.User.GetTimelineTransaction
 import qualified BCorrespondent.Api.Handler.Institution.RegisterWithdrawal as Institution.RegisterWithdrawal
+import qualified BCorrespondent.Api.Handler.Institution.ConfirmWithdrawal as Institution.ConfirmWithdrawal
 import qualified BCorrespondent.Api.Handler.Institution.InitWithdrawal as Institution.InitWithdrawal
 import qualified BCorrespondent.Api.Handler.Institution.GetWithdrawalHistoryPage as Institution.GetWithdrawalHistoryPage
 import qualified BCorrespondent.Api.Handler.WS.Institution.Withdrawal as WS.Institution.Withdrawal
@@ -283,12 +284,18 @@ invoice =
 fiat :: Text -> FiatApi (AsServerT KatipHandlerM)
 fiat nm = 
   FiatApi 
-  { _fiatApiRegisterWithdrawal = \auth req ->
+  { _fiatApiConfirmWithdrawal = \auth code ->
      auth `Auth.withAuth` \user ->
        flip logExceptionM ErrorS $
          katipAddNamespace
-         (Namespace [nm, "fiat", "withdraw"])
-         (Institution.RegisterWithdrawal.handle user req),
+         (Namespace [nm, "fiat", "withdraw", "confirm"])
+         (Institution.ConfirmWithdrawal.handle user code),
+    _fiatApiRegisterWithdrawal = \auth body ->
+     auth `Auth.withAuth` \user ->
+       flip logExceptionM ErrorS $
+         katipAddNamespace
+         (Namespace [nm, "fiat", "withdraw", "confirm"])
+         (Institution.RegisterWithdrawal.handle user body),
     _fiatApiInitWithdrawal = \auth ->
      auth `Auth.withAuth` \user ->
        flip logExceptionM ErrorS $

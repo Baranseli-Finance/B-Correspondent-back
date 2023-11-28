@@ -25,6 +25,7 @@ module BCorrespondent.Statement.Institution
          loadNotification,
          loadUnreadNotification,
          insertNotification,
+         getWithdrawalCode,
          WithdrawResult (..)
        ) where
 
@@ -46,6 +47,15 @@ import Hasql.Decoders (noResult)
 import Hasql.Encoders (noParams)
 import Data.Maybe (fromMaybe)
 
+
+getWithdrawalCode :: HS.Statement Int64 (Text, Int32)
+getWithdrawalCode = 
+  [singletonStatement|
+    select 
+      email :: text, 
+      cast(random()*(999999 - 100000) + 100000 as decimal(6)) :: int4 
+    from auth.user 
+    where id = $1 :: int8|]
 
 initWithdrawal :: HS.Statement (Int64, Int32) (Either String ([Balance], WithdrawalHistory))
 initWithdrawal = 
