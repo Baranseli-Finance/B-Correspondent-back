@@ -19,7 +19,4 @@ handle user page =
     \(_, institution_id) -> do
       hasql <- fmap (^. katipEnv . hasqlDbPool) ask
       fmap (flip withError id) $ 
-        transactionM hasql $ 
-          statement 
-          getWithdrawalPage 
-          (institution_id, 10, fromIntegral page)
+        transactionM hasql $ statement getWithdrawalPage (institution_id, 10, fromIntegral page)

@@ -84,8 +84,8 @@ services:
     depends_on:
       - db
     environment:
-      - DB_USER=postgres
-      - DB_PASSWORD=${DBPOSTGRESPASS}
+      - DB_USER=${DBUSER}
+      - DB_PASSWORD=${DBPASS}
       - DB_DATABASE=${DATABASE}
     volumes:
       - ${PWD}/migration/:/liquibase/changelog

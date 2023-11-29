@@ -21,7 +21,7 @@ insert =
   [rowsAffectedStatement|
     insert into cache
     (key, value, inserted_at) 
-    values ($1 :: text, $2 :: jsonb, now()) 
+    values ($1 :: text, $2 :: jsonb) 
     on conflict do nothing|]
 
 get :: forall a . FromJSON a => HS.Statement Text (Either String a)
