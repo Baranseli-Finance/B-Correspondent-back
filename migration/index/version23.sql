@@ -6,13 +6,14 @@ create unlogged table cache (
 
 create index idx_cache_key on cache (key);
 
-create or replace procedure sweep_cache (retention_period integer)
+create or replace procedure sweep_cache (retention_period interval)
 as $$
 begin
     delete from cache
     where inserted_at < now() - retention_period;
-    commit;
+
+commit;
 end;
 $$ language plpgsql;
 
-select cron.schedule('*/5 * * * *', $$call expire_rows('1 hour');$$);
+select cron.schedule('*/5 * * * *', $$call sweep_cache('1 hour');$$);
