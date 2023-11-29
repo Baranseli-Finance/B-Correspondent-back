@@ -42,6 +42,7 @@ import Test.QuickCheck.Extended (Arbitrary (arbitrary), generate)
 spec_explain :: Spec
 spec_explain =
   describeHasql
+    mempty
     [migrate]
     Nothing
     "explain"

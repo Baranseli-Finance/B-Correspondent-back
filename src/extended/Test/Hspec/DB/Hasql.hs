@@ -25,14 +25,16 @@ data TestDBHasql = TestDBHasql
 
 -- | Start a temporary postgres process and create a connections to it.
 setupDBHasql ::
+  [(String, String)] ->
   [Hasql.Session ()] ->
   -- | Data population.
   Maybe (Hasql.Session ()) ->
   IO TestDBHasql
-setupDBHasql migrations mpopulate = do
-  putStrLn $ "temp db config: " <> Temp.prettyPrintConfig (Temp.autoExplainConfig 0)
+setupDBHasql cfgXs migrations mpopulate = do
+  let cfg = Temp.autoExplainConfig 0 <> mempty { Temp.postgresConfigFile = cfgXs }
+  putStrLn $ "temp db config: " <> Temp.prettyPrintConfig cfg
   bracketOnError
-    ( Temp.startConfig (Temp.autoExplainConfig 0) >>= \case
+    ( Temp.startConfig cfg >>= \case
         Left e -> error $ "Error during db initialization: " <> show e
         Right x -> pure x
     )
@@ -75,6 +77,8 @@ session name f = HSpec.it name (void . test)
 
 -- | Hasql test.
 describeHasql ::
+  -- | add config vars
+  [(String, String)] ->
   -- | Database initialization.
   [Hasql.Session ()] ->
   -- | Database population.
@@ -84,5 +88,5 @@ describeHasql ::
   -- | Test itself.
   SpecWith TestDBHasql ->
   Spec
-describeHasql migrations mpopulate str =
-  beforeAll (setupDBHasql migrations mpopulate) . afterAll tearDownDBHasql . HSpec.describe str
+describeHasql cfgXs migrations mpopulate str =
+  beforeAll (setupDBHasql cfgXs migrations mpopulate) . afterAll tearDownDBHasql . HSpec.describe str
