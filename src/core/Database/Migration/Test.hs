@@ -17,8 +17,8 @@ migrate = sql $ exts <> fold list
   where
     exts =
       [i|create extension postgres_fdw;
-        create extension hstore;
-        create extension ltree;
-        create extension pg_trgm;
-        create extension pgcrypto;
-        create extension "uuid-ossp";|]
+         create extension hstore;
+         create extension ltree;
+         create extension pg_trgm;
+         create extension pgcrypto;
+         create extension "uuid-ossp";|]

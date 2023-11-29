@@ -6,7 +6,7 @@
         "owner": "NixOS",
         "repo": "nixpkgs",
         "rev": "",
-        "sha256": "sha256:019y1skg6p0wc5x9yxpzmq1zi3yw6hlj2hqsm4rfv12a6ffm68j7",
+        "sha256": "sha256:1nqj11pczfwpwgjpcnrb086haijgzk1zinxqrasi3sma1xw1qqxy",
         "type": "tarball",
         "url": "https://github.com/NixOS/nixpkgs/archive/nixos-unstable.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"

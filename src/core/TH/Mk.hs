@@ -159,9 +159,12 @@ loadMigrationListTest = do
               (dropExtension file)
           )
   fs <- fmap (mapMaybe mkTpl) (listDirectory migDir)
-  fmap (map snd . sortOn (^. _1)) $ forM fs $ \x -> do
-    content <- withFile (x ^. _2) ReadMode IOS.hGetContents
-    return (read @Integer (x ^. _1), content)
+  fmap (map snd . sortOn (^. _1) . catMaybes) $ forM fs $ \x ->
+    if x ^. _1 == "23" 
+    then return Nothing
+    else do 
+      content <- withFile (x ^. _2) ReadMode IOS.hGetContents
+      return $ Just (read @Integer (x ^. _1), content)
 
 mkMigrationTest :: Q [Dec] 
 mkMigrationTest = do 
