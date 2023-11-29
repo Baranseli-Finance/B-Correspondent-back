@@ -23,6 +23,8 @@ data TestDBHasql = TestDBHasql
     conn :: !Hasql.Connection
   }
 
+throwError e = error $ "Error during db initialization: " <> show e
+
 -- | Start a temporary postgres process and create a connections to it.
 setupDBHasql ::
   [(String, String)] ->
@@ -35,8 +37,11 @@ setupDBHasql cfgXs migrations mpopulate = do
   putStrLn $ "temp db config: " <> Temp.prettyPrintConfig cfg
   bracketOnError
     ( Temp.startConfig cfg >>= \case
-        Left e -> error $ "Error during db initialization: " <> show e
-        Right x -> pure x
+        Left e -> throwError e
+        Right db ->
+          Temp.restart db >>= \case
+            Left e -> throwError e
+            Right db -> pure db
     )
     Temp.stop
     $ \tempDB -> do

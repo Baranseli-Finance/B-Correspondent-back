@@ -266,6 +266,7 @@ tests:
     - tasty
     - tasty-hspec
     - tasty-html
+    - process
 
   doctest:
     main: Main.hs
