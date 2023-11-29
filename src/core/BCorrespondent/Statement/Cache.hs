@@ -19,8 +19,7 @@ insert :: ToJSON a => HS.Statement (Text, a) Bool
 insert = 
   dimap (second toJSON) (>0)
   [rowsAffectedStatement|
-    insert into cache
-    (key, value, inserted_at) 
+    insert into cache (key, value) 
     values ($1 :: text, $2 :: jsonb) 
     on conflict do nothing|]
 
