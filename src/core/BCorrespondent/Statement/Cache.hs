@@ -5,14 +5,14 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 -- https://martinheinz.dev/blog/105
-module BCorrespondent.Statement.Cache (insert, get) where
+module BCorrespondent.Statement.Cache (insert, get, delete) where
 
 import qualified Hasql.Statement as HS
 import Data.Text (Text)
 import Data.Aeson (ToJSON, FromJSON, encode, toJSON, eitherDecode, Value)
 import Control.Lens (rmap, dimap)
 import Data.Bifunctor (second)
-import Hasql.TH (rowsAffectedStatement, maybeStatement)
+import Hasql.TH (rowsAffectedStatement, maybeStatement, resultlessStatement)
 import Data.Maybe (fromMaybe)
 
 insert :: ToJSON a => HS.Statement (Text, a) Bool
@@ -25,5 +25,8 @@ insert =
 
 get :: forall a . FromJSON a => HS.Statement Text (Either String a)
 get = 
-  rmap (fromMaybe (Left "key not found") . fmap (eitherDecode @a . encode @Value)) 
+  rmap (fromMaybe (Left "key not found") . fmap (eitherDecode @a . encode @Value))
   [maybeStatement| select value :: jsonb from cache where key = $1 :: text|]
+
+delete :: HS.Statement Text ()
+delete = [resultlessStatement|delete from cache where key = $1 :: text|]

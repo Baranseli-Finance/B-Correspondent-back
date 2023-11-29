@@ -8,7 +8,7 @@ module BCorrespondent.Api.Handler.Institution.ConfirmWithdrawal (handle) where
 
 import BCorrespondent.Api.Handler.Institution.RegisterWithdrawal (mkWithdrawKey)
 import BCorrespondent.Api.Handler.Frontend.User.Utils (checkInstitution)
-import qualified BCorrespondent.Statement.Cache as Cache (get)
+import qualified BCorrespondent.Statement.Cache as Cache (get, delete)
 import BCorrespondent.Statement.Institution (registerWithdrawal, WithdrawResult (..))
 import qualified BCorrespondent.Auth as Auth
 import BCorrespondent.Api.Handler.Utils (withError)
@@ -38,4 +38,5 @@ handle user (WithdrawalCode code) =
       let mkResp NotEnoughFunds = WithdrawResult I.NotEnoughFunds Nothing
           mkResp (FrozenFunds amount) = WithdrawResult I.FrozenFunds $ Just amount
           mkResp Ok = WithdrawResult I.WithdrawalRegistered Nothing
-      fmap (`withError` mkResp) $ transactionM hasql $ statement registerWithdrawal (user_id, ident, amount)
+      fmap (`withError` mkResp) $ transactionM hasql $
+        statement Cache.delete key >> statement registerWithdrawal (user_id, ident, amount)
