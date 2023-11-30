@@ -1,12 +1,11 @@
 {-#LANGUAGE TemplateHaskell #-}
 {-#LANGUAGE OverloadedStrings #-}
 {-#LANGUAGE NumericUnderscores #-}
-{-#LANGUAGE NamedFieldPuns #-}
 
 module BCorrespondent.Job.Cache (removeExpiredItems) where
 
 import BCorrespondent.Job.Utils (withElapsedTime)
-import BCorrespondent.ServerM (ServerM, ServerState (..))
+import BCorrespondent.ServerM (ServerM, cache)
 import Katip (KatipContextT)
 import BuildInfo (location)
 import Control.Monad (forever)
@@ -19,6 +18,5 @@ removeExpiredItems :: Int -> KatipContextT ServerM ()
 removeExpiredItems freq =
   forever $ do
     threadDelay $ freq * 1_000_000
-    withElapsedTime ($location <> ":removeExpiredItems") $ do 
-      ServerState {cache} <- lift ST.get
-      clean cache
+    withElapsedTime ($location <> ":removeExpiredItems") $
+      fmap cache (lift ST.get) >>= clean
