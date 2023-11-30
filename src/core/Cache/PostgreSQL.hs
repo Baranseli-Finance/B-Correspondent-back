@@ -32,6 +32,8 @@ init hasql = do
   let update key val =
         transactionM hasql $ 
           statement C.update (key, val)
-  let delete = transactionM hasql . statement C.delete
+  let delete = 
+          transactionM hasql 
+        . statement C.delete
   let clean = pure ()
   return Cache {..}

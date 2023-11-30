@@ -8,7 +8,8 @@
 
 module BCorrespondent.Api.Handler.Webhook.PaymentProvider.Elekse.Transaction (handle) where
 
-import BCorrespondent.Transport.Model.Transaction 
+import qualified BCorrespondent.Statement.Cache as Cache (insert)
+import BCorrespondent.Transport.Model.Transaction
        (TransactionFromPaymentProvider (..))
 import BCorrespondent.Statement.Transaction (create)
 import BCorrespondent.Statement.Fs (File (..), insertFiles)
@@ -50,7 +51,12 @@ import Control.Concurrent.Lifted (fork)
 import Network.Mime (defaultMimeLookup, fileNameExtensions)
 import Data.Time.Clock.System (getSystemTime, systemSeconds)
 import System.FilePath (extSeparator)
+import Data.UUID (toString, UUID)
 
+
+
+mkTransactionKey :: UUID -> Text
+mkTransactionKey uuid = toS $ "transaction" <> toString uuid
 
 handle :: TransactionFromPaymentProvider -> KatipHandlerM (Response ())
 handle transaction@TransactionFromPaymentProvider 
@@ -61,6 +67,8 @@ handle transaction@TransactionFromPaymentProvider
         transactionFromPaymentProviderAmount = amount,
         transactionFromPaymentProviderCurrency = currency} = 
   fmap (const (Ok ())) $ fork $ do
+    hasql <- fmap (^. katipEnv . hasqlDbPool) ask
+    void $ transactionM hasql $ statement Cache.insert (mkTransactionKey uuid, transaction)
     tm <- liftIO $ fmap systemSeconds getSystemTime
     let fileName = 
           sender <> "_" <> 
@@ -71,7 +79,6 @@ handle transaction@TransactionFromPaymentProvider
           ext
     resp <- commitSwiftMessage fileName swift
     for_ resp $ \[ident] -> do
-      hasql <- fmap (^. katipEnv . hasqlDbPool) ask
       dbRes <- transactionM hasql $ statement create (ident, transaction)
       for_ dbRes $ \(instIdent, textualIdent) -> 
         makeH @"transaction_processed" instIdent [Transaction textualIdent uuid]
