@@ -8,6 +8,7 @@
 module Cache.MVar (init) where
 
 import Prelude hiding (init)
+
 import Control.Concurrent.MVar (newMVar)
 import qualified Control.Concurrent.MVar.Lifted as MVar
 import Control.Monad.IO.Class (MonadIO, liftIO)

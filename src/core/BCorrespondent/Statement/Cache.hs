@@ -5,12 +5,12 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 -- https://martinheinz.dev/blog/105
-module BCorrespondent.Statement.Cache (insert, get, delete) where
+module BCorrespondent.Statement.Cache (insert, get, delete, update) where
 
 import qualified Hasql.Statement as HS
 import Data.Text (Text)
 import Data.Aeson (ToJSON, FromJSON, encode, toJSON, eitherDecode, Value)
-import Control.Lens (rmap, dimap)
+import Control.Lens (rmap, dimap, lmap)
 import Data.Bifunctor (second)
 import Hasql.TH (rowsAffectedStatement, maybeStatement, resultlessStatement)
 import Data.Maybe (fromMaybe)
@@ -30,3 +30,6 @@ get =
 
 delete :: HS.Statement Text ()
 delete = [resultlessStatement|delete from cache where key = $1 :: text|]
+
+update :: ToJSON a => HS.Statement (Text, a) ()
+update = lmap (second toJSON)  [resultlessStatement|update cache set value = $2 :: jsonb where key = $1 :: text|]

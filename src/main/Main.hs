@@ -19,7 +19,7 @@ module Main (main) where
 import qualified BCorrespondent.Server as Server
 import BCorrespondent.Config
 import BCorrespondent.EnvKeys
-import BCorrespondent.ServerM (ServerState (..))
+import BCorrespondent.ServerM (ServerState (..), ServerM)
 import BuildInfo (gitCommit)
 import qualified Cfg.SendGrid as SendGrid
 import Control.Applicative ((<|>))
@@ -67,7 +67,8 @@ import Data.Aeson (eitherDecode')
 import Data.String.Conv (toS)
 import Database.PostgreSQL.Simple.Internal (ConnectInfo (..), connect, close)
 import BuildInfo (getSystemInfo)
-import qualified Cache.MVar as Cache
+import qualified Cache.MVar as MemCache
+import qualified Cache.PostgreSQL as SqlCache
 import qualified Data.ByteString.Base64 as B64 
 import Data.Text.Encoding (encodeUtf8)
 
@@ -320,7 +321,9 @@ main = do
           psqlpool = psqlpool
         }
 
-  cache <- Cache.init  
+  cache <- MemCache.init
+  -- not used
+  _ <- SqlCache.init @(KatipContextT ServerM) @() hasqlpool
 
   jwke <- liftIO $ fmap (eitherDecode' @JWK) $ B.readFile pathToJwk
   symmetricKeyBasee <- fmap (B64.decode . encodeUtf8 . toS) $ B.readFile pathToSymmetricBase
@@ -355,7 +358,7 @@ main = do
               katipEnvBackupBigDB = cfg^.BCorrespondent.Config.backupBigDB
           }
 
-    serverCache <- Cache.init
+    serverCache <- MemCache.init
     let def = ServerState 0 serverCache
     let shutdownMsg = print "------ server is shut down --------"
     let runKatip le = 
