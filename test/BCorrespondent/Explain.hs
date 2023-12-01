@@ -38,26 +38,12 @@ import Test.Hspec hiding (shouldBe)
 import Test.Hspec.DB.Hasql
 import Test.Hspec.Expectations.Lifted
 import Test.QuickCheck.Extended (Arbitrary (arbitrary), generate)
-import System.Process (readProcess)
+
 
 spec_explain :: Spec
 spec_explain = do
-  pgCronPath <- runIO $ 
-      readProcess "nix" 
-      ["--extra-experimental-features", 
-       "nix-command", 
-       "eval", 
-       "--impure", 
-       "--raw", 
-       "--expr", 
-       "with import <nixpkgs> {}; pg_cron"
-      ] mempty
-
   describeHasql
-    [("shared_preload_libraries", 
-      "'" <> pgCronPath <> "/lib/pg_cron'")
-    , ("cron.database_name", "'postgres'"
-    )]
+    []
     [migrate]
     Nothing
     "explain"
