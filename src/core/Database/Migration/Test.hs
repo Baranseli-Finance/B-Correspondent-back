@@ -21,4 +21,5 @@ migrate = sql $ exts <> fold list
          create extension ltree;
          create extension pg_trgm;
          create extension pgcrypto;
-         create extension "uuid-ossp";|]
+         create extension "uuid-ossp";
+         create extension pg_cron;|]
