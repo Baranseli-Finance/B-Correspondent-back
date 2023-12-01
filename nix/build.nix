@@ -1,6 +1,6 @@
 let
   sources = import ./sources.nix;
-  pkgs = import sources.nixpkgs { };
+  pkgs = import sources.nixpkgs {};
 in
 let
   # Wrap Stack to configure Nix integration and target the correct Stack-Nix file
@@ -22,12 +22,8 @@ let
     '';
   };
   openapi-generator = import ./openapi3-haskell.nix {};
-
-  #  for  using BERT in sentimental analysis
-  pythonEnv = pkgs.python3.withPackages (ps: [ ps.openai ]);
 in
 pkgs.mkShell {
-  packages = [pythonEnv];
   buildInputs = [
     stack-wrapped
     openapi-generator
@@ -44,11 +40,12 @@ pkgs.mkShell {
     pkgs.gnumake
     pkgs.figlet
   ];
+  LD_LIBRARY_PATH="${pkgs.pg_cron}/lib";
   # Configure the Nix path to our own `pkgs`, to ensure Stack-with-Nix uses the correct one rather than the global <nixpkgs> when looking for the right `ghc` argument to pass in `nix/stack-integration.nix`
   # See https://nixos.org/nixos/nix-pills/nix-search-paths.html for more information
   NIX_PATH = "nixpkgs=" + pkgs.path;
   shellHook = ''
-      export PATH=./bin:$PATH 
+      export PATH=./bin:$PATH:$LD_LIBRARY_PATH
       figlet -f smslant Welcome to B-Correspondent nix-shell!
   '';
 }

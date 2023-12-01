@@ -1,7 +1,6 @@
 let
   sources = import ./sources.nix;
-  pkgs = import sources.nixpkgs { };
-
+  pkgs = import sources.nixpkgs {};
 in
 
 # See https://docs.haskellstack.org/en/stable/nix_integration/#using-a-custom-shellnix-file
@@ -12,5 +11,5 @@ pkgs.haskell.lib.buildStackProject {
   inherit ghc;
   name = "haskell-stack-nix";
   # System dependencies needed at compilation time
-  buildInputs = [ pkgs.postgresql pkgs.lzma pkgs.git pkgs.zlib pkgs.imagemagick ];
+  buildInputs = [ pkgs.postgresql_16 pkgs.pg_cron pkgs.lzma pkgs.git pkgs.zlib ];
 }
