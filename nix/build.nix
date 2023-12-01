@@ -23,29 +23,28 @@ let
   };
   openapi-generator = import ./openapi3-haskell.nix {};
 in
-pkgs.mkShell {
+with pkgs;
+mkShell {
   buildInputs = [
     stack-wrapped
     openapi-generator
-    pkgs.glibcLocalesUtf8
-    pkgs.glibcLocales
-    pkgs.python311
-    pkgs.haskell.compiler.ghc928
-    pkgs.ormolu
-    pkgs.python3
-    pkgs.expat
-    pkgs.gcc
-    pkgs.postgresql_16
-    pkgs.pg_cron
-    pkgs.gnumake
-    pkgs.figlet
+    glibcLocalesUtf8
+    glibcLocales
+    python311
+    haskell.compiler.ghc928
+    ormolu
+    python3
+    expat
+    gcc
+    postgresql_16
+    pg_cron
+    gnumake
+    figlet
   ];
-  LD_LIBRARY_PATH="${pkgs.pg_cron}/lib";
   # Configure the Nix path to our own `pkgs`, to ensure Stack-with-Nix uses the correct one rather than the global <nixpkgs> when looking for the right `ghc` argument to pass in `nix/stack-integration.nix`
   # See https://nixos.org/nixos/nix-pills/nix-search-paths.html for more information
-  NIX_PATH = "nixpkgs=" + pkgs.path;
+  NIX_PATH = "nixpkgs=" + path;
   shellHook = ''
-      export PATH=./bin:$PATH:$LD_LIBRARY_PATH
       figlet -f smslant Welcome to B-Correspondent nix-shell!
   '';
 }
