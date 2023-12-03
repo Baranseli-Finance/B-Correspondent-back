@@ -85,7 +85,8 @@ extra-deps:
 #
 # Extra directories used by stack for building
 # extra-include-dirs: [/path/to/dir]
-# extra-lib-dirs: [/path/to/dir]
+# extra-lib-dirs:
+  # - /nix/store/7i8m8f327qk0acknkrp9ibh4ld8yk2sk-pg_cron-1.6.2
 #
 # Allow a newer minor version of GHC than the snapshot specifies
 # compiler-check: newer-minor

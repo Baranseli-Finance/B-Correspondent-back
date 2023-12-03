@@ -1,6 +1,9 @@
 let
   sources = import ./sources.nix;
   pkgs = import sources.nixpkgs {};
+  # the installation is based upon https://github.com/supabase/pg_net/tree/master
+  psqlWithCron = pkgs.callPackage ./pg_cron.nix { inherit pkgs; postgresql = pkgs.postgresql_16; ext = pkgs.pg_cron;};
+  psql = pkgs.callPackage ./pg_script.nix { inherit pkgs; postgresql = psqlWithCron; };
 in
 
 # See https://docs.haskellstack.org/en/stable/nix_integration/#using-a-custom-shellnix-file
@@ -11,8 +14,7 @@ haskell.lib.buildStackProject {
   name = "haskell-stack-nix";
   # System dependencies needed at compilation time
   buildInputs = 
-    [ postgresql_16 
-      pg_cron 
+    [ psql
       lzma 
       git 
       zlib
