@@ -117,7 +117,7 @@ handle token = do
                         (GitHub.FetchAtLeast 1)
                 fmap (second ((Sha repo) . GitHub.untagName . V.head . fmap GitHub.commitSha)) $
                   GitHub.github (GitHub.OAuth (toS (val^.key))) query
-        for_ resp (insert "github" . toJSON) $> resp 
+        for_ resp (flip (insert "github") True . toJSON) $> resp 
 
   return $ 
     fromEither $ 

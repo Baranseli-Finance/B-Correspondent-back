@@ -308,4 +308,4 @@ populateCache :: Cache (KatipContextT ServerM) T.Text Value -> KatipContextT Ser
 populateCache Cache {insert} = do
   hasql <- fmap (^. hasqlDbPool) ask
   res <- transactionM hasql $ statement fetchToken Elekse
-  for_ res $ insert tokenKey . toJSON
+  for_ res $ flip (insert tokenKey) True . toJSON

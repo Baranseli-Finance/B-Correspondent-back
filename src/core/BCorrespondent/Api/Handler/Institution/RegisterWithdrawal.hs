@@ -68,7 +68,7 @@ generateCode :: Pool.Pool Hasql.Connection -> Int64 -> Withdraw -> KatipHandlerM
 generateCode hasql ident withdraw = do 
   x <- transactionM hasql $ statement getWithdrawalCode ident
   let key = mkWithdrawKey $ snd x
-  isOk <- transactionM hasql $ statement Cache.insert (key, withdraw)
+  isOk <- transactionM hasql $ statement Cache.insert (key, withdraw, Nothing)
   if isOk then pure x
   else generateCode hasql ident withdraw
 

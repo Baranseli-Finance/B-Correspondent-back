@@ -68,7 +68,7 @@ handle transaction@TransactionFromPaymentProvider
         transactionFromPaymentProviderCurrency = currency} = 
   fmap (const (Ok ())) $ fork $ do
     hasql <- fmap (^. katipEnv . hasqlDbPool) ask
-    void $ transactionM hasql $ statement Cache.insert (mkTransactionKey uuid, transaction)
+    void $ transactionM hasql $ statement Cache.insert (mkTransactionKey uuid, transaction, Just True)
     tm <- liftIO $ fmap systemSeconds getSystemTime
     let fileName = 
           sender <> "_" <> 

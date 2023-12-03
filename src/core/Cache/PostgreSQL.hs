@@ -22,15 +22,15 @@ import Data.Either (fromRight)
 
 init :: forall m v . (KatipContext m, ParamsShow v, ToJSON v, FromJSON v) => Pool Connection -> IO (Cache m Text v)
 init hasql = do
-  let insert key val = 
+  let insert key val isPermanent = 
         transactionM hasql $ 
-          statement C.insert (key, val)
+          statement C.insert (key, val, Just isPermanent)
   let get key = 
         fmap (fromRight Nothing . fmap Just) $ 
           transactionM hasql $ 
             statement C.get key
   let update key val =
-        transactionM hasql $ 
+        transactionM hasql $
           statement C.update (key, val)
   let delete = 
           transactionM hasql 

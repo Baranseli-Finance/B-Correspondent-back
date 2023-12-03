@@ -11,16 +11,17 @@ import qualified Hasql.Statement as HS
 import Data.Text (Text)
 import Data.Aeson (ToJSON, FromJSON, encode, toJSON, eitherDecode, Value)
 import Control.Lens (rmap, dimap, lmap)
+import Data.Tuple.Extended (app2)
 import Data.Bifunctor (second)
 import Hasql.TH (rowsAffectedStatement, maybeStatement, resultlessStatement)
 import Data.Maybe (fromMaybe)
 
-insert :: ToJSON a => HS.Statement (Text, a) Bool
+insert :: ToJSON a => HS.Statement (Text, a, Maybe Bool) Bool
 insert = 
-  dimap (second toJSON) (>0)
+  dimap (app2 toJSON) (>0)
   [rowsAffectedStatement|
-    insert into cache (key, value) 
-    values ($1 :: text, $2 :: jsonb) 
+    insert into cache (key, value, is_permanent) 
+    values ($1 :: text, $2 :: jsonb, coalesce($3 :: bool?, false))
     on conflict do nothing|]
 
 get :: forall a . FromJSON a => HS.Statement Text (Either String a)

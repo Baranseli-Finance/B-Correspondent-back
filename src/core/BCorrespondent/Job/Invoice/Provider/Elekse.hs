@@ -128,7 +128,7 @@ fetchAuthToken manager login password = do
                         else Left $ "auth failed: " <> show errorCode
       resp <- fmap (join . second mkResp) $ makePostReq @Credentials authUrl manager hs req onFailure
       fmap (const resp) $ for_ resp $ \token -> do
-        isOk <- (insert cache) tokenKey $ toJSON token
+        isOk <- (insert cache) tokenKey (toJSON token) True
         when isOk $ do
           hasql <- fmap (^. hasqlDbPool) ask
           transactionM hasql $ statement insertToken (Elekse, token)

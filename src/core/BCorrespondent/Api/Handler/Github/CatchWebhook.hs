@@ -47,7 +47,7 @@ catch payload = do
               shaValue
             }
       let newXs = toJSON $ modifySha oldXs val
-      insert "github" newXs
+      insert "github" newXs True
 
 modifySha [] val = [val]
 modifySha (x:xs) v 

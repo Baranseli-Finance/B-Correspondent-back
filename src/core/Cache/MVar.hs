@@ -16,30 +16,34 @@ import Cache
 import qualified Data.Map.Strict as Map
 import Control.Monad.Trans.Control
 import Data.Time.Clock (getCurrentTime, addUTCTime)
+import Control.Monad (join)
+import Data.Traversable (for)
 
 
 init :: forall m k v . (Ord k, MonadIO m, MonadBaseControl IO m) => IO (Cache m k v)
 init = do
   var <- newMVar Map.empty
-  let insert key val = 
+  let insert key val isPermanent = 
         MVar.modifyMVar @m var $ \old -> do 
           tm <- liftIO getCurrentTime
+          let tm' = if isPermanent then Nothing else Just tm
           let already = Map.member key old
-              new = Map.insert key (tm, val) old
+              new = Map.insert key (tm', val) old
           if already
           then pure (old, False)
           else pure (new, True)
   let get key = fmap (fmap snd . Map.lookup key) $ MVar.readMVar var
   let update key val = do
         tm <- liftIO getCurrentTime
-        MVar.modifyMVar_ @m var (return . Map.adjust (const (tm, val)) key)
+        MVar.modifyMVar_ @m var (return . Map.adjust (\(tmm, _) -> (fmap (const tm) tmm, val)) key)
   let delete key = MVar.modifyMVar_ @m var (return . Map.delete key)
   let clean = 
         MVar.modifyMVar_ @m var $ \x -> do 
           tm <- liftIO getCurrentTime
           flip Map.traverseMaybeWithKey x $ 
-            \_ (tm', v) -> 
-              if addUTCTime 3600 tm' > tm 
-              then pure Nothing 
-              else pure $ Just (tm', v)
+            \_ (tmm', v) ->
+              fmap join $ for tmm' $ \tm' ->
+                if addUTCTime 3600 tm' > tm 
+                then pure Nothing 
+                else pure $ Just (Just tm', v)
   return Cache {..}

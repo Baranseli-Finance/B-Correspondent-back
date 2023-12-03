@@ -10,7 +10,7 @@ import Data.String.Interpolate
 import Hasql.Session
 import TH.Mk
 
-$mkMigrationTest
+$(mkMigrationTest ["23", "25"])
 
 migrate :: Session ()
 migrate = sql $ exts <> fold list

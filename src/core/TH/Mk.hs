@@ -147,8 +147,8 @@ mkParamSchemaEnum name iso = do
           & enum_ ?~ (new_xs <&> \x -> view $iso (coerce x))
     |]
 
-loadMigrationListTest :: IO [String]
-loadMigrationListTest = do  
+loadMigrationListTest :: [String] -> IO [String]
+loadMigrationListTest idxXs = do  
   dir <- getCurrentDirectory 
   let migDir = dir </> "migration/index"
   let mkTpl file =
@@ -160,15 +160,15 @@ loadMigrationListTest = do
           )
   fs <- fmap (mapMaybe mkTpl) (listDirectory migDir)
   fmap (map snd . sortOn (^. _1) . catMaybes) $ forM fs $ \x ->
-    if x ^. _1 == "23" 
+    if x ^. _1 `elem` idxXs
     then return Nothing
     else do 
       content <- withFile (x ^. _2) ReadMode IOS.hGetContents
       return $ Just (read @Integer (x ^. _1), content)
 
-mkMigrationTest :: Q [Dec] 
-mkMigrationTest = do 
-  xs <- liftIO loadMigrationListTest
+mkMigrationTest :: [String] -> Q [Dec] 
+mkMigrationTest idxXs = do 
+  xs <- liftIO $ loadMigrationListTest idxXs
   let list = mkName "list"
   let mkSql str = LitE (StringL str)
   let xs' = if null xs then [] else map mkSql xs
