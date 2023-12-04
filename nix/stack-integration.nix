@@ -1,9 +1,6 @@
 let
   sources = import ./sources.nix;
   pkgs = import sources.nixpkgs {};
-  # the installation is based upon https://github.com/supabase/pg_net/tree/master
-  psqlWithCron = pkgs.callPackage ./pg_cron.nix { inherit pkgs; postgresql = pkgs.postgresql_16; ext = pkgs.pg_cron;};
-  psql = pkgs.callPackage ./pg_script.nix { inherit pkgs; postgresql = psqlWithCron; };
 in
 
 # See https://docs.haskellstack.org/en/stable/nix_integration/#using-a-custom-shellnix-file
@@ -14,8 +11,7 @@ haskell.lib.buildStackProject {
   name = "haskell-stack-nix";
   # System dependencies needed at compilation time
   buildInputs = 
-    [ psql
-      lzma 
+    [ lzma 
       git 
       zlib
       # 16 1637.0 bzlib-conduit                    > Error: Cabal-simple_9p6GVs8J_3.8.1.0_ghc-9.4.5: Missing dependency on a

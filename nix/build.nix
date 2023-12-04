@@ -36,8 +36,7 @@ mkShell {
     python3
     expat
     gcc
-    postgresql_16
-    pg_cron
+    (postgresql_16.withPackages (p: [ p.pg_cron ]))
     gnumake
     figlet
   ];
