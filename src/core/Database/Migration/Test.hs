@@ -10,7 +10,7 @@ import Data.String.Interpolate
 import Hasql.Session
 import TH.Mk
 
-$(mkMigrationTest ["23", "25"])
+$(mkMigrationTest [])
 
 migrate :: Session ()
 migrate = sql $ exts <> fold list
@@ -21,4 +21,5 @@ migrate = sql $ exts <> fold list
          create extension ltree;
          create extension pg_trgm;
          create extension pgcrypto;
-         create extension "uuid-ossp";|]
+         create extension "uuid-ossp";
+         create extension pg_cron;|]

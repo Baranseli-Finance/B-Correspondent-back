@@ -43,7 +43,9 @@ import Test.QuickCheck.Extended (Arbitrary (arbitrary), generate)
 spec_explain :: Spec
 spec_explain = do
   describeHasql
-    []
+    [ ("shared_preload_libraries", "'pg_cron'")
+    , ("cron.database_name", "'postgres'")
+    ]
     [migrate]
     Nothing
     "explain"
