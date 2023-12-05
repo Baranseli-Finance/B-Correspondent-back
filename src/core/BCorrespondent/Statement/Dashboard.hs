@@ -125,7 +125,7 @@ getDashboard =
             'tm', cast(i.appearance_on_timeline as text) || 'Z',
             'currency', i.currency,
             'amount', i.amount)
-            order by i.appearance_on_timeline asc)
+            order by i.appearance_on_timeline asc, i.textual_view asc)
             :: jsonb[] as values
           from (
             select
@@ -194,7 +194,7 @@ get1HourTimeline =
           'tm', cast(i.appearance_on_timeline as text) || 'Z',
           'currency', i.currency,
           'amount', i.amount)
-          order by i.appearance_on_timeline asc)
+          order by i.appearance_on_timeline asc, i.textual_view asc)
           :: jsonb[] as values
         from (
           select
@@ -268,7 +268,7 @@ getGap =
               cast($4 :: int as text) || ':' || 
               cast($5 :: int as text) || ':00') 
               as timestamp)
-    order by appearance_on_timeline asc|]
+    order by appearance_on_timeline asc, textual_view asc|]
 
 getTransaction :: HS.Statement (Int64, Int64) (Maybe (Either String TimelineTransaction))
 getTransaction = 
