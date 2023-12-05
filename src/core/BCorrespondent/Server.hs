@@ -90,6 +90,7 @@ import Pretty (mkPretty)
 import Servant.RawM.Server ()
 import Cache (Cache (Cache, insert))
 import Data.Foldable (for_)
+import Network.Wai.Middleware.Prometheus (prometheus, PrometheusSettings)
 
 
 data Cfg = Cfg
@@ -189,13 +190,17 @@ run Cfg {..} = do
     threadDelay 1_000_000
     serverAsync <-
       Async.Lifted.async $
-        liftIO $
+        liftIO $ do
           Warp.runSettings settings $
-            middleware cfgCors mware_logger $ 
-              Katip.Wai.runApplication
-              (runKatipContextT logEnv () ns) $ do
-                let app = serveWithContext (withSwagger api) mkContext hoistedServer
-                mkApplication app
+            middleware cfgCors mware_logger $
+              prometheus (def @PrometheusSettings) $
+                Katip.Wai.runApplication
+                (runKatipContextT logEnv () ns) $
+                  mkApplication $ 
+                    serveWithContext 
+                      (withSwagger api) 
+                      mkContext 
+                      hoistedServer
 
     forwardToProviderAsync <- Async.Lifted.async $ Job.Invoice.forwardToPaymentProvider $ jobFrequency + 3
     validateAsync <- Async.Lifted.async $ Job.Invoice.validateAgainstTransaction $ jobFrequency + 6

@@ -71,6 +71,8 @@ import qualified Cache.MVar as MemCache
 import qualified Cache.PostgreSQL as SqlCache
 import qualified Data.ByteString.Base64 as B64 
 import Data.Text.Encoding (encodeUtf8)
+import qualified Prometheus as Prometheus (register)
+import qualified Prometheus.Metric.GHC as GHC.Prometheus (ghcMetrics)
 
 
 data PrintCfg = Y | N deriving stock (Generic)
@@ -149,6 +151,8 @@ toSnake = map toLower . concat . underscores . splitR isUpper
 
 main :: IO ()
 main = do
+  void $ Prometheus.register GHC.Prometheus.ghcMetrics
+  
   cmd@Cmd {..} <- unwrapRecord "BCorrespondent"
   print "------ Cmd: start ------"
   pPrint cmd

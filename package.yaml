@@ -8,6 +8,7 @@ copyright:           "2023"
 ghc-options:
   - -threaded
   - -rtsopts
+  - -with-rtsopts=-T
   - -O2
   - -Werror
   - -fwarn-unused-imports
@@ -169,7 +170,6 @@ library:
     - generics-sop
     - string-conv
     - warp-tls
-    - crypto-random
     - network
     - mime-types
     - cprng-aes
@@ -211,6 +211,7 @@ library:
     - mime-mail
     - google-oauth2-jwt
     - parallel
+    - wai-middleware-prometheus
 
   source-dirs:
     - src/core
@@ -246,6 +247,8 @@ executables:
       - string-conv
       - postgresql-simple
       - base64-bytestring
+      - prometheus-client
+      - prometheus-metrics-ghc
 
 tests:
   tasty:
