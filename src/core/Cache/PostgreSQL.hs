@@ -29,11 +29,7 @@ init hasql = do
         fmap (fromRight Nothing . fmap Just) $ 
           transactionM hasql $ 
             statement C.get key
-  let update key val =
-        transactionM hasql $
-          statement C.update (key, val)
-  let delete = 
-          transactionM hasql 
-        . statement C.delete
+  let update key val = transactionM hasql $ statement C.update (key, val)
+  let delete = transactionM hasql . statement C.delete
   let clean = pure ()
   return Cache {..}
