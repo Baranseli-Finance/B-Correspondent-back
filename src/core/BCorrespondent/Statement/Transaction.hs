@@ -9,7 +9,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# OPTIONS_GHC -fno-warn-unused-top-binds #-}
 
-module BCorrespondent.Statement.Transaction (create) where
+module BCorrespondent.Statement.Transaction (create, checkExternalIdent) where
 
 import BCorrespondent.Transport.Model.Transaction 
        (TransactionFromPaymentProvider,
@@ -23,6 +23,7 @@ import Control.Lens
 import Data.Int (Int64)
 import Data.Tuple.Extended (snocT)
 import Data.String.Conv (toS)
+import Data.UUID (UUID)
 
 
 -- { "ident": "579b254b-dd5d-40a6-9377-beb6d3af98a3"
@@ -82,3 +83,6 @@ create =
     where id = (select invoice_id from new_transaction)
     and status = $14 :: text
     returning institution_id :: int8, textual_view :: text|]
+
+checkExternalIdent :: HS.Statement UUID Bool
+checkExternalIdent = [singletonStatement|select (exists (select * from institution.invoice_to_institution_delivery where external_id = $1 :: uuid)) :: bool|]

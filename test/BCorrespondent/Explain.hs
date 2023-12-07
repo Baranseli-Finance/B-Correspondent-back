@@ -96,7 +96,9 @@ explainTests =
        "setInvoiceInMotion" =>> BCorrespondent.Statement.Invoice.setInvoiceInMotion
      ] 
   , "BCorrespondent.Statement.Transaction" ==>
-     [ "create" =>> BCorrespondent.Statement.Transaction.create ]
+     [ "create" =>> BCorrespondent.Statement.Transaction.create,
+       "checkExternalIdent" =>> BCorrespondent.Statement.Transaction.checkExternalIdent 
+     ]
   , "BCorrespondent.Statement.Fs" ==> 
      [ "insertFiles" =>> BCorrespondent.Statement.Fs.insertFiles]
   , "BCorrespondent.Statement.Dashboard" ==>

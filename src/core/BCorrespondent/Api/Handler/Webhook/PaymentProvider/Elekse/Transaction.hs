@@ -11,9 +11,10 @@ module BCorrespondent.Api.Handler.Webhook.PaymentProvider.Elekse.Transaction (ha
 import qualified BCorrespondent.Statement.Cache as Cache (insert)
 import BCorrespondent.Transport.Model.Transaction
        (TransactionFromPaymentProvider (..))
-import BCorrespondent.Statement.Transaction (create)
+import BCorrespondent.Statement.Transaction (create, checkExternalIdent)
 import BCorrespondent.Statement.Fs (File (..), insertFiles)
-import BCorrespondent.Transport.Response (Response (Ok))
+import BCorrespondent.Transport.Response (Response (Ok, Error))
+import BCorrespondent.Transport.Error (asError)
 import Katip.Handler (KatipHandlerM, hasqlDbPool, katipEnv, ask, Minio (..), minio)
 import BCorrespondent.Notification (makeH, Transaction (..)) 
 import Database.Transaction (transactionM, statement)
@@ -34,7 +35,7 @@ import Data.String.Conv (toS)
 import Control.Monad.IO.Class (liftIO)
 import System.FilePath ((</>))
 import Data.Either.Combinators (maybeToRight)
-import Control.Monad (join, void, unless)
+import Control.Monad (join, void, unless, when)
 import Data.Bifunctor (first)
 import System.Timeout (timeout)
 import Network.Minio 
@@ -51,12 +52,12 @@ import Control.Concurrent.Lifted (fork)
 import Network.Mime (defaultMimeLookup, fileNameExtensions)
 import Data.Time.Clock.System (getSystemTime, systemSeconds)
 import System.FilePath (extSeparator)
-import Data.UUID (toString, UUID)
+import Data.UUID (toText, UUID)
 
 
 
 mkTransactionKey :: UUID -> Text
-mkTransactionKey uuid = toS $ "transaction" <> toString uuid
+mkTransactionKey uuid = "transaction" <> toText uuid
 
 handle :: TransactionFromPaymentProvider -> KatipHandlerM (Response ())
 handle transaction@TransactionFromPaymentProvider 
@@ -65,24 +66,27 @@ handle transaction@TransactionFromPaymentProvider
         transactionFromPaymentProviderIdent = uuid,
         transactionFromPaymentProviderSender = sender,
         transactionFromPaymentProviderAmount = amount,
-        transactionFromPaymentProviderCurrency = currency} = 
-  fmap (const (Ok ())) $ fork $ do
-    hasql <- fmap (^. katipEnv . hasqlDbPool) ask
-    void $ transactionM hasql $ statement Cache.insert (mkTransactionKey uuid, transaction, Just True)
-    tm <- liftIO $ fmap systemSeconds getSystemTime
-    let fileName = 
-          sender <> "_" <> 
-          toS (show amount) <> "_" <> 
-          toS (show currency) <> "_" <> 
-          toS (show tm) <> 
-          toS [extSeparator] <>
-          ext
-    resp <- commitSwiftMessage fileName swift
-    for_ resp $ \[ident] -> do
-      dbRes <- transactionM hasql $ statement create (ident, transaction)
-      for_ dbRes $ \(instIdent, textualIdent) -> 
-        makeH @"transaction_processed" instIdent [Transaction textualIdent uuid]
-     
+        transactionFromPaymentProviderCurrency = currency} = do
+  hasql <- fmap (^. katipEnv . hasqlDbPool) ask
+  isOk <- transactionM hasql $ statement checkExternalIdent uuid
+  when isOk $
+    void $ fork $ do
+      void $ transactionM hasql $ statement Cache.insert (mkTransactionKey uuid, transaction, Just True)
+      tm <- liftIO $ fmap systemSeconds getSystemTime
+      let fileName = 
+            sender <> "_" <> 
+            toS (show amount) <> "_" <> 
+            toS (show currency) <> "_" <> 
+            toS (show tm) <> 
+            toS [extSeparator] <>
+            ext
+      resp <- commitSwiftMessage fileName swift
+      for_ resp $ \[ident] -> do
+        dbRes <- transactionM hasql $ statement create (ident, transaction)
+        for_ dbRes $ \(instIdent, textualIdent) -> 
+          makeH @"transaction_processed" instIdent [Transaction textualIdent uuid]
+  return $ if isOk then Ok () else Error (Just 404) $ asError @Text $ toText uuid <> " not found"
+        
 
 commitSwiftMessage :: Text -> Text -> KatipHandlerM (Either String [Int64])
 commitSwiftMessage fileName s = do
