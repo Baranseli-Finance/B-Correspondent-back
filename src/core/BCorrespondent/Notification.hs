@@ -16,7 +16,13 @@
 {-# OPTIONS_GHC -fno-warn-unused-top-binds #-}
 {-# OPTIONS_GHC -fno-warn-redundant-constraints #-}
 
-module BCorrespondent.Notification (makeH, makeS, Invoice (..), Transaction (..)) where
+module BCorrespondent.Notification 
+       ( makeH
+       , makeS
+       , Invoice (..)
+       , Transaction (..)
+       , WithdrawalRegister (..)
+       ) where
 
 import BCorrespondent.Statement.Institution (insertNotification)
 import BCorrespondent.Transport.Model.Invoice (Currency)
@@ -88,9 +94,27 @@ data Transaction =
                Transaction)]]
       Transaction
 
+data WithdrawalRegister =
+     WithdrawalRegister
+     {
+       withdrawalRegisterCurrency :: !Currency,
+       withdrawalRegisterAmount :: !Double
+     } 
+    deriving stock (Generic, Show)
+    deriving
+      (ToJSON)
+      via WithOptions 
+          '[FieldLabelModifier
+            '[UserDefined FirstLetterToLower,
+              UserDefined 
+              (StripConstructor
+               WithdrawalRegister)]]
+      WithdrawalRegister
+
 type instance Notification "new_invoice_issued" Invoice = ()
 type instance Notification "invoice_forwarded" Invoice = ()
 type instance Notification "transaction_processed" Transaction = ()
+type instance Notification "new_withdrawal" WithdrawalRegister = ()
 
 make ::
   forall m s a . 

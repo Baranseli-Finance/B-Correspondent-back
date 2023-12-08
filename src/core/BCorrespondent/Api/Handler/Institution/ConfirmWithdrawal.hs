@@ -8,12 +8,14 @@ module BCorrespondent.Api.Handler.Institution.ConfirmWithdrawal (handle) where
 
 import BCorrespondent.Api.Handler.Institution.RegisterWithdrawal (mkWithdrawKey)
 import BCorrespondent.Api.Handler.Frontend.User.Utils (checkInstitution)
+import BCorrespondent.Notification (makeH, WithdrawalRegister (..))
 import qualified BCorrespondent.Statement.Cache as Cache (get, delete)
 import BCorrespondent.Statement.Institution (registerWithdrawal, WithdrawResult (..))
 import qualified BCorrespondent.Auth as Auth
-import BCorrespondent.Api.Handler.Utils (withError)
+import BCorrespondent.Api.Handler.Utils (withEither)
 import BCorrespondent.Transport.Error (asError)
 import BCorrespondent.Transport.Response (Response (Error))
+import qualified BCorrespondent.Transport.Response as R
 import BCorrespondent.Transport.Model.Institution 
        (Withdraw (..), WithdrawResult (..), WithdrawalCode (..))
 import qualified BCorrespondent.Transport.Model.Institution as I
@@ -35,8 +37,17 @@ handle user (WithdrawalCode code) =
         mkResp (Left error) = Error Nothing $ asError @Text $ toS error  
     fmap mkResp $ for keyRes $ \(Withdraw ident amount) -> do
       hasql <- fmap (^. katipEnv . hasqlDbPool) ask
-      let mkResp NotEnoughFunds = WithdrawResult I.NotEnoughFunds Nothing
-          mkResp (FrozenFunds amount) = WithdrawResult I.FrozenFunds $ Just amount
-          mkResp Ok = WithdrawResult I.WithdrawalRegistered Nothing
-      fmap (`withError` mkResp) $ transactionM hasql $
-        statement Cache.delete key >> statement registerWithdrawal (user_id, ident, amount)
+      let mkResp NotEnoughFunds = pure $ WithdrawResult I.NotEnoughFunds Nothing
+          mkResp (FrozenFunds amount) = pure $ WithdrawResult I.FrozenFunds $ Just amount
+          mkResp (Ok instId currency) =
+            let notification = 
+                  WithdrawalRegister 
+                  { withdrawalRegisterCurrency = currency
+                  , withdrawalRegisterAmount = amount 
+                  }
+            in fmap (const (WithdrawResult I.WithdrawalRegistered Nothing)) $
+               makeH @"new_withdrawal" instId [notification]
+      dbRes <- transactionM hasql $
+        statement Cache.delete key >>
+        statement registerWithdrawal (user_id, ident, amount)
+      withEither dbRes $ fmap R.Ok . mkResp

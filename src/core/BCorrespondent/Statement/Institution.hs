@@ -31,7 +31,9 @@ module BCorrespondent.Statement.Institution
 
 import BCorrespondent.Transport.Model.Institution 
        (Balance, WithdrawalHistory, WithdrawalStatus (Registered))
-import BCorrespondent.Transport.Model.Frontend (WalletType (..), Notification, Notifications (..))
+import BCorrespondent.Transport.Model.Frontend 
+       (WalletType (..), Notification, Notifications (..))
+import BCorrespondent.Transport.Model.Invoice (Currency)
 import qualified Hasql.Statement as HS
 import Control.Lens (dimap, lmap, rmap)
 import Hasql.TH
@@ -127,7 +129,7 @@ initWithdrawal =
     withHistory = eitherDecode @WithdrawalHistory . encode
     decode (xs, history) = (,) <$> transform @Balance xs <*> withHistory history
 
-data WithdrawResult = NotEnoughFunds | Ok | FrozenFunds Double
+data WithdrawResult = NotEnoughFunds | Ok Int64 Currency | FrozenFunds Double
      deriving stock (Generic, Show)
      deriving
      (FromJSON)
@@ -176,11 +178,13 @@ registerWithdrawal =
               (f.wallet_amount - $3 :: float8 >= 0) and 
               (wallet_amount - frozen_amount - ($3 :: float8) < 0)
          then to_jsonb(f.frozen_amount)
-         else to_jsonb('ok'::text)
+         else jsonb_build_array(w.institution_id :: int8, w.currency :: text)
        end :: jsonb
      from frozen_funds as f
      left join withdrawal s
-     on f.id = s.wallet_id|]
+     on f.id = s.wallet_id
+     left join institution.wallet as w
+     on w.id = s.wallet_id |]
 
 getWithdrawalPage :: HS.Statement (Int64, Int32, Int32) (Either String (Maybe WithdrawalHistory))
 getWithdrawalPage =

@@ -1,0 +1,1 @@
+new withdrawal for {{ amount }} {{ currency }} has been registered
