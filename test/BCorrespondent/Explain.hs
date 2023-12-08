@@ -97,7 +97,7 @@ explainTests =
      ] 
   , "BCorrespondent.Statement.Transaction" ==>
      [ "create" =>> BCorrespondent.Statement.Transaction.create,
-       "checkExternalIdent" =>> BCorrespondent.Statement.Transaction.checkExternalIdent 
+       "checkTransaction" =>> BCorrespondent.Statement.Transaction.checkTransaction 
      ]
   , "BCorrespondent.Statement.Fs" ==> 
      [ "insertFiles" =>> BCorrespondent.Statement.Fs.insertFiles]

@@ -11,7 +11,8 @@ module BCorrespondent.Api.Handler.Webhook.PaymentProvider.Elekse.Transaction (ha
 import qualified BCorrespondent.Statement.Cache as Cache (insert)
 import BCorrespondent.Transport.Model.Transaction
        (TransactionFromPaymentProvider (..))
-import BCorrespondent.Statement.Transaction (create, checkExternalIdent)
+import BCorrespondent.Statement.Transaction (create, checkTransaction)
+import qualified BCorrespondent.Statement.Transaction as S (TransactionCheck (..))
 import BCorrespondent.Statement.Fs (File (..), insertFiles)
 import BCorrespondent.Transport.Response (Response (Ok, Error))
 import BCorrespondent.Transport.Error (asError)
@@ -35,7 +36,7 @@ import Data.String.Conv (toS)
 import Control.Monad.IO.Class (liftIO)
 import System.FilePath ((</>))
 import Data.Either.Combinators (maybeToRight)
-import Control.Monad (join, void, unless, when)
+import Control.Monad (join, void, unless)
 import Data.Bifunctor (first)
 import System.Timeout (timeout)
 import Network.Minio 
@@ -48,12 +49,12 @@ import Network.Minio
       )
 import Data.Coerce (coerce)      
 import Control.Monad.Time (currentTime)
-import Control.Concurrent.Lifted (fork)
+-- import Control.Concurrent.Lifted (fork)
 import Network.Mime (defaultMimeLookup, fileNameExtensions)
 import Data.Time.Clock.System (getSystemTime, systemSeconds)
 import System.FilePath (extSeparator)
 import Data.UUID (toText, UUID)
-
+import Data.Default (def)
 
 
 mkTransactionKey :: UUID -> Text
@@ -68,25 +69,31 @@ handle transaction@TransactionFromPaymentProvider
         transactionFromPaymentProviderAmount = amount,
         transactionFromPaymentProviderCurrency = currency} = do
   hasql <- fmap (^. katipEnv . hasqlDbPool) ask
-  isOk <- transactionM hasql $ statement checkExternalIdent uuid
-  when isOk $
-    void $ fork $ do
-      void $ transactionM hasql $ statement Cache.insert (mkTransactionKey uuid, transaction, Just True)
-      tm <- liftIO $ fmap systemSeconds getSystemTime
-      let fileName = 
-            sender <> "_" <> 
-            toS (show amount) <> "_" <> 
-            toS (show currency) <> "_" <> 
-            toS (show tm) <> 
-            toS [extSeparator] <>
-            ext
-      resp <- commitSwiftMessage fileName swift
-      for_ resp $ \[ident] -> do
-        dbRes <- transactionM hasql $ statement create (ident, transaction)
-        for_ dbRes $ \(instIdent, textualIdent) -> 
-          makeH @"transaction_processed" instIdent [Transaction textualIdent uuid]
-  return $ if isOk then Ok () else Error (Just 404) $ asError @Text $ toText uuid <> " not found"
-        
+  checkRes <- transactionM hasql $ statement checkTransaction uuid
+  withCheckRes checkRes
+  where 
+    withCheckRes (Right S.Ok) = do
+      let withResp (Right _) = Ok ()
+          withResp (Left _) = Error (Just 500) def
+      fmap withResp $ do
+        hasql <- fmap (^. katipEnv . hasqlDbPool) ask
+        void $ transactionM hasql $ statement Cache.insert (mkTransactionKey uuid, transaction, Just True)
+        tm <- liftIO $ fmap systemSeconds getSystemTime
+        let fileName = 
+              sender <> "_" <> 
+              toS (show amount) <> "_" <> 
+              toS (show currency) <> "_" <> 
+              toS (show tm) <> 
+              toS [extSeparator] <>
+              ext
+        resp <- commitSwiftMessage fileName swift
+        for resp $ \[ident] -> do
+          dbRes <- transactionM hasql $ statement create (ident, transaction)
+          for_ dbRes $ \(instIdent, textualIdent) -> 
+            makeH @"transaction_processed" instIdent [Transaction textualIdent uuid]
+    withCheckRes (Right S.NotFound) = pure $ Error (Just 404) $ asError @Text $ toText uuid <> " not found"
+    withCheckRes (Right S.Already) = pure $ Error (Just 409) $ asError @Text $ toText uuid <> " was expended"
+    withCheckRes (Left error) = fmap (const (Error (Just 500) def)) $ $(logTM) ErrorS $ logStr @Text $ $location <> ": error ---> " <> pack error
 
 commitSwiftMessage :: Text -> Text -> KatipHandlerM (Either String [Int64])
 commitSwiftMessage fileName s = do
@@ -110,7 +117,7 @@ commitSwiftMessage fileName s = do
     let err = "file server failed to respond"
     minioRes <- liftIO $  
       fmap (join . maybeToRight err) $
-        timeout (5 * 1_000_000) $
+        timeout (2 * 1_000_000) $
           fmap (first (toS . show)) $
             runMinioWith minioConn $ do
               exist <- bucketExists bucket
@@ -121,4 +128,4 @@ commitSwiftMessage fileName s = do
               void $ fPutObject bucket hash path opt
     hasql <- fmap (^. katipEnv . hasqlDbPool) ask          
     for minioRes $ \_ -> fmap coerce $ transactionM hasql $ statement insertFiles [file]
-  fmap (const resp) $ whenLeft resp $ \error -> $(logTM) ErrorS $ logStr @Text $ $location <> "error ---> " <> pack error
+  fmap (const resp) $ whenLeft resp $ \error -> $(logTM) ErrorS $ logStr @Text $ $location <> ": error ---> " <> pack error

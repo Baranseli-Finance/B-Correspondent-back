@@ -9,7 +9,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# OPTIONS_GHC -fno-warn-unused-top-binds #-}
 
-module BCorrespondent.Statement.Transaction (create, checkExternalIdent) where
+module BCorrespondent.Statement.Transaction (create, checkTransaction, TransactionCheck (..)) where
 
 import BCorrespondent.Transport.Model.Transaction 
        (TransactionFromPaymentProvider,
@@ -24,6 +24,9 @@ import Data.Int (Int64)
 import Data.Tuple.Extended (snocT)
 import Data.String.Conv (toS)
 import Data.UUID (UUID)
+import Data.Aeson.Generic.DerivingVia
+import GHC.Generics (Generic)
+import Data.Aeson (FromJSON, eitherDecode, encode)
 
 
 -- { "ident": "579b254b-dd5d-40a6-9377-beb6d3af98a3"
@@ -84,5 +87,37 @@ create =
     and status = $14 :: text
     returning institution_id :: int8, textual_view :: text|]
 
-checkExternalIdent :: HS.Statement UUID Bool
-checkExternalIdent = [singletonStatement|select (exists (select * from institution.invoice_to_institution_delivery where external_id = $1 :: uuid)) :: bool|]
+
+data TransactionCheck = NotFound | Already | Ok
+  deriving stock (Generic, Show)
+  deriving
+    (FromJSON)
+    via WithOptions
+        '[ConstructorTagModifier 
+          '[UserDefined ToLower]
+        , SumEnc UntaggedVal]
+        TransactionCheck
+
+checkTransaction :: HS.Statement UUID (Either String TransactionCheck)
+checkTransaction =
+  rmap (eitherDecode @TransactionCheck . encode)
+  [singletonStatement|
+    with 
+      check_existence as (
+        select
+          case 
+            when r then 'ok'
+            else 'notfound'
+          end as status
+        from (
+          select exists 
+          (select * 
+           from institution.invoice_to_institution_delivery 
+           where external_id = $1 :: uuid) as r)),
+      check_already as (
+        select 'already' as status
+        from institution.invoice_to_institution_delivery as f
+        inner join institution.transaction as s
+        on f.invoice_id = s.invoice_id
+        where f.external_id = $1 :: uuid)
+    select to_jsonb(coalesce((select * from check_already), (select * from check_existence)) :: text) :: jsonb|]

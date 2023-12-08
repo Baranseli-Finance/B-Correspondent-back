@@ -31,6 +31,7 @@ import qualified Data.Text as T
 import Data.String (fromString)
 import GHC.Generics
 import Data.String.Conv (toS)
+import Data.Default (Default, def)
 
 -- | Generic error. Keeps information about the problem and
 -- additional metadata.
@@ -44,6 +45,9 @@ data Error = Error
   deriving stock (Generic)
 
 instance Exception Error
+
+instance Default Error where
+  def = Error mempty Nothing
 
 -- | How to convert concrete error into generic one.
 class AsError e where
