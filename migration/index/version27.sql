@@ -1,0 +1,1 @@
+create index invoice_to_institution_delivery__external_id on institution.invoice_to_institution_delivery (external_id);
