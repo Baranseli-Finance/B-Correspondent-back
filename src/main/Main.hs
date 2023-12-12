@@ -114,7 +114,8 @@ data Cmd w = Cmd
     bCorrespondentDbUser :: w ::: String <?> "db user",
     bCorrespondentDbPass :: w ::: String <?> "db pass",
     bCorrespondentDatabase :: w ::: String <?> "database",
-    frontEnvFilePath :: w ::: String <?> "path to frontend envs"
+    frontEnvFilePath :: w ::: String <?> "path to frontend envs",
+    extraLog :: w ::: Bool <?> "whether to commit log to an additional source (file server, telegram, etc.)"
   }
   deriving stock (Generic)
 
@@ -152,7 +153,7 @@ toSnake = map toLower . concat . underscores . splitR isUpper
 main :: IO ()
 main = do
   void $ Prometheus.register GHC.Prometheus.ghcMetrics
-  
+
   cmd@Cmd {..} <- unwrapRecord "BCorrespondent"
   print "------ Cmd: start ------"
   pPrint cmd
@@ -290,17 +291,18 @@ main = do
       (permitItem (cfg ^. katip . severity . from stringify))
       (cfg ^. katip . verbosity . from stringify)
 
-  let env =
-        registerScribe "stdout" std defaultScribeSettings init_env >>=
-          registerScribe "file" file defaultScribeSettings >>=
-            registerScribe "minio" minioScribe defaultScribeSettings >>=
-              \env -> 
-                case telegramScribe of 
-                  Just scribe -> registerScribe "telegram" scribe defaultScribeSettings env
-                  Nothing -> pure env
-
+  let env = do
+              env' <- registerScribe "stdout" std defaultScribeSettings init_env
+              if extraLog then do
+                env'' <- registerScribe "file" file defaultScribeSettings env'
+                env''' <- registerScribe "minio" minioScribe defaultScribeSettings env''
+                fmap (fromMaybe env''') $ 
+                  for telegramScribe $ \scribe ->
+                    registerScribe "telegram" scribe defaultScribeSettings env'''
+              else return env'
+ 
   unEnv <- env
-  
+
   print "------ katip scribes: start ------"
   print $ Map.keys $ unEnv^.logEnvScribes
   print "------ katip scribes: end ------"
