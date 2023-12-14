@@ -75,30 +75,21 @@ instance FromJSON Status where
 
 mkArbitrary ''Status
 
-type RegisteredInvoice = WithField "ident" T.Text (WithField "textualView" T.Text InvoiceRegisterResponse)
+type RegisteredInvoice = WithField "ident" T.Text (WithField "transactionIdent" T.Text InvoiceRegisterResponse)
 
-register :: HS.Statement (Int64, [(InvoiceRegisterRequest, T.Text)]) (Either String [RegisteredInvoice])
+register :: HS.Statement (Int64, (InvoiceRegisterRequest, T.Text)) (Maybe (Either String RegisteredInvoice))
 register = 
-  dimap mkEncoder (sequence . map (eitherDecode @RegisteredInvoice . encode) . V.toList) $ 
-  [vectorStatement|
+  dimap mkEncoder (fmap (eitherDecode @RegisteredInvoice . encode)) $ 
+  [maybeStatement|
     with
-       series as (
-        select 
-          array_agg(cast(row_to_json((sub_query))->>'el' as int))
-        from (
-          select
-            generate_series(
-            cast(row_to_json((sub_query))->>'v' as int) + 1, 
-            (cast(row_to_json((sub_query))->>'v' as int) + 
-             array_length($1 :: text[], 1)),
-            1) as el
-          from (
-            select count(id) as v
-            from institution.invoice 
-            where institution_id = $19 :: int8)
-          as sub_query) 
-        as sub_query),
-       xs as (
+       curr_idx as (
+         insert into institution.transaction_id_structure 
+         (institution_id, country, currency, idx)
+         values ($19 :: int8, $17 :: text, trim(both '"' from $3 :: text), 1)
+          on conflict (institution_id, country, currency) 
+          do update set idx = transaction_id_structure.idx + excluded.idx
+          returning idx),
+       new_invoice as (
         insert into institution.invoice
         ( institution_id,
           invoice_id,
@@ -119,99 +110,61 @@ register =
           fee,
           textual_view,
           status)
-        select
+        values (
           $19 :: int8, 
-          invoice_id, 
-          customer_id,
-          trim(both '"' from currency),
-          invoice_time, 
-          seller, 
-          seller_address, 
-          seller_tax_id, 
-          seller_phone_number, 
-          buyer, 
-          buyer_address, 
-          buyer_tax_id, 
-          buyer_phone_number,
-          payment_description, 
-          amount,
-          vat,
-          trim(both '"' from fee),
-          country_code
-          || upper(trim(both '"' from currency))
-          || repeat('0', 9 - length(cast(current_ident as text)))
-          || cast(current_ident as text),
-          $18 :: text
-        from unnest(
-          $1 :: text[], 
-          $2 :: text[], 
-          $3 :: text[],
-          $4 :: timestamptz[],
-          $5 :: text[], 
-          $6 :: text[], 
-          $7 :: text?[], 
-          $8 :: text?[],
-          $9 :: text[], 
-          $10 :: text[], 
-          $11 :: text?[],
-          $12 :: text?[],
-          $13 :: text[],
-          $14 :: float8[],
-          $15 :: float8[],
-          $16 :: text[],
-          $17 :: text[],
-          (select * from series) :: int[])
-        as _(
-            invoice_id,
-            customer_id, 
-            currency,
-            invoice_time, 
-            seller, 
-            seller_address, 
-            seller_tax_id, 
-            seller_phone_number,
-            buyer, 
-            buyer_address, 
-            buyer_tax_id, 
-            buyer_phone_number, 
-            payment_description,
-            amount,
-            vat,
-            fee,
-            country_code,
-            current_ident)
+          $1 :: text, 
+          $2 :: text,
+          trim(both '"' from $3 :: text),
+          $4 :: timestamptz, 
+          $5 :: text, 
+          $6 :: text, 
+          $7 :: text?, 
+          $8 :: text?, 
+          $9 :: text, 
+          $10 :: text, 
+          $11 :: text?, 
+          $12 :: text?,
+          $13 :: text, 
+          $14 :: float8,
+          $15 :: float8,
+          trim(both '"' from $16 :: text),
+          'I' :: text
+          || repeat('0', 2 - length(cast (($19 :: int8) as text)))
+          || cast (($19 :: int8) as text)
+          || $17 :: text
+          || upper(trim(both '"' from $3 :: text))
+          || repeat('0', 9 - length(cast((select * from curr_idx) as text)))
+          || cast((select * from curr_idx) as text),
+          $18 :: text)
         on conflict (customer_id, invoice_id, institution_id) do nothing
         returning id :: int8 as invoice_id, invoice_id as external_id, textual_view),
       delivery as (
         insert into institution.invoice_to_institution_delivery
         (invoice_id, institution_id, attempts)
-        select invoice_id, $19 :: int8, 1 from xs),
+        select invoice_id, $19 :: int8, 1 from new_invoice),
       external_ident as (
         insert into institution.invoice_external_ident
         (invoice_id)
-        select invoice_id from xs
+        select invoice_id from new_invoice
         returning invoice_id, external_id)
       select  
         jsonb_build_object(
           'externalIdent', f.external_id,
-          'textualView', s.textual_view,
+          'transactionIdent', s.textual_view,
           'ident', s.external_id)
         :: jsonb
       from external_ident as f
-      inner join xs as s
+      inner join new_invoice as s
       on f.invoice_id = s.invoice_id|]
   where 
-    mkEncoder (instIdent, xs) =
+    mkEncoder (instIdent, invoice) =
       snocT instIdent $
         snocT (toS (show Registered)) $
-          app3 (V.map (toS . encode)) $
-            app16 (V.map (toS . encode)) $
-              app2 (V.map coerce) $ 
-                app1 (V.map coerce) $
-                  V.unzip17 $ 
-                    V.fromList $ 
-                      map ((uncurry snocT . swap) . first encodeInvoice) xs
-
+          app3 ((toS . encode)) $
+            app16 ((toS . encode)) $
+              app2 (coerce) $ 
+                app1 (coerce) $
+                  ((uncurry snocT . swap) . first encodeInvoice) invoice
 
 setInvoiceInMotion :: HS.Statement [Int64] ()
 setInvoiceInMotion = 

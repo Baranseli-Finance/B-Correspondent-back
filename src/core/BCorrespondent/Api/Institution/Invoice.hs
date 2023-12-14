@@ -16,6 +16,9 @@ import Servant.API.Generic (Generic)
 import qualified Servant.Auth.Server as SA
 import RateLimit (RateLimit, FixedWindow, KeyPolicy)
 import Data.Time.TypeLevel (TimePeriod (Second))
+import Data.Text (Text)
+import Data.Aeson.WithField (WithField)
+
 
 newtype InvoiceApi route = 
         InvoiceApi
@@ -25,6 +28,6 @@ newtype InvoiceApi route =
                 :> RateLimit (FixedWindow (Second 1) 20) (KeyPolicy "Token")
                 :> SA.Auth '[JWT] (AuthenticatedUser Source)
                 :> ReqBody '[JSON] [InvoiceRegisterRequest]
-                :> Put '[JSON] (Response [InvoiceRegisterResponse])
+                :> Put '[JSON] (Response [WithField "transactionIdent" Text InvoiceRegisterResponse])
         }
         deriving stock (Generic)

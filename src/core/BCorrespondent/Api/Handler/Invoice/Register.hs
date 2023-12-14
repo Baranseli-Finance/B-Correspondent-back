@@ -6,6 +6,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE TupleSections #-}
 
 module BCorrespondent.Api.Handler.Invoice.Register (handle) where
 
@@ -34,12 +35,13 @@ import GHC.Generics (Generic)
 import qualified Data.ByteString.Lazy as B
 import Control.Monad.IO.Class (liftIO) 
 import qualified Data.Vector as V
-import Data.Maybe (isJust, fromMaybe)
+import Data.Maybe (isJust, fromMaybe, catMaybes)
 import Data.List ((\\))
 import BuildInfo (location)
 import Data.Foldable (for_)
 import Data.Aeson.WithField (WithField (..))
 import Data.Coerce (coerce)
+import Data.Traversable (for)
 
 
 data CountryCode = 
@@ -55,8 +57,8 @@ instance FromRecord CountryCode
 
 handle
   :: Auth.AuthenticatedUser 'Auth.Source 
-  -> [InvoiceRegisterRequest] 
-  -> KatipHandlerM (Response [InvoiceRegisterResponse])
+  -> [InvoiceRegisterRequest]
+  -> KatipHandlerM (Response [WithField "transactionIdent" T.Text InvoiceRegisterResponse])
 handle Auth.AuthenticatedUser {..} xs = do
   let decode = decodeWith @CountryCode defaultDecodeOptions NoHeader
   path <- fmap (^. katipEnv . countryCode . to toS) ask
@@ -81,9 +83,9 @@ handle Auth.AuthenticatedUser {..} xs = do
                      in Left $ msg <> show (xs \\ map fst xs')
     res <- withEither cmpRes $ const $ do 
       hasql <- fmap (^. katipEnv . hasqlDbPool) ask
-      fmap (mkResp xs) $ transactionM hasql $ statement Invoice.register (ident, xs')
+      fmap (mkResp xs) $ transactionM hasql $ fmap (sequence . catMaybes) $ for xs' $ statement Invoice.register . (ident,)
     
-    let response = flip fmap res $ \xs ->  xs <&> \(WithField _ (WithField _ r)) -> r
+    let response = flip fmap res $ \xs ->  xs <&> \(WithField _ r) -> r
     let notifXxs =
           flip fmap res $ \ys -> 
             ys <&> \(WithField i (WithField text r)) -> 
