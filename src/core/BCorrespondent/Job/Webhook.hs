@@ -7,8 +7,8 @@
 
 module BCorrespondent.Job.Webhook (go) where
 
-import BCorrespondent.Job.Webhook.Institution.Tochka as Tochka
-import BCorrespondent.Job.Webhook.Factory (Webhook (..))
+import BCorrespondent.Provider.Webhook.Detail.Tochka as Tochka
+import BCorrespondent.Provider.Webhook.Factory (Webhook (..))
 import BCorrespondent.Statement.Webhook (fetch, markDelivered)
 import BCorrespondent.Job.Utils (withElapsedTime)
 import BCorrespondent.ServerM (ServerM)

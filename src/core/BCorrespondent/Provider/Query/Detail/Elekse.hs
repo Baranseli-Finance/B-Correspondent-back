@@ -11,13 +11,13 @@
 {-# LANGUAGE NamedFieldPuns #-}
 
 
-module BCorrespondent.Job.Invoice.Provider.Elekse (make, tokenKey) where
+module BCorrespondent.Provider.Query.Detail.Elekse (make, tokenKey) where
 
 import BCorrespondent.Statement.Institution.Auth (Institution (Elekse), insertToken)
 import BCorrespondent.ServerM (ServerM, ServerState (..))
 import BCorrespondent.Transport.Model.Invoice (InvoiceToPaymentProvider)
-import BCorrespondent.Job.Invoice.Query (Query (..))
-import qualified BCorrespondent.Job.Invoice.Query as Q
+import BCorrespondent.Provider.Query.Factory (Query (..))
+import qualified BCorrespondent.Provider.Query.Factory as Q
 import Data.Text (Text)
 import Network.HTTP.Client 
       (Manager, 

@@ -3,7 +3,7 @@
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE DerivingVia #-}
 
-module BCorrespondent.Job.Invoice.Query (Query (..), Response (..)) where
+module BCorrespondent.Provider.Query.Factory (Query (..), Response (..)) where
 
 import BCorrespondent.ServerM (ServerM)
 import BCorrespondent.Transport.Model.Invoice (InvoiceToPaymentProvider)

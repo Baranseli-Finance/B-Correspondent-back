@@ -14,9 +14,9 @@
 
 module BCorrespondent.Job.Invoice (forwardToPaymentProvider, validateAgainstTransaction) where
 
-import qualified BCorrespondent.Job.Invoice.Provider.Elekse as Elekse (make)
-import BCorrespondent.Job.Invoice.Query (Query (..))
-import qualified BCorrespondent.Job.Invoice.Query as Q
+import qualified BCorrespondent.Provider.Query.Detail.Elekse as Elekse (make)
+import BCorrespondent.Provider.Query.Factory (Query (..))
+import qualified BCorrespondent.Provider.Query.Factory as Q
 import BCorrespondent.Statement.Invoice 
        (getInvoicesToBeSent, 
         insertFailedInvoices, 
