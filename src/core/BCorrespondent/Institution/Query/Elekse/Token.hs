@@ -65,7 +65,11 @@ fetch manager login password = do
   ServerState {cache} <- lift $ ST.get
   tokenRes <- fmap (fmap (eitherDecode @Text . encode)) $ (get cache) tokenKey
   case tokenRes of 
-    Just v -> fmap (const v) $ $(logTM) DebugS $ ls @Text $ $location <> " elekse token ---> " <> toS (show v)
+    Just v -> 
+      fmap (const v) $ 
+        $(logTM) DebugS $ 
+          ls @Text $ 
+            $location <> " elekse token ---> " <> toS (show v)
     Nothing -> do
       let hs = [(hContentType, "application/json")]
       let onFailure = pure . Left . toS . show

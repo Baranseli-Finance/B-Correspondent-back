@@ -1,7 +1,7 @@
 let
   sources = import ./sources.nix;
   pkgs = import sources.nixpkgs {};
-  ghc = pkgs.haskell.compiler.ghc94;
+  ghc = pkgs.haskell.compiler.ghc945;
 in
 # See https://docs.haskellstack.org/en/stable/nix_integration/#using-a-custom-shellnix-file
 with pkgs;

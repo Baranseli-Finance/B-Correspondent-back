@@ -47,18 +47,23 @@ import Data.String.Conv (toS)
 --    | there is an external ident that is sent previously in the invoice request. 
 --      you simply take it from the invoice request and forward it in the webhook 
 --  "ident": "579b254b-dd5d-40a6-9377-beb6d3af98a3",
---    "sender": "...",
---    "address": "...",
---    "phoneNumber": "...",
---    "bank": "...",
---    "swiftSepaCode": "...",
---    "bankAccount": "...",
---    "amount": 12.45,
---    "currency": "usd",
---    "correspondentBank": "...",
---    "swiftSepaCodeCorrespondentBank": "...",
---    "swiftMessage": "dGVzdA==",
---    "swiftMessageExt": "txt"
+--  "transactionId": "...",
+--  "sender": "...",
+--  “city”: "...",
+--  “country”: "...",
+--  “senderBankName”: "...",
+--  “senderSwiftSepaCode": "...",
+--  “transactionOperationCode": “Deb/Cred/NofN”,
+--  “receiverBankName”: "...",
+--  “receiverSwiftSepaCode": "...",
+--  "amount": 12.45,
+--  "currency": “USD”,
+--  "correspondentBank": "...",
+--  "swiftSepaCodeCorrespondentBank": "...",
+--  “charges”: "...",
+--  “transactionTime”: "...",
+--  “transactionDate”: "...",
+--  “transactionDescription”: "..."
 -- }
 data TransactionFromPaymentProvider =
      TransactionFromPaymentProvider 
