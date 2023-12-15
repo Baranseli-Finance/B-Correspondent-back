@@ -9,7 +9,12 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# OPTIONS_GHC -fno-warn-unused-top-binds #-}
 
-module BCorrespondent.Statement.Transaction (create, checkTransaction, TransactionCheck (..)) where
+module BCorrespondent.Statement.Transaction 
+       (create, 
+        checkTransaction, 
+        fetchAbortedTransaction, 
+        TransactionCheck (..)
+       ) where
 
 import BCorrespondent.Transport.Model.Transaction 
        (TransactionFromPaymentProvider,
@@ -121,3 +126,6 @@ checkTransaction =
         on f.invoice_id = s.invoice_id
         where f.external_id = $1 :: uuid)
     select to_jsonb(coalesce((select * from check_already), (select * from check_existence)) :: text) :: jsonb|]
+
+fetchAbortedTransaction :: HS.Statement () [(Int64, T.Text)]
+fetchAbortedTransaction = undefined

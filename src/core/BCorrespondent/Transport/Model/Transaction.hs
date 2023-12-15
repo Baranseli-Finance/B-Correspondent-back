@@ -21,6 +21,7 @@ module BCorrespondent.Transport.Model.Transaction
        ( TransactionFromPaymentProvider (..),
          TransactionId (..),
          TransactionToInitiator,
+         AbortedTransactionRequest (..),
          encodeTransactionFromPaymentProvider
        ) where
 
@@ -124,3 +125,7 @@ data TransactionToInitiator =
           TransactionToInitiator
 
 deriveToSchemaFieldLabelModifier ''TransactionToInitiator [|modify (Proxy @TransactionToInitiator)|]
+
+data AbortedTransactionRequest = AbortedTransactionRequest T.Text
+    deriving stock (Generic, Show)
+    deriving (ToJSON) via WithOptions DefaultOptions AbortedTransactionRequest

@@ -31,7 +31,8 @@ import qualified BCorrespondent.Job.Wallet as Job.Wallet
 import qualified BCorrespondent.Job.Report as Job.Report
 import qualified BCorrespondent.Job.Backup as Job.Backup
 import qualified BCorrespondent.Job.Webhook as Job.Webhook
-import qualified BCorrespondent.Job.Cache as Job.Cache 
+import qualified BCorrespondent.Job.Cache as Job.Cache
+import qualified BCorrespondent.Job.Transaction as Job.Transaction
 import BCorrespondent.Statement.Auth (CheckToken)
 import BCorrespondent.Api
 import BCorrespondent.EnvKeys (Sendgrid)
@@ -210,8 +211,9 @@ run Cfg {..} = do
     reportAsync <- Async.Lifted.async $ Job.Report.makeDailyInvoices $ jobFrequency + 15
     backupAsync <- Async.Lifted.async $ Job.Backup.run $ jobFrequency + 17
     webhookAsync <- Async.Lifted.async $ Job.Webhook.go $ jobFrequency + 19
-    cleanCacheAsync <- Async.Lifted.async $ Job.Cache.removeExpiredItems $ jobFrequency + 21 
-
+    cleanCacheAsync <- Async.Lifted.async $ Job.Cache.removeExpiredItems $ jobFrequency + 21
+    abortTrAsync <- Async.Lifted.async $ Job.Transaction.abort $ jobFrequency + 23
+    
     ServerState c _ <- get
     when (c == 50) $ throwM RecoveryFailed
     end <- fmap snd $ 
@@ -221,6 +223,7 @@ run Cfg {..} = do
             archiveAsync,
             reportAsync,
             backupAsync,
+            abortTrAsync,
             webhookAsync,
             validateAsync,
             refreshMVAsync,

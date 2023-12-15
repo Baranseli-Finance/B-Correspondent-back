@@ -1,10 +1,9 @@
 let
   sources = import ./sources.nix;
   pkgs = import sources.nixpkgs {};
+  ghc = pkgs.haskell.compiler.ghc94;
 in
-
 # See https://docs.haskellstack.org/en/stable/nix_integration/#using-a-custom-shellnix-file
-{ ghc }:
 with pkgs;
 haskell.lib.buildStackProject {
   inherit ghc;
