@@ -14,9 +14,8 @@
 
 module BCorrespondent.Job.Invoice (forwardToPaymentProvider, validateAgainstTransaction) where
 
-import qualified BCorrespondent.Provider.Query.Detail.Elekse as Elekse (make)
-import BCorrespondent.Provider.Query.Factory (Query (..))
-import qualified BCorrespondent.Provider.Query.Factory as Q
+import qualified BCorrespondent.Institution.Query.Invoice as Q
+import qualified BCorrespondent.Institution.Query as Q
 import BCorrespondent.Statement.Invoice 
        (getInvoicesToBeSent, 
         insertFailedInvoices, 
@@ -83,8 +82,7 @@ instance ParamsShow WebhookMsg where
   render (WebhookMsg ident tm status) = render ident <> render tm <> render status
 
 forwardToPaymentProvider :: Int -> KatipContextT ServerM ()
-forwardToPaymentProvider freq = do
-  let queries = [(2, Elekse.make)]
+forwardToPaymentProvider freq =
   forever $ do 
     threadDelay $ freq * 1_000_000
     withElapsedTime ($location <> ":forwardToPaymentProvider") $ do
@@ -96,7 +94,7 @@ forwardToPaymentProvider freq = do
           yss <- Async.forConcurrently xs $ 
             \(ident, cred, zs) ->
               fmap (map (second (consT ident))) $
-                sendInvoices manager queries cred zs
+                sendInvoices manager Q.queries cred zs
           for_ yss $ \ys -> do
             let (es, os) = partitionEithers ys
             for_ es $ \(ident, error) ->
@@ -133,16 +131,16 @@ forwardToPaymentProvider freq = do
         Left err -> $(logTM) CriticalS $ logStr @T.Text $ $location <> ":forwardToPaymentProvider: decode error ---> " <> toS err
 
 
-sendInvoices :: Manager -> [(Int64, Query)] -> Maybe QueryCredentials -> [InvoiceToBeSent] -> KatipContextT ServerM [Either (Int64, T.Text) (Invoice, Int64, UUID, UTCTime)]
+sendInvoices :: Manager -> [(Int64, Q.Query)] -> Maybe QueryCredentials -> [InvoiceToBeSent] -> KatipContextT ServerM [Either (Int64, T.Text) (Invoice, Int64, UUID, UTCTime)]
 sendInvoices _ _ Nothing xs = for xs $ \(WithField _ (WithField ident _)) -> pure $ Left (ident, "payment provider credentials aren't set")
 sendInvoices manager queries (Just QueryCredentials {..}) xs = do
   let mkErrorMsg msg = xs <&> \(WithField _ (WithField ident _)) -> Left (ident, msg) 
   fmap (fromMaybe (mkErrorMsg "provider not found")) $
-    for (lookup provider queries) $ \(Query {getAuthToken, query}) -> do
-      authRes <- getAuthToken manager login password
+    for (lookup provider queries) $ \(Q.Query {fetchToken, makeRequest}) -> do
+      authRes <- fetchToken manager login password
       let withAuth (Left error) = pure $ mkErrorMsg $ toS error
           withAuth (Right token) = 
-            forConcurrentlyNRetry 1 10 2 (pure . isRight) xs $ send query token
+            forConcurrentlyNRetry 1 10 2 (pure . isRight) xs $ send makeRequest token
       withAuth authRes
   where
     send
@@ -158,7 +156,7 @@ sendInvoices manager queries (Just QueryCredentials {..}) xs = do
       $(logTM) InfoS $ logStr @T.Text $ $location <> " invoice to payment provider:  " <> toS (show invoice)
       let notifBody = Invoice textIdent amount currency
       let mkResp = bimap ((ident,) . toS) ((notifBody, ident, external,) . Q.acceptedAt)
-      fmap mkResp $ query manager token invoice
+      fmap mkResp $ query manager Q.path token invoice
 
 validateAgainstTransaction :: Int -> KatipContextT ServerM ()
 validateAgainstTransaction freq = 

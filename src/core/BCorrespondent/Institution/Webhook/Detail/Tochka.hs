@@ -10,10 +10,10 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module BCorrespondent.Provider.Webhook.Detail.Tochka (make) where
+module BCorrespondent.Institution.Webhook.Detail.Tochka (make) where
 
 import BCorrespondent.ServerM (ServerM)
-import BCorrespondent.Provider.Webhook.Factory (Webhook (..))
+import BCorrespondent.Institution.Webhook.Factory (Webhook (..))
 import Data.Aeson.Types (Value)
 import Data.Text (Text)
 import Data.Aeson 

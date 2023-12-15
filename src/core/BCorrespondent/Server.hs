@@ -25,7 +25,7 @@ module BCorrespondent.Server (Cfg (..), ServerM (..), run, populateCache, addSer
 
 import BCorrespondent.Statement.Institution.Auth (Institution (Elekse), fetchToken)
 import qualified BCorrespondent.Job.Invoice as Job.Invoice
-import BCorrespondent.Provider.Query.Detail.Elekse (tokenKey)
+import BCorrespondent.Institution.Query.Elekse.Token (tokenKey)
 import qualified BCorrespondent.Job.History as Job.History
 import qualified BCorrespondent.Job.Wallet as Job.Wallet
 import qualified BCorrespondent.Job.Report as Job.Report

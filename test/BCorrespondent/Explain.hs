@@ -97,7 +97,8 @@ explainTests =
      ] 
   , "BCorrespondent.Statement.Transaction" ==>
      [ "create" =>> BCorrespondent.Statement.Transaction.create,
-       "checkTransaction" =>> BCorrespondent.Statement.Transaction.checkTransaction 
+       "checkTransaction" =>> BCorrespondent.Statement.Transaction.checkTransaction,
+       "fetchAbortedTransaction" =>> BCorrespondent.Statement.Transaction.fetchAbortedTransaction
      ]
   , "BCorrespondent.Statement.Fs" ==> 
      [ "insertFiles" =>> BCorrespondent.Statement.Fs.insertFiles]

@@ -1,4 +1,4 @@
-module BCorrespondent.Provider.Webhook.Factory (Webhook (..)) where
+module BCorrespondent.Institution.Webhook.Factory (Webhook (..)) where
 
 import BCorrespondent.ServerM (ServerM)
 import Data.Aeson.Types (Value)

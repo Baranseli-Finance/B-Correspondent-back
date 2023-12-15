@@ -32,6 +32,7 @@ import Data.UUID (UUID)
 import Data.Aeson.Generic.DerivingVia
 import GHC.Generics (Generic)
 import Data.Aeson (FromJSON, eitherDecode, encode)
+import qualified Data.Vector as V
 
 
 -- { "ident": "579b254b-dd5d-40a6-9377-beb6d3af98a3"
@@ -128,4 +129,4 @@ checkTransaction =
     select to_jsonb(coalesce((select * from check_already), (select * from check_existence)) :: text) :: jsonb|]
 
 fetchAbortedTransaction :: HS.Statement () [(Int64, T.Text)]
-fetchAbortedTransaction = undefined
+fetchAbortedTransaction = rmap V.toList [vectorStatement|select 1 :: int8, 'test' :: text|]
