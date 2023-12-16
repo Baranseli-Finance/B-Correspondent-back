@@ -15,7 +15,7 @@ import Data.Aeson.Generic.DerivingVia
        (WithOptions (WithOptions), ConstructorTagModifier, CamelTo2)
 import TH.Mk (mkArbitrary)
 import qualified Hasql.Statement as HS
-import Hasql.TH (resultlessStatement)
+import Hasql.TH (singletonStatement)
 import Control.Lens (lmap)
 import Data.Tuple.Extended (app1)
 import Data.Int (Int64)
@@ -39,14 +39,16 @@ mkArbitrary ''TableRef
 instance ParamsShow TableRef where
   render = show . toJSON
 
-addAttempt :: HS.Statement (TableRef, Int64, Text) ()
+addAttempt :: HS.Statement (TableRef, Int64, Text) Bool
 addAttempt =
   lmap (app1 toJSON) 
-  [resultlessStatement|
+  [singletonStatement|
     insert into delivery
     (table_ref, table_ident, attempts, last_attempt_sent_at, error)
-    values (($1 :: jsonb) #>> '{}' , $2 :: int8, 1, now(), $3 :: text)
-    on conflict (table_ref, table_ident) 
-    do update set 
+    values (($1 :: jsonb) #>> '{}', $2 :: int8, 1, now(), $3 :: text)
+    on conflict (table_ref, table_ident)
+    do update set
     attempts = delivery.attempts + 1,
-    error = excluded.error|]
+    error = excluded.error,
+    is_stuck = delivery.attempts + 1 = 20
+    returning is_stuck :: bool|]

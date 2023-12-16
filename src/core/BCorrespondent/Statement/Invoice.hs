@@ -13,8 +13,7 @@
 
 module BCorrespondent.Statement.Invoice 
        ( register, 
-         getInvoicesToBeSent, 
-         insertFailedInvoices, 
+         getInvoicesToBeSent,
          updateStatus,
          getValidation,
          setInvoiceInMotion,
@@ -36,6 +35,7 @@ import BCorrespondent.Transport.Model.Invoice
         Currency,
         encodeInvoice
        )
+import qualified BCorrespondent.Statement.Delivery as D (TableRef (Invoice))
 import qualified Hasql.Statement as HS
 import Hasql.TH
 import Data.Int (Int64, Int32)
@@ -45,7 +45,7 @@ import Data.String.Conv (toS)
 import qualified Data.Vector.Extended as V
 import Data.Tuple.Extended (app1, app2, app3, snocT, app16)
 import Database.Transaction (ParamsShow (..))
-import Data.Aeson (encode, eitherDecode, FromJSON, ToJSON, parseJSON, withText)
+import Data.Aeson (encode, eitherDecode, FromJSON, ToJSON, parseJSON, withText, toJSON)
 import Data.Bifunctor (second)
 import TH.Mk (mkArbitrary)
 import GHC.Generics
@@ -138,10 +138,6 @@ register =
           $18 :: text)
         on conflict (customer_id, invoice_id, institution_id) do nothing
         returning id :: int8 as invoice_id, invoice_id as external_id, textual_view),
-      delivery as (
-        insert into institution.invoice_to_institution_delivery
-        (invoice_id, institution_id, attempts)
-        select invoice_id, $19 :: int8, 1 from new_invoice),
       external_ident as (
         insert into institution.invoice_external_ident
         (invoice_id)
@@ -168,18 +164,19 @@ register =
 
 setInvoiceInMotion :: HS.Statement [Int64] ()
 setInvoiceInMotion = 
-  lmap (\xs -> (V.fromList xs, toS (show ForwardedToPaymentProvider)))
+  lmap (\xs -> (V.fromList xs, toS (show ForwardedToPaymentProvider), toJSON D.Invoice))
   [resultlessStatement|
-     with invoices as (
-       update institution.invoice 
-       set status = $2 :: text,
-           appearance_on_timeline = now()
-       from unnest($1 :: int8[]) 
-       as x(ident)
-       where id = x.ident)
-     update institution.invoice_to_institution_delivery
-     set is_delivered = true 
-     where invoice_id = any($1 :: int8[])|]
+    with delivered as (
+      update institution.invoice 
+        set status = $2 :: text,
+            appearance_on_timeline = now()
+        from unnest($1 :: int8[]) as x(ident)
+      where id = x.ident
+      returning id)
+    update delivery
+    set is_delivered = true
+    where table_ref = ($3 :: jsonb) #>> '{}' 
+    and table_ident = any(select * from delivered)|]
 
 updateStatus :: HS.Statement [(Int64, Status)] ()
 updateStatus = 
@@ -198,7 +195,7 @@ type InvoiceToBeSent =
        InvoiceToPaymentProvider))
 
 data QueryCredentials = 
-     QueryCredentials 
+     QueryCredentials
      { provider :: Int64, 
        login :: T.Text, 
        password :: T.Text 
@@ -211,7 +208,7 @@ data QueryCredentials =
 
 getInvoicesToBeSent :: HS.Statement Int32 (Either String [(Int64, Maybe QueryCredentials, [InvoiceToBeSent])])
 getInvoicesToBeSent =
-  rmap decoder
+  dimap (\x -> (x, toJSON D.Invoice)) decoder
   [vectorStatement|
     select
       f.id :: int8,
@@ -247,7 +244,7 @@ getInvoicesToBeSent =
           'transactionExpenses', s.fee :: text,
           'currency', s.currency,
           'amount', s.amount,
-          'externalId', s.delivery_ext_id,
+          'externalId', s.external_id,
           'textualIdent', s.textual_view,
           'external', s.invoice_ext_id))
         :: jsonb[]? as xs
@@ -255,14 +252,14 @@ getInvoicesToBeSent =
       inner join (
         select
           i.*,
-          d.external_id as delivery_ext_id,
           iei.external_id as invoice_ext_id
         from institution.invoice as i
-        inner join institution.invoice_to_institution_delivery as d
-        on i.id = d.invoice_id
+        left join public.delivery as d
+         on (d.table_ref = ($2 :: jsonb) #>> '{}') and d.table_ident = i.id
         inner join institution.invoice_external_ident as iei
         on iei.invoice_id = i.id
-        where not d.is_delivered and not is_stuck
+        where not coalesce(d.is_delivered, false) 
+        and not coalesce(d.is_stuck, false)
         order by i.id asc
         limit $1 :: int) as s
       on f.id = s.institution_id
@@ -278,33 +275,6 @@ getInvoicesToBeSent =
                   in fmap decodeYs ys
                 cred' <- sequence $ fmap (eitherDecode @QueryCredentials . encode) cred
                 pure (ident, cred', ys')
-
-insertFailedInvoices :: HS.Statement [(Int64, T.Text)] [(Int64, Bool)]
-insertFailedInvoices =
-  dimap (V.unzip . V.fromList) V.toList
-  [vectorStatement|
-    insert into institution.invoice_to_institution_delivery
-    ( invoice_id, 
-      institution_id, 
-      attempts, 
-      last_attempt_sent_at, 
-      error)
-    select
-      x.invoice_id, 
-      i.institution_id, 
-      1, 
-      now(), 
-      x.error
-    from unnest($1 :: int8[], $2 :: text[]) as x(invoice_id, error)
-    inner join institution.invoice as i
-    on x.invoice_id = i.id
-    on conflict (invoice_id, institution_id)
-    do update set
-    attempts = invoice_to_institution_delivery.attempts + 1,
-    last_attempt_sent_at = now(),
-    is_stuck = invoice_to_institution_delivery.attempts + 1 = 50,
-    error = excluded.error
-    returning invoice_id :: int8, is_stuck :: bool|]
 
 data Validation = 
      Validation 

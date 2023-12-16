@@ -17,9 +17,9 @@ import qualified BCorrespondent.Institution.Query.AbortedTransaction as Q
 import BCorrespondent.Statement.Invoice (QueryCredentials (..))
 import BCorrespondent.Job.Utils (withElapsedTime)
 import BCorrespondent.ServerM (ServerM)
-import Katip (KatipContextT, logTM, Severity (ErrorS), logStr)
+import Katip (KatipContextT, logTM, Severity (ErrorS, InfoS), logStr)
 import BuildInfo (location)
-import Control.Monad (forever, join)
+import Control.Monad (forever, join, when)
 import Control.Concurrent.Lifted (threadDelay)
 import qualified Control.Concurrent.Async.Lifted as Async
 import Data.Text (Text)
@@ -64,4 +64,5 @@ abort freq =
             ":abort: --> \
             \ abort transaction request failed to be sent, invoice " <>
             toS (show @Int64 ident) <> ", error: " <> error
-        transactionM hasql $ statement addAttempt (Transaction, ident, error)
+        isStuck <- transactionM hasql $ statement addAttempt (Transaction, ident, error)
+        when isStuck $ $(logTM) InfoS $ logStr @Text $ $location <> "transaction for invoice " <> toS (show ident) <> " is stuck"

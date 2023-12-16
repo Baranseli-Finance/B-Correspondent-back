@@ -91,7 +91,6 @@ explainTests =
   , "BCorrespondent.Statement.Invoice" ==>
      [ "register" =>> BCorrespondent.Statement.Invoice.register,
        "getInvoicesToBeSent" =>> BCorrespondent.Statement.Invoice.getInvoicesToBeSent,
-       "insertFailedInvoices" =>> BCorrespondent.Statement.Invoice.insertFailedInvoices,
        "updateStatus" =>> BCorrespondent.Statement.Invoice.updateStatus,
        "getValidation" =>> BCorrespondent.Statement.Invoice.getValidation,
        "setInvoiceInMotion" =>> BCorrespondent.Statement.Invoice.setInvoiceInMotion

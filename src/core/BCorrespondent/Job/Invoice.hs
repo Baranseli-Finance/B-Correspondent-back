@@ -17,8 +17,7 @@ module BCorrespondent.Job.Invoice (forwardToPaymentProvider, validateAgainstTran
 import qualified BCorrespondent.Institution.Query.Invoice as Q
 import qualified BCorrespondent.Institution.Query as Q
 import BCorrespondent.Statement.Invoice 
-       (getInvoicesToBeSent, 
-        insertFailedInvoices, 
+       (getInvoicesToBeSent,
         updateStatus,
         setInvoiceInMotion,
         getValidation,
@@ -27,7 +26,9 @@ import BCorrespondent.Statement.Invoice
         InvoiceToBeSent,
         QueryCredentials (..)
        )
-import BCorrespondent.Statement.Institution (updateWallet)  
+import BCorrespondent.Statement.Institution (updateWallet)
+import BCorrespondent.Statement.Delivery (addAttempt)
+import qualified BCorrespondent.Statement.Delivery as D (TableRef (Invoice))
 import BCorrespondent.Job.Utils (withElapsedTime)
 import qualified BCorrespondent.Statement.Webhook as Webhook
 import BCorrespondent.ServerM
@@ -61,7 +62,7 @@ import Data.Time.Clock (UTCTime)
 import Data.Aeson (ToJSON)
 import Data.Aeson.Generic.DerivingVia
 import GHC.Generics (Generic)
-import Data.Traversable (for)
+import Data.Traversable (for, forM)
 import Data.Maybe (fromMaybe)
 import Data.Time.Format (formatTime, defaultTimeLocale)
 import Request (forConcurrentlyNRetry)
@@ -106,7 +107,8 @@ forwardToPaymentProvider freq =
                 toS (show ident) <> ", error: " <> error
             es' <- transactionM hasql $ do
               for_ (map sel3 os) $ statement setInvoiceInMotion . flip (:) []
-              statement insertFailedInvoices es
+              forM es $ \(ident, error) ->
+                fmap (ident,) $ statement addAttempt (D.Invoice, ident, error)
             let notifParams = 
                   [ (the ident, body)
                     | (ident, body, _, _, _) <- os,

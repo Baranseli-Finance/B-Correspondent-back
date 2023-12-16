@@ -163,4 +163,4 @@ fetchAbortedTransaction =
     on i.institution_id = s.source
     left join public.delivery as d
     on (d.table_ref = ($2 :: jsonb) #>> '{}') and d.table_ident = i.id
-    where i.status = $1 :: text and not coalesce(d.is_delivered, false)|]
+    where i.status = $1 :: text and not coalesce(d.is_delivered, false) and not coalesce(d.is_stuck, false)|]
