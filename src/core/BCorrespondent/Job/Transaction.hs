@@ -12,6 +12,7 @@ module BCorrespondent.Job.Transaction (abort) where
 import qualified BCorrespondent.Institution.Query as Q
 import BCorrespondent.Statement.Transaction (fetchAbortedTransaction)
 import BCorrespondent.Transport.Model.Transaction (AbortedTransactionRequest (..))
+import BCorrespondent.Statement.Delivery (TableRef (Transaction), addAttempt) 
 import qualified BCorrespondent.Institution.Query.AbortedTransaction as Q
 import BCorrespondent.Statement.Invoice (QueryCredentials (..))
 import BCorrespondent.Job.Utils (withElapsedTime)
@@ -56,10 +57,11 @@ abort freq =
                       authRes <- fetchToken manager login password
                       for authRes $ \token -> makeRequest @() manager Q.path token body
       let (es, _) = partitionEithers ys
-      for_ es $ \(ident, error) ->
+      for_ es $ \(ident, error) -> do
         $(logTM) ErrorS $
           logStr @Text $
             $location <>
             ":abort: --> \
             \ abort transaction request failed to be sent, invoice " <>
             toS (show @Int64 ident) <> ", error: " <> error
+        transactionM hasql $ statement addAttempt (Transaction, ident, error)

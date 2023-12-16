@@ -22,6 +22,7 @@ import BCorrespondent.Transport.Model.Transaction
 import BCorrespondent.Statement.Invoice
        (QueryCredentials,
         Status (ProcessedByPaymentProvider, ForwardedToPaymentProvider, Declined))
+import BCorrespondent.Statement.Delivery (TableRef (Transaction))
 import qualified Hasql.Statement as HS
 import Hasql.TH
 import qualified Data.Text as T
@@ -32,7 +33,7 @@ import Data.String.Conv (toS)
 import Data.UUID (UUID)
 import Data.Aeson.Generic.DerivingVia
 import GHC.Generics (Generic)
-import Data.Aeson (FromJSON, eitherDecode, encode)
+import Data.Aeson (FromJSON, eitherDecode, encode, toJSON)
 import qualified Data.Vector as V
 import Data.Tuple.Extended (app2)
 
@@ -132,7 +133,9 @@ checkTransaction =
 
 fetchAbortedTransaction :: HS.Statement () [(Int64, Either String (Maybe QueryCredentials), T.Text)]
 fetchAbortedTransaction = 
-  dimap (const (toS (show Declined))) (map (app2 (sequence . fmap (eitherDecode @QueryCredentials . encode))) . V.toList)
+  dimap 
+  (const (toS (show Declined), toJSON Transaction))
+  (map (app2 (sequence . fmap (eitherDecode @QueryCredentials . encode))) . V.toList)
   [vectorStatement|
     select 
       i.id :: int8,
@@ -158,4 +161,6 @@ fetchAbortedTransaction =
       on rs.first_id = qc.institution_id or rf.second_id = qc.institution_id
       where rf.second_id is not null or rs.first_id is not null) as s
     on i.institution_id = s.source
-    where i.status = $1 :: text|]
+    left join public.delivery as d
+    on (d.table_ref = ($2 :: jsonb) #>> '{}') and d.table_ident = i.id
+    where i.status = $1 :: text and not coalesce(d.is_delivered, false)|]

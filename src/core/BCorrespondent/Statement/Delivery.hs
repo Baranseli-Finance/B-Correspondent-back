@@ -20,11 +20,12 @@ import Control.Lens (lmap)
 import Data.Tuple.Extended (app1)
 import Data.Int (Int64)
 import Data.Text (Text)
+import Database.Transaction (ParamsShow (..))
 
 
 data TableRef =
        Invoice
-     | AbortedTransaction
+     | Transaction
      | Withdrawal
     deriving stock (Generic, Show)
     deriving (FromJSON, ToJSON)
@@ -34,6 +35,9 @@ data TableRef =
       TableRef
 
 mkArbitrary ''TableRef
+
+instance ParamsShow TableRef where
+  render = show . toJSON
 
 addAttempt :: HS.Statement (TableRef, Int64, Text) ()
 addAttempt =
