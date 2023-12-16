@@ -12,7 +12,7 @@ module BCorrespondent.Job.Transaction (abort) where
 import qualified BCorrespondent.Institution.Query as Q
 import BCorrespondent.Statement.Transaction (fetchAbortedTransaction)
 import BCorrespondent.Transport.Model.Transaction (AbortedTransactionRequest (..))
-import BCorrespondent.Statement.Delivery (TableRef (Transaction), addAttempt) 
+import BCorrespondent.Statement.Delivery (TableRef (Transaction), addAttempt, setDelivered)
 import qualified BCorrespondent.Institution.Query.AbortedTransaction as Q
 import BCorrespondent.Statement.Invoice (QueryCredentials (..))
 import BCorrespondent.Job.Utils (withElapsedTime)
@@ -56,7 +56,8 @@ abort freq =
                     \(Q.Query {fetchToken, makeRequest}) -> do
                       authRes <- fetchToken manager login password
                       for authRes $ \token -> makeRequest @() manager Q.path token body
-      let (es, _) = partitionEithers ys
+      let (es, os) = partitionEithers ys
+      transactionM hasql $ statement setDelivered (Transaction, os)
       for_ es $ \(ident, error) -> do
         $(logTM) ErrorS $
           logStr @Text $
