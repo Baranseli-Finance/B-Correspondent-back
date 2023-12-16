@@ -24,6 +24,7 @@ import qualified BCorrespondent.Statement.Mail
 import qualified BCorrespondent.Statement.Backup
 import qualified BCorrespondent.Statement.Webhook
 import qualified BCorrespondent.Statement.Institution.Auth
+import qualified BCorrespondent.Statement.Delivery
 
 import Control.Lens
 import Control.Monad.IO.Class
@@ -152,4 +153,5 @@ explainTests =
     [ "insertToken" =>> BCorrespondent.Statement.Institution.Auth.insertToken,
       "fetchToken" =>> BCorrespondent.Statement.Institution.Auth.fetchToken 
     ]
+  , "BCorrespondent.Statement.Delivery" ==> ["addAttempt" =>> BCorrespondent.Statement.Delivery.addAttempt]
   ]
