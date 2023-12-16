@@ -13,7 +13,7 @@ data Query =
      Query 
      { fetchToken :: Manager -> Text  -> Text  -> KatipContextT ServerM (Either String Text),
        makeRequest 
-       :: forall body resp path 
+       :: forall resp body 
        . (ToJSON body, Show resp, FromJSON resp) 
        => Manager 
        -> Text 

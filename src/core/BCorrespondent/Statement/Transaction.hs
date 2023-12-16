@@ -19,8 +19,9 @@ module BCorrespondent.Statement.Transaction
 import BCorrespondent.Transport.Model.Transaction 
        (TransactionFromPaymentProvider,
         encodeTransactionFromPaymentProvider)
-import BCorrespondent.Statement.Invoice 
-       (Status (ProcessedByPaymentProvider, ForwardedToPaymentProvider))
+import BCorrespondent.Statement.Invoice
+       (QueryCredentials,
+        Status (ProcessedByPaymentProvider, ForwardedToPaymentProvider, Declined))
 import qualified Hasql.Statement as HS
 import Hasql.TH
 import qualified Data.Text as T
@@ -33,6 +34,7 @@ import Data.Aeson.Generic.DerivingVia
 import GHC.Generics (Generic)
 import Data.Aeson (FromJSON, eitherDecode, encode)
 import qualified Data.Vector as V
+import Data.Tuple.Extended (app2)
 
 
 -- { "ident": "579b254b-dd5d-40a6-9377-beb6d3af98a3"
@@ -128,5 +130,32 @@ checkTransaction =
         where f.external_id = $1 :: uuid)
     select to_jsonb(coalesce((select * from check_already), (select * from check_existence)) :: text) :: jsonb|]
 
-fetchAbortedTransaction :: HS.Statement () [(Int64, T.Text)]
-fetchAbortedTransaction = rmap V.toList [vectorStatement|select 1 :: int8, 'test' :: text|]
+fetchAbortedTransaction :: HS.Statement () [(Int64, Either String (Maybe QueryCredentials), T.Text)]
+fetchAbortedTransaction = 
+  dimap (const (toS (show Declined))) (map (app2 (sequence . fmap (eitherDecode @QueryCredentials . encode))) . V.toList)
+  [vectorStatement|
+    select 
+      i.id :: int8,
+      s.cred :: jsonb?,
+      i.textual_view :: text
+    from institution.invoice as i
+    inner join institution.transaction as t
+    on i.id = t.invoice_id
+    left join (
+      select
+        i.id as source,
+        coalesce(rf.second_id, rs.first_id) as sink,
+        jsonb_build_object(
+          'provider', coalesce(rf.second_id, rs.first_id),
+          'login', qc.login,
+          'password', qc.password) as cred
+      from auth.institution as i
+      left join institution.relation rf
+      on i.id = rf.first_id
+      left join institution.relation rs
+      on i.id = rs.second_id
+      inner join auth.query_credentials as qc
+      on rs.first_id = qc.institution_id or rf.second_id = qc.institution_id
+      where rf.second_id is not null or rs.first_id is not null) as s
+    on i.institution_id = s.source
+    where i.status = $1 :: text|]

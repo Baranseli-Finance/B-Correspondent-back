@@ -16,8 +16,6 @@ import Cache
 import qualified Data.Map.Strict as Map
 import Control.Monad.Trans.Control
 import Data.Time.Clock (getCurrentTime, addUTCTime)
-import Control.Monad (join)
-import Data.Traversable (for)
 
 
 init :: forall m k v . (Ord k, MonadIO m, MonadBaseControl IO m) => IO (Cache m k v)
@@ -39,8 +37,10 @@ init = do
           tm <- liftIO getCurrentTime
           flip Map.traverseMaybeWithKey x $ 
             \_ (tmm', v) ->
-              fmap join $ for tmm' $ \tm' ->
-                if addUTCTime 3600 tm' > tm 
-                then pure Nothing 
-                else pure $ Just (Just tm', v)
+              case tmm' of 
+                Nothing -> pure $ Just (Nothing, v) 
+                Just tm' ->
+                  if addUTCTime 3600 tm' > tm 
+                  then pure Nothing 
+                  else pure $ Just (Just tm', v)
   return Cache {..}
