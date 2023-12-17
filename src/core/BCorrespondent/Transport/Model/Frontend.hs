@@ -67,7 +67,7 @@ module BCorrespondent.Transport.Model.Frontend
        ) where
 
 import BCorrespondent.Statement.Types
-import BCorrespondent.Transport.Model.Invoice (Currency)
+import BCorrespondent.Transport.Model.Invoice (Currency, Fee)
 import Data.Text (Text, splitOn, unpack)
 import Data.Aeson (ToJSON, FromJSON)
 import Data.Aeson.Generic.DerivingVia
@@ -96,7 +96,6 @@ import Data.Swagger
 import Servant.API (FromHttpApiData (..))
 import Data.Int (Int64)
 import Data.Time.Clock (UTCTime)
-import Data.UUID (UUID)
 import Data.Aeson.TH.Extended (deriveToJSON, defaultOptions)
 import Data.Maybe (fromMaybe)
 import Database.Transaction (ParamsShow (..))
@@ -391,21 +390,19 @@ data FetchGap = FetchGap { fetchGapGap :: GapItem }
 
 deriveToSchemaFieldLabelModifier ''FetchGap [|firstLetterModify (Proxy @FetchGap)|]
 
-
 data TimelineTransaction =
      TimelineTransaction
-     {
-       timelineTransactionIdent :: UUID,
-       timelineTransactionSenderName :: Text,
-       timelineTransactionSenderAddress :: Text,
-       timelineTransactionSenderPhoneNumber :: Text,
+     { timelineTransactionSender :: Text,
+       timelineTransactionSenderCity :: Text,
+       timelineTransactionSenderCountry :: Text,
        timelineTransactionSenderBank :: Text,
-       timelineTransactionSwiftSepaCode :: Text,
-       timelineTransactionSenderBankAccount :: Text,
+       timelineTransactionReceiverBank :: Text,
        timelineTransactionAmount :: Double,
        timelineTransactionCurrency :: Currency,
        timelineTransactionCorrespondentBank :: Text,
-       timelineTransactionCorrespondentBankSwiftSepaCode :: Text
+       timelineTransactionCharges :: Fee,
+       timelineTransactionTm :: UTCTime,
+       timelineTransactionDescription :: Text
      }
     deriving stock (Generic, Show)
     deriving

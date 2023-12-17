@@ -276,18 +276,17 @@ getTransaction =
   [maybeStatement|
     select 
       jsonb_build_object(
-        'ident', it.id,
-        'senderName', it.sender_name,
-        'senderAddress', it.sender_address,
-        'senderPhoneNumber', it.sender_phone_number,
+        'sender', it.sender,
+        'senderCity', it.city,
+        'senderCountry', it.country,
         'senderBank', it.sender_bank,
-        'swiftSepaCode', it.swift_sepa_code,
-        'senderBankAccount', it.sender_bank_account,
+        'receiverBank', it.receiver_bank,
         'amount', it.amount,
         'currency', it.currency,
         'correspondentBank', it.correspondent_bank,
-        'correspondentBankSwiftSepaCode', 
-          it.correspondent_bank_swift_sepa_code
+        'charges', it.charges, 
+        'tm', it.created_at,
+        'description', it.description
       ) :: jsonb
     from institution.transaction as it 
     inner join institution.invoice as ii 

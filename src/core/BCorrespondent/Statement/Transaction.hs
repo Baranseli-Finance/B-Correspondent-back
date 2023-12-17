@@ -79,7 +79,7 @@ create =
         trim(both '"' from $12 :: text),
         $13 :: text,
         $14 :: text,
-        $15 :: text,
+        trim(both '"' from $15 :: text),
         $16 :: timestamptz,
         $17 :: text
       from institution.invoice_to_institution_delivery
