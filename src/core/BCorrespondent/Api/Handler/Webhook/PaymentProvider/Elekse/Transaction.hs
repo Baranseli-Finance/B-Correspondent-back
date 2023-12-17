@@ -13,46 +13,17 @@ import BCorrespondent.Transport.Model.Transaction
        (TransactionFromPaymentProvider (..))
 import BCorrespondent.Statement.Transaction (create, checkTransaction)
 import qualified BCorrespondent.Statement.Transaction as S (TransactionCheck (..))
-import BCorrespondent.Statement.Fs (File (..), insertFiles)
 import BCorrespondent.Transport.Response (Response (Ok, Error))
 import BCorrespondent.Transport.Error (asError)
-import Katip.Handler (KatipHandlerM, hasqlDbPool, katipEnv, ask, Minio (..), minio)
+import Katip.Handler (KatipHandlerM, hasqlDbPool, katipEnv, ask)
 import BCorrespondent.Notification (makeH, Transaction (..)) 
 import Database.Transaction (transactionM, statement)
 import Control.Lens ((^.))
 import Data.Foldable (for_)
 import Data.Text (Text, pack)
-import Data.Int (Int64)
 import BuildInfo (location)
 import Katip (logTM, logStr, Severity(ErrorS))
-import Data.Text.Encoding (encodeUtf8)
-import qualified Data.ByteString.Base64 as Base64
-import Data.Traversable (for)
-import Data.Either.Combinators (whenLeft)
-import qualified Data.ByteString as B
-import System.Directory (getTemporaryDirectory)
-import Hash (mkHash)
-import Data.String.Conv (toS)
-import Control.Monad.IO.Class (liftIO)
-import System.FilePath ((</>))
-import Data.Either.Combinators (maybeToRight)
-import Control.Monad (join, void, unless)
-import Data.Bifunctor (first)
-import System.Timeout (timeout)
-import Network.Minio 
-      ( runMinioWith, 
-        pooContentType, 
-        defaultPutObjectOptions, 
-        makeBucket, 
-        bucketExists, 
-        fPutObject
-      )
-import Data.Coerce (coerce)      
-import Control.Monad.Time (currentTime)
--- import Control.Concurrent.Lifted (fork)
-import Network.Mime (defaultMimeLookup, fileNameExtensions)
-import Data.Time.Clock.System (getSystemTime, systemSeconds)
-import System.FilePath (extSeparator)
+import Control.Monad (void)
 import Data.UUID (toText, UUID)
 import Data.Default (def)
 
@@ -62,70 +33,19 @@ mkTransactionKey uuid = "transaction" <> toText uuid
 
 handle :: TransactionFromPaymentProvider -> KatipHandlerM (Response ())
 handle transaction@TransactionFromPaymentProvider 
-       {transactionFromPaymentProviderSwiftMessage = swift,
-        transactionFromPaymentProviderSwiftMessageExt = ext,
-        transactionFromPaymentProviderIdent = uuid,
-        transactionFromPaymentProviderSender = sender,
-        transactionFromPaymentProviderAmount = amount,
-        transactionFromPaymentProviderCurrency = currency} = do
+       {transactionFromPaymentProviderIdent = uuid} = do
   hasql <- fmap (^. katipEnv . hasqlDbPool) ask
   checkRes <- transactionM hasql $ statement checkTransaction uuid
   withCheckRes checkRes
   where 
-    withCheckRes (Right S.Ok) = do
-      let withResp (Right _) = Ok ()
-          withResp (Left _) = Error (Just 500) def
-      fmap withResp $ do
+    withCheckRes (Right S.Ok) =
+      fmap (const (Ok ())) $ do
         hasql <- fmap (^. katipEnv . hasqlDbPool) ask
-        void $ transactionM hasql $ statement Cache.insert (mkTransactionKey uuid, transaction, Just True)
-        tm <- liftIO $ fmap systemSeconds getSystemTime
-        let fileName = 
-              sender <> "_" <> 
-              toS (show amount) <> "_" <> 
-              toS (show currency) <> "_" <> 
-              toS (show tm) <> 
-              toS [extSeparator] <>
-              ext
-        resp <- commitSwiftMessage fileName swift
-        for resp $ \[ident] -> do
-          dbRes <- transactionM hasql $ statement create (ident, transaction)
-          for_ dbRes $ \(instIdent, textualIdent) -> 
-            makeH @"transaction_processed" instIdent [Transaction textualIdent uuid]
+        dbRes <- transactionM hasql $ do
+          void $ statement Cache.insert (mkTransactionKey uuid, transaction, Just True)
+          statement create transaction
+        for_ dbRes $ \(instIdent, textualIdent) ->
+          makeH @"transaction_processed" instIdent [Transaction textualIdent uuid]
     withCheckRes (Right S.NotFound) = pure $ Error (Just 404) $ asError @Text $ toText uuid <> " not found"
     withCheckRes (Right S.Already) = pure $ Error (Just 409) $ asError @Text $ toText uuid <> " was expended"
     withCheckRes (Left error) = fmap (const (Error (Just 500) def)) $ $(logTM) ErrorS $ logStr @Text $ $location <> ": error ---> " <> pack error
-
-commitSwiftMessage :: Text -> Text -> KatipHandlerM (Either String [Int64])
-commitSwiftMessage fileName s = do
-  resp <- fmap join $ for (Base64.decode (encodeUtf8 s)) $ \bs -> do
-    Minio {..} <- fmap (^. katipEnv . minio) ask
-    tmp <- liftIO getTemporaryDirectory
-    tm <- currentTime
-    let hash = mkHash $ bs <> toS (show tm) 
-    let path = tmp </> toS hash
-    liftIO $ B.writeFile path bs
-    let bucket = "transaction"
-    let fileMime = toS $ defaultMimeLookup fileName
-    let file =
-          File
-          { fileHash = hash, 
-            fileName = fileName,
-            fileMime = fileMime,
-            fileBucket = bucket,
-            fileExts = fileNameExtensions fileName
-          }
-    let err = "file server failed to respond"
-    minioRes <- liftIO $  
-      fmap (join . maybeToRight err) $
-        timeout (2 * 1_000_000) $
-          fmap (first (toS . show)) $
-            runMinioWith minioConn $ do
-              exist <- bucketExists bucket
-              unless exist $ makeBucket bucket Nothing
-              let opt = 
-                       defaultPutObjectOptions 
-                       { pooContentType = Just fileMime }
-              void $ fPutObject bucket hash path opt
-    hasql <- fmap (^. katipEnv . hasqlDbPool) ask          
-    for minioRes $ \_ -> fmap coerce $ transactionM hasql $ statement insertFiles [file]
-  fmap (const resp) $ whenLeft resp $ \error -> $(logTM) ErrorS $ logStr @Text $ $location <> ": error ---> " <> pack error

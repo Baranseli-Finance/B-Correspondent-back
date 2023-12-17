@@ -128,9 +128,14 @@ register =
           $14 :: float8,
           $15 :: float8,
           trim(both '"' from $16 :: text),
-          'I' :: text
-          || repeat('0', 2 - length(cast (($19 :: int8) as text)))
-          || cast (($19 :: int8) as text)
+          (select 
+            coalesce(
+              abbreviation,
+              'I' :: text
+              || repeat('0', 2 - length(cast (($19 :: int8) as text)))
+              || cast (($19 :: int8) as text)
+            )
+          from auth.institution where id = $19 :: int8)
           || $17 :: text
           || upper(trim(both '"' from $3 :: text))
           || repeat('0', 9 - length(cast((select * from curr_idx) as text)))

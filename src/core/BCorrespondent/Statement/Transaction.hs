@@ -38,41 +38,32 @@ import qualified Data.Vector as V
 import Data.Tuple.Extended (app2)
 
 
--- { "ident": "579b254b-dd5d-40a6-9377-beb6d3af98a3"
---   "sender": "...",
---   "address": "...",
---   "phoneNumber": "...",
---   "bank": "...",
---   "swfitSepaCode": "...",
---   "bankAccount": "...",
---   "amount": "...",
---   "currency": "usd",
---   "correspondentBank": "...",
---   "swfitSepaCodeCorrespondentBank": "...",
---   "swiftMessage": "...",
---   "swiftMessageExt": "txt"
--- }
-create :: HS.Statement (Int64, TransactionFromPaymentProvider) (Maybe (Int64, T.Text))
-create = 
-  (lmap $ \(x, y) ->
-    snocT (toS (show ForwardedToPaymentProvider)) $
-      snocT (toS (show ProcessedByPaymentProvider)) $ 
-        snocT x $ encodeTransactionFromPaymentProvider y)
+create :: HS.Statement TransactionFromPaymentProvider (Maybe (Int64, T.Text))
+create =
+  (lmap (
+      snocT (toS @_ @T.Text (show ForwardedToPaymentProvider))
+    . snocT (toS @_ @T.Text (show ProcessedByPaymentProvider)) 
+    . encodeTransactionFromPaymentProvider))
   [maybeStatement|
     with new_transaction as (  
       insert into institution.transaction
       ( invoice_id,
-        sender_name,
-        sender_address,
-        sender_phone_number,
+        sender,
+        city,
+        country,
         sender_bank,
-        swift_sepa_code,
-        sender_bank_account,
+        sender_transfer_agent,
+        sender_transfer_agent_code,
+        sender_bank_operation_code,
+        receiver_bank,
+        receiver_transfer_agent,
         amount,
         currency,
         correspondent_bank,
-      correspondent_bank_swift_sepa_code,
-      swift_sepa_message_id)
+        correspondent_bank_transfer_agent,
+        charges,
+        created_at,
+        description)
       select
         invoice_id,
         $2 :: text,
@@ -81,21 +72,26 @@ create =
         $5 :: text,
         $6 :: text,
         $7 :: text,
-        $8 :: float8,
-        trim(both '"' from $9 :: text),
+        $8 :: text,
+        $9 :: text,
         $10 :: text,
         $11 :: text,
-        $12 :: int8
+        $12 :: float8,
+        trim(both '"' from $13 :: text),
+        $14 :: text,
+        $15 :: text,
+        $16 :: text,
+        $17 :: timestamptz,
+        $18 :: text
       from institution.invoice_to_institution_delivery
       where external_id = $1 :: uuid
       on conflict (invoice_id) do nothing
       returning id, invoice_id)
     update institution.invoice 
-    set status = $13 :: text
+    set status = $19 :: text
     where id = (select invoice_id from new_transaction)
-    and status = $14 :: text
+    and status = $20 :: text
     returning institution_id :: int8, textual_view :: text|]
-
 
 data TransactionCheck = NotFound | Already | Ok
   deriving stock (Generic, Show)

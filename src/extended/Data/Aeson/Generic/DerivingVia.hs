@@ -153,6 +153,7 @@ module Data.Aeson.Generic.DerivingVia
     StripConstructor,
     StripConstructorNullary,
     ToLower,
+    ToUpper,
     FirstLetterToLower,
     FirstLetterToUpper,
     StripConstructorParamType,
@@ -349,6 +350,11 @@ data ToLower
 
 instance Reifies ToLower (String -> String) where
   reflect _ = map toLower
+
+data ToUpper
+
+instance Reifies ToUpper (String -> String) where
+  reflect _ = map toUpper
 
 data FirstLetterToLower
 

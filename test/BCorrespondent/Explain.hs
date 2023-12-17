@@ -152,5 +152,8 @@ explainTests =
     [ "insertToken" =>> BCorrespondent.Statement.Institution.Auth.insertToken,
       "fetchToken" =>> BCorrespondent.Statement.Institution.Auth.fetchToken 
     ]
-  , "BCorrespondent.Statement.Delivery" ==> ["addAttempt" =>> BCorrespondent.Statement.Delivery.addAttempt]
+  , "BCorrespondent.Statement.Delivery" ==> 
+    ["addAttempt" =>> BCorrespondent.Statement.Delivery.addAttempt,
+     "setDelivered" =>> BCorrespondent.Statement.Delivery.setDelivered
+    ]
   ]

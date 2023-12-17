@@ -49,6 +49,11 @@ module Data.Tuple.Extended
     sel13,
     sel14,
     sel15,
+    sel16,
+    sel17,
+    sel18,
+    sel19,
+    sel20,
     lastT,
 
     -- * Application
@@ -221,6 +226,21 @@ sel14 s = selN s (Proxy :: Proxy 13)
 
 sel15 :: SelectN s 14 t => s -> t
 sel15 s = selN s (Proxy :: Proxy 14)
+
+sel16 :: SelectN s 15 t => s -> t
+sel16 s = selN s (Proxy :: Proxy 15)
+
+sel17 :: SelectN s 16 t => s -> t
+sel17 s = selN s (Proxy :: Proxy 16)
+
+sel18 :: SelectN s 17 t => s -> t
+sel18 s = selN s (Proxy :: Proxy 17)
+
+sel19 :: SelectN s 18 t => s -> t
+sel19 s = selN s (Proxy :: Proxy 18)
+
+sel20 :: SelectN s 19 t => s -> t
+sel20 s = selN s (Proxy :: Proxy 19)
 
 -- | Selects the last element of any n-ary tuple
 --
@@ -931,3 +951,4 @@ type family ToTuple s where
   ToTuple (NP I '[a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q]) = (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q)
   ToTuple (NP I '[a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r]) = (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r)
   ToTuple (NP I '[a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s]) = (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s)
+  ToTuple (NP I '[a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t]) = (a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t)

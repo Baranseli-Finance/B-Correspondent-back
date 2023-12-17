@@ -52,6 +52,7 @@ import PostgreSQL.ErrorCodes
 import Data.Tuple (Solo (..))
 import Data.UUID (UUID)
 import Data.Time.Calendar.OrdinalDate (Day)
+import Data.Tuple.Extended
 
 
 newtype QueryErrorWrapper = QueryErrorWrapper Hasql.QueryError
@@ -241,18 +242,255 @@ instance {-# OVERLAPS #-}
    ParamsShow m)
   => ParamsShow (a, b, c, d, e, f, g, j, k, l, m) where
   render x = 
-    render (x ^. _1) <> ", " <> 
-    render (x ^. _2) <> ", " <> 
-    render (x ^. _3) <> ", " <> 
-    render (x ^. _4) <> ", " <> 
-    render (x ^. _5) <> ", " <> 
-    render (x ^. _6) <> ", " <> 
-    render (x ^. _7) <> ", " <> 
-    render (x ^. _8) <> ", " <> 
-    render (x ^. _9) <> ", " <> 
-    render (x ^. _10) <> ", " <> 
-    render (x ^. _11)
+    render (sel1 x) <> ", " <> 
+    render (sel2 x) <> ", " <> 
+    render (sel3 x) <> ", " <> 
+    render (sel4 x) <> ", " <> 
+    render (sel5 x) <> ", " <> 
+    render (sel6 x) <> ", " <> 
+    render (sel7 x) <> ", " <> 
+    render (sel8 x) <> ", " <> 
+    render (sel9 x) <> ", " <> 
+    render (sel10 x) <> ", " <> 
+    render (sel11 x)
 
+instance {-# OVERLAPS #-} 
+  (ParamsShow a, 
+   ParamsShow b, 
+   ParamsShow c, 
+   ParamsShow d, 
+   ParamsShow e, 
+   ParamsShow f, 
+   ParamsShow g, 
+   ParamsShow j, 
+   ParamsShow k, 
+   ParamsShow l, 
+   ParamsShow m,
+   ParamsShow n)
+  => ParamsShow (a, b, c, d, e, f, g, j, k, l, m, n) where
+  render x = 
+    render (sel1 x) <> ", " <> 
+    render (sel2 x) <> ", " <> 
+    render (sel3 x) <> ", " <> 
+    render (sel4 x) <> ", " <> 
+    render (sel5 x) <> ", " <> 
+    render (sel6 x) <> ", " <> 
+    render (sel7 x) <> ", " <> 
+    render (sel8 x) <> ", " <> 
+    render (sel9 x) <> ", " <> 
+    render (sel10 x) <> ", " <> 
+    render (sel11 x) <> ", " <>
+    render (sel12 x)
+
+instance {-# OVERLAPS #-} 
+  (ParamsShow a, 
+   ParamsShow b, 
+   ParamsShow c, 
+   ParamsShow d, 
+   ParamsShow e, 
+   ParamsShow f, 
+   ParamsShow g, 
+   ParamsShow j, 
+   ParamsShow k, 
+   ParamsShow l, 
+   ParamsShow m,
+   ParamsShow n,
+   ParamsShow o)
+  => ParamsShow (a, b, c, d, e, f, g, j, k, l, m, n, o) where
+  render x = 
+    render (sel1 x) <> ", " <> 
+    render (sel2 x) <> ", " <> 
+    render (sel3 x) <> ", " <> 
+    render (sel4 x) <> ", " <> 
+    render (sel5 x) <> ", " <> 
+    render (sel6 x) <> ", " <> 
+    render (sel7 x) <> ", " <> 
+    render (sel8 x) <> ", " <> 
+    render (sel9 x) <> ", " <> 
+    render (sel10 x) <> ", " <> 
+    render (sel11 x) <> ", " <>
+    render (sel12 x) <> ", " <>
+    render (sel13 x)
+
+instance {-# OVERLAPS #-} 
+  (ParamsShow a, 
+   ParamsShow b, 
+   ParamsShow c, 
+   ParamsShow d, 
+   ParamsShow e, 
+   ParamsShow f, 
+   ParamsShow g, 
+   ParamsShow j, 
+   ParamsShow k, 
+   ParamsShow l, 
+   ParamsShow m,
+   ParamsShow n,
+   ParamsShow o,
+   ParamsShow p)
+  => ParamsShow (a, b, c, d, e, f, g, j, k, l, m, n, o, p) where
+  render x = 
+    render (sel1 x) <> ", " <> 
+    render (sel2 x) <> ", " <> 
+    render (sel3 x) <> ", " <> 
+    render (sel4 x) <> ", " <> 
+    render (sel5 x) <> ", " <> 
+    render (sel6 x) <> ", " <> 
+    render (sel7 x) <> ", " <> 
+    render (sel8 x) <> ", " <> 
+    render (sel9 x) <> ", " <> 
+    render (sel10 x) <> ", " <> 
+    render (sel11 x) <> ", " <>
+    render (sel12 x) <> ", " <>
+    render (sel13 x) <> ", " <>
+    render (sel14 x)
+
+instance {-# OVERLAPS #-} 
+  (ParamsShow a, 
+   ParamsShow b, 
+   ParamsShow c, 
+   ParamsShow d, 
+   ParamsShow e, 
+   ParamsShow f, 
+   ParamsShow g, 
+   ParamsShow j, 
+   ParamsShow k, 
+   ParamsShow l, 
+   ParamsShow m,
+   ParamsShow n,
+   ParamsShow o,
+   ParamsShow p,
+   ParamsShow q)
+  => ParamsShow (a, b, c, d, e, f, g, j, k, l, m, n, o, p, q) where
+  render x = 
+    render (sel1 x) <> ", " <> 
+    render (sel2 x) <> ", " <> 
+    render (sel3 x) <> ", " <> 
+    render (sel4 x) <> ", " <> 
+    render (sel5 x) <> ", " <> 
+    render (sel6 x) <> ", " <> 
+    render (sel7 x) <> ", " <> 
+    render (sel8 x) <> ", " <> 
+    render (sel9 x) <> ", " <> 
+    render (sel10 x) <> ", " <> 
+    render (sel11 x) <> ", " <>
+    render (sel12 x) <> ", " <>
+    render (sel13 x) <> ", " <>
+    render (sel14 x) <> ", " <>
+    render (sel15 x)
+
+instance {-# OVERLAPS #-} 
+  (ParamsShow a, 
+   ParamsShow b, 
+   ParamsShow c, 
+   ParamsShow d, 
+   ParamsShow e, 
+   ParamsShow f, 
+   ParamsShow g, 
+   ParamsShow j, 
+   ParamsShow k, 
+   ParamsShow l, 
+   ParamsShow m,
+   ParamsShow n,
+   ParamsShow o,
+   ParamsShow p,
+   ParamsShow q,
+   ParamsShow r)
+  => ParamsShow (a, b, c, d, e, f, g, j, k, l, m, n, o, p, q, r) where
+  render x = 
+    render (sel1 x) <> ", " <> 
+    render (sel2 x) <> ", " <> 
+    render (sel3 x) <> ", " <> 
+    render (sel4 x) <> ", " <> 
+    render (sel5 x) <> ", " <> 
+    render (sel6 x) <> ", " <> 
+    render (sel7 x) <> ", " <> 
+    render (sel8 x) <> ", " <> 
+    render (sel9 x) <> ", " <> 
+    render (sel10 x) <> ", " <> 
+    render (sel11 x) <> ", " <>
+    render (sel12 x) <> ", " <>
+    render (sel13 x) <> ", " <>
+    render (sel14 x) <> ", " <>
+    render (sel15 x) <> ", " <>
+    render (sel16 x)
+
+instance {-# OVERLAPS #-} 
+  (ParamsShow a, 
+   ParamsShow b, 
+   ParamsShow c, 
+   ParamsShow d, 
+   ParamsShow e, 
+   ParamsShow f, 
+   ParamsShow g, 
+   ParamsShow j, 
+   ParamsShow k, 
+   ParamsShow l, 
+   ParamsShow m,
+   ParamsShow n,
+   ParamsShow o,
+   ParamsShow p,
+   ParamsShow q,
+   ParamsShow r,
+   ParamsShow s)
+  => ParamsShow (a, b, c, d, e, f, g, j, k, l, m, n, o, p, q, r, s) where
+  render x = 
+    render (sel1 x) <> ", " <> 
+    render (sel2 x) <> ", " <> 
+    render (sel3 x) <> ", " <> 
+    render (sel4 x) <> ", " <> 
+    render (sel5 x) <> ", " <> 
+    render (sel6 x) <> ", " <> 
+    render (sel7 x) <> ", " <> 
+    render (sel8 x) <> ", " <> 
+    render (sel9 x) <> ", " <> 
+    render (sel10 x) <> ", " <> 
+    render (sel11 x) <> ", " <>
+    render (sel12 x) <> ", " <>
+    render (sel13 x) <> ", " <>
+    render (sel14 x) <> ", " <>
+    render (sel15 x) <> ", " <>
+    render (sel16 x) <> ", " <>
+    render (sel17 x)
+
+instance {-# OVERLAPS #-} 
+  (ParamsShow a, 
+   ParamsShow b, 
+   ParamsShow c, 
+   ParamsShow d, 
+   ParamsShow e, 
+   ParamsShow f, 
+   ParamsShow g, 
+   ParamsShow j, 
+   ParamsShow k, 
+   ParamsShow l, 
+   ParamsShow m,
+   ParamsShow n,
+   ParamsShow o,
+   ParamsShow p,
+   ParamsShow q,
+   ParamsShow r,
+   ParamsShow s,
+   ParamsShow t)
+  => ParamsShow (a, b, c, d, e, f, g, j, k, l, m, n, o, p, q, r, s, t) where
+  render x = 
+    render (sel1 x) <> ", " <> 
+    render (sel2 x) <> ", " <> 
+    render (sel3 x) <> ", " <> 
+    render (sel4 x) <> ", " <> 
+    render (sel5 x) <> ", " <> 
+    render (sel6 x) <> ", " <> 
+    render (sel7 x) <> ", " <> 
+    render (sel8 x) <> ", " <> 
+    render (sel9 x) <> ", " <> 
+    render (sel10 x) <> ", " <> 
+    render (sel11 x) <> ", " <>
+    render (sel12 x) <> ", " <>
+    render (sel13 x) <> ", " <>
+    render (sel14 x) <> ", " <>
+    render (sel15 x) <> ", " <>
+    render (sel16 x) <> ", " <>
+    render (sel17 x) <> ", " <>
+    render (sel18 x)
 
 instance ParamsShow a => ParamsShow [a] where
   render xs = intercalate ", " $ map render xs
