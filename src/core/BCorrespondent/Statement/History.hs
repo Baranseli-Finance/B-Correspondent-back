@@ -146,7 +146,7 @@ getHourShift =
           select
             textual_view,
             invoice_ident,
-            created_at,
+            invoice_timestamp,
             invoice_currency,
             invoice_amount,
             status,

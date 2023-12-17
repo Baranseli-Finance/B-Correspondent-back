@@ -36,7 +36,7 @@ import Test.QuickCheck.Extended (Arbitrary)
 import Database.Transaction (ParamsShow)
 import qualified Data.Text as T
 import TH.Mk (mkEncoder, mkArbitrary)
-import Data.Tuple.Extended (app9, app7, app11, app13, app15, app16)
+import Data.Tuple.Extended (app9, app7, app11, app13, app15, app16, del2)
 import Data.Maybe (fromMaybe)
 import Database.Transaction (ParamsShow (..))
 import Data.String.Conv (toS)
@@ -152,13 +152,14 @@ mkArbitrary ''TransactionFromPaymentProvider
 
 encodeTransactionFromPaymentProvider 
   :: TransactionFromPaymentProvider
-  -> (UUID, T.Text, T.Text, T.Text,
+  -> (UUID, T.Text, T.Text,
       T.Text, T.Text, T.Text, T.Text, T.Text, T.Text, T.Text, 
       Double, T.Text, T.Text, T.Text, T.Text, UTCTime, T.Text)
 encodeTransactionFromPaymentProvider =
     fromMaybe undefined
   . fmap (
-        app7 (toS . show) 
+        del2
+      . app7 (toS . show) 
       . app9 (toS . show) 
       . app11 (toS . show) 
       . app13 (toS . show) 

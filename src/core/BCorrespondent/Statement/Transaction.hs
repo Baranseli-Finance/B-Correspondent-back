@@ -45,7 +45,7 @@ create =
     . snocT (toS @_ @T.Text (show ProcessedByPaymentProvider)) 
     . encodeTransactionFromPaymentProvider))
   [maybeStatement|
-    with new_transaction as (  
+    with new_transaction as (
       insert into institution.transaction
       ( invoice_id,
         sender,
@@ -75,22 +75,21 @@ create =
         $8 :: text,
         $9 :: text,
         $10 :: text,
-        $11 :: text,
-        $12 :: float8,
-        trim(both '"' from $13 :: text),
+        $11 :: float8,
+        trim(both '"' from $12 :: text),
+        $13 :: text,
         $14 :: text,
         $15 :: text,
-        $16 :: text,
-        $17 :: timestamptz,
-        $18 :: text
+        $16 :: timestamptz,
+        $17 :: text
       from institution.invoice_to_institution_delivery
       where external_id = $1 :: uuid
       on conflict (invoice_id) do nothing
       returning id, invoice_id)
     update institution.invoice 
-    set status = $19 :: text
+    set status = $18 :: text
     where id = (select invoice_id from new_transaction)
-    and status = $20 :: text
+    and status = $19 :: text
     returning institution_id :: int8, textual_view :: text|]
 
 data TransactionCheck = NotFound | Already | Ok
