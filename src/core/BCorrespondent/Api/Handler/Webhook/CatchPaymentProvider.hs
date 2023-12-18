@@ -17,40 +17,40 @@ import BCorrespondent.Transport.Error (asError)
 import BCorrespondent.Transport.Response (Response (Error))
 import Katip.Handler (KatipHandlerM)
 import Data.Aeson (eitherDecode, encode, FromJSON)
-import Data.Traversable (for)
 import BuildInfo (location)
 import Katip
 import Data.String (fromString)
-import Control.Applicative ((<|>))
-import Data.Text (Text)
+import Data.Text (Text, intercalate)
 import Data.String.Conv (toS)
+import Validation (Validation, eitherToValidation, partitionValidations)
 
 
 catch :: PaymentProvider -> Payload -> KatipHandlerM (Response ())
 catch Elekse payload = do
-  handleResp <- for alt $ \case
-    Elekse.TransactionPayload body -> 
-      Elekse.Transaction.handle body
-    Elekse.WithdrawalPayload body -> 
-      Elekse.Withdrawal.handle body
-  case handleResp of
-    Right resp -> pure resp
-    Left error ->
-      let errorResp = 
-            Error (Just 400) $ 
-              asError @Text ("decode error: " <> toS error)
+  let (es, as) = partitionValidations alt
+  case as of 
+    [] ->
+      let msg = intercalate ", " $ map toS es
+          errorResp = Error (Just 400) $ asError @Text ("decode error: " <> msg)
       in fmap (const errorResp) $
         $(logTM) ErrorS $
           fromString $ 
           $location <> ": error ---> " <> 
-          error <> ", payload: " <> show payload
+          toS msg <> ", payload: " <> show payload
+    [x] ->
+      case x of
+        Elekse.TransactionPayload body -> 
+          Elekse.Transaction.handle body
+        Elekse.WithdrawalPayload body -> 
+          Elekse.Withdrawal.handle body
+    _ -> pure $ Error (Just 500) $ asError @Text ("decode error: payload has been resolved into more then one type")
   where
     alt =
-         fmap Elekse.TransactionPayload 
-         (reify @TransactionFromPaymentProvider payload)
-        <|>
-          fmap Elekse.WithdrawalPayload 
-          (reify @WithdrawalPaymentProviderResponse payload)
+         [ fmap Elekse.TransactionPayload 
+           (reify @TransactionFromPaymentProvider payload)
+         , fmap Elekse.WithdrawalPayload 
+           (reify @WithdrawalPaymentProviderResponse payload)
+         ]
 
-reify :: forall a . FromJSON a => Payload -> Either String a
-reify = eitherDecode @a . encode
+reify :: forall a . FromJSON a => Payload -> Validation String a
+reify = eitherToValidation . eitherDecode @a . encode

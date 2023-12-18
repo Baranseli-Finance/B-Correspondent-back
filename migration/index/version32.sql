@@ -8,15 +8,15 @@ create table institution.transaction (
     city text not null,
     country text not null,
     sender_bank text not null,
-    sender_transfer_agent text not null,
-    sender_transfer_agent_code text not null,
+    sender_wire_transfer_agent text not null,
+    sender_wire_transfer_agent_code text not null,
     sender_bank_operation_code text not null,
     receiver_bank text not null,
-    receiver_transfer_agent text not null,
+    receiver_wire_transfer_agent text not null,
     amount decimal(16, 2) not null,
     currency text not null,
     correspondent_bank text null,
-    correspondent_bank_transfer_agent text null,
+    correspondent_wire_bank_transfer_agent text null,
     charges text not null,
     created_at timestamp not null,
     description text not null,
@@ -54,15 +54,15 @@ as
     t.city as transaction_city,
     t.country as transaction_country,
     t.sender_bank,
-    t.sender_transfer_agent,
-    t.sender_transfer_agent_code,
+    t.sender_wire_transfer_agent,
+    t.sender_wire_transfer_agent_code,
     t.sender_bank_operation_code,
     t.receiver_bank,
-    t.receiver_transfer_agent,
+    t.receiver_wire_transfer_agent,
     t.amount as transaction_amount,
     t.currency as transaction_currency,
     t.correspondent_bank,
-    t.correspondent_bank_transfer_agent,
+    t.correspondent_wire_bank_transfer_agent,
     t.charges as transaction_fee,
     t.created_at as transaction_timestamp,
     t.description as transaction_payment_description,
@@ -76,6 +76,6 @@ as
   on i.institution_id = iu.institution_id
 with no data;
 
-create unique index invoice_and_transaction_uq on mv.invoice_and_transaction (invoice_ident, transaction_ident);
+create unique index invoice_and_transaction_uq on mv.invoice_and_transaction (invoice_ident, transaction_ident, user_ident);
 
 refresh materialized view mv.invoice_and_transaction;

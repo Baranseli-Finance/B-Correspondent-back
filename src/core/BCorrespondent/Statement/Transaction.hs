@@ -52,20 +52,20 @@ create =
         city,
         country,
         sender_bank,
-        sender_transfer_agent,
-        sender_transfer_agent_code,
+        sender_wire_transfer_agent,
+        sender_wire_transfer_agent_code,
         sender_bank_operation_code,
         receiver_bank,
-        receiver_transfer_agent,
+        receiver_wire_transfer_agent,
         amount,
         currency,
         correspondent_bank,
-        correspondent_bank_transfer_agent,
+        correspondent_wire_bank_transfer_agent,
         charges,
         created_at,
         description)
       select
-        invoice_id,
+        invoice.id,
         $2 :: text,
         $3 :: text,
         $4 :: text,
@@ -82,11 +82,11 @@ create =
         trim(both '"' from $15 :: text),
         $16 :: timestamptz,
         $17 :: text
-      from institution.invoice_to_institution_delivery
+      from institution.invoice
       where external_id = $1 :: uuid
       on conflict (invoice_id) do nothing
       returning id, invoice_id)
-    update institution.invoice 
+    update institution.invoice
     set status = $18 :: text
     where id = (select invoice_id from new_transaction)
     and status = $19 :: text
@@ -107,24 +107,13 @@ checkTransaction =
   rmap (eitherDecode @TransactionCheck . encode)
   [singletonStatement|
     with 
-      check_existence as (
-        select
-          case 
-            when r then 'ok'
-            else 'notfound'
-          end as status
-        from (
-          select exists 
-          (select * 
-           from institution.invoice_to_institution_delivery 
-           where external_id = $1 :: uuid) as r)),
       check_already as (
-        select 'already' as status
-        from institution.invoice_to_institution_delivery as f
-        inner join institution.transaction as s
-        on f.invoice_id = s.invoice_id
+        select case when s.invoice_id is not null then 'already' else 'ok' end  as status
+        from institution.invoice as f
+        left join institution.transaction as s
+        on f.id = s.invoice_id
         where f.external_id = $1 :: uuid)
-    select to_jsonb(coalesce((select * from check_already), (select * from check_existence)) :: text) :: jsonb|]
+    select to_jsonb(coalesce((select * from check_already), 'notfound') :: text) :: jsonb|]
 
 fetchAbortedTransaction :: HS.Statement () [(Int64, Either String (Maybe QueryCredentials), T.Text)]
 fetchAbortedTransaction = 

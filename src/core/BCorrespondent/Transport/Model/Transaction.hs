@@ -20,7 +20,7 @@
 module BCorrespondent.Transport.Model.Transaction 
        ( TransactionFromPaymentProvider (..),
          TransactionId (..),
-         TransferAgent (..),
+         WireTransferAgent (..),
          BankOperationCode (..),
          AbortedTransactionRequest (..),
          encodeTransactionFromPaymentProvider
@@ -28,7 +28,7 @@ module BCorrespondent.Transport.Model.Transaction
 
 import BCorrespondent.Transport.Model.Invoice (Currency, Fee)
 import Data.UUID (UUID)
-import Data.Aeson (ToJSON, FromJSON)
+import Data.Aeson (ToJSON, FromJSON, encode)
 import Data.Aeson.Generic.DerivingVia
 import GHC.Generics
 import Data.Swagger (ToSchema)
@@ -43,7 +43,7 @@ import Data.String.Conv (toS)
 import Data.Time.Clock (UTCTime)
 
 
-data TransferAgent =
+data WireTransferAgent =
         -- https://www.swift.com/
         Swift
         -- https://finance.ec.europa.eu/consumer-finance-and-payments/payment-services/single-euro-payments-area-sepa_en
@@ -53,11 +53,11 @@ data TransferAgent =
      (FromJSON, ToJSON)
      via WithOptions
           '[SumEnc UntaggedVal,
-            ConstructorTagModifier 
+            ConstructorTagModifier
             '[UserDefined ToLower]]
-         TransferAgent
+         WireTransferAgent
 
-mkArbitrary ''TransferAgent
+mkArbitrary ''WireTransferAgent
 
 -- :23B::Bank operation code
 
@@ -94,27 +94,26 @@ data BankOperationCode = Cred | Unknown
 
 mkArbitrary ''BankOperationCode
 
--- { 
---    | there is an external ident that is sent previously in the invoice request. 
---      you simply take it from the invoice request and forward it in the webhook 
---  "ident": "579b254b-dd5d-40a6-9377-beb6d3af98a3",
---  "transactionId": "...",
---  "sender": "...",
---  “city”: "...",
---  “country”: "...",
---  “senderBankName”: "...",
---  “senderSwiftSepaCode": "...",
---  “transactionOperationCode": “Deb/Cred/NofN”,
---  “receiverBankName”: "...",
---  “receiverSwiftSepaCode": "...",
---  "amount": 12.45,
---  "currency": “USD”,
---  "correspondentBank": "...",
---  "swiftSepaCodeCorrespondentBank": "...",
---  “charges”: "...",
---  “transactionTimestamp”: "...",
---  “transactionDescription”: "..."
--- }
+{-
+       "ident": "36fab9bc-40d4-4975-887b-c729edf6cd18",
+       "transactionId": "TCKAFUSD000000006",
+       "sender": "...",
+       "city": "NY",
+       "country": "USA"
+       "senderBank": "...",
+       "senderWireTransferAgent": "swift",
+       "senderTransferAgentCode": "...",
+       "bankOperationCode": "cred", 
+       "receiverBank": "...",
+       "receiverWireTransferAgent": "swift",
+       "amount": 234.89,
+       "currency": "usd",
+       "correspondentBank": "..",
+       "correspondentBankWireTransferAgent": "swift",
+       "charges": "our",
+       "timestamp": "2016-07-22T00:00:00Z",
+       "description": "“TRID: TCKAFUSD000000006. The payment in according to Invoice Number: 123445, date: 11/11/2023 in amount of 12.500,00 USD for software development services"
+-}
 data TransactionFromPaymentProvider =
      TransactionFromPaymentProvider 
      { -- | there is an external ident that is sent previously in the invoice request. 
@@ -125,15 +124,15 @@ data TransactionFromPaymentProvider =
        transactionFromPaymentProviderCity :: !T.Text,
        transactionFromPaymentProviderCountry :: !T.Text, -- data type needs resolving
        transactionFromPaymentProviderSenderBank :: !T.Text,
-       transactionFromPaymentProviderSenderTransferAgent :: !TransferAgent,
+       transactionFromPaymentProviderSenderWireTransferAgent :: !WireTransferAgent,
        transactionFromPaymentProviderSenderTransferAgentCode :: !T.Text,
        transactionFromPaymentProviderBankOperationCode :: !BankOperationCode, 
        transactionFromPaymentProviderReceiverBank :: !T.Text,
-       transactionFromPaymentProviderReceiverTransferAgent :: !TransferAgent,
+       transactionFromPaymentProviderReceiverWireTransferAgent :: !WireTransferAgent,
        transactionFromPaymentProviderAmount :: !Double,
        transactionFromPaymentProviderCurrency :: !Currency,
        transactionFromPaymentProviderCorrespondentBank :: !T.Text,
-       transactionFromPaymentProviderCorrespondentBankTransferAgent :: !TransferAgent,
+       transactionFromPaymentProviderCorrespondentBankWireTransferAgent :: !WireTransferAgent,
        transactionFromPaymentProviderCharges :: !Fee,
        transactionFromPaymentProviderTimestamp :: !UTCTime,
        transactionFromPaymentProviderDescription :: !T.Text
@@ -162,9 +161,9 @@ encodeTransactionFromPaymentProvider =
       . app7 (toS . show) 
       . app9 (toS . show) 
       . app11 (toS . show) 
-      . app13 (toS . show) 
+      . app13 (toS . encode) 
       . app15 (toS . show) 
-      . app16 (toS . show))
+      . app16 (toS . encode))
   . mkEncoderTransactionFromPaymentProvider
 
 instance ParamsShow TransactionFromPaymentProvider where
