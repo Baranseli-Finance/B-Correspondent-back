@@ -396,6 +396,7 @@ data TimelineTransaction =
        timelineTransactionSenderCity :: Text,
        timelineTransactionSenderCountry :: Text,
        timelineTransactionSenderBank :: Text,
+       timelineTransactionReceiver :: Text,
        timelineTransactionReceiverBank :: Text,
        timelineTransactionAmount :: Double,
        timelineTransactionCurrency :: Currency,

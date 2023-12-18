@@ -119,7 +119,7 @@ getDashboard =
             'start_minute', extract(minute from tm.start),
             'end_hour', extract(hour from tm.end),
             'end_minute', extract(minute from tm.end),
-            'textual_ident', i.textual_view, 
+            'textual_ident', right(i.textual_view, length(i.textual_view) - 3), 
             'status', i.status,
             'ident', i.id,
             'tm', cast(i.appearance_on_timeline as text) || 'Z',
@@ -188,7 +188,7 @@ get1HourTimeline =
           'start_minute', extract(minute from tm.start),
           'end_hour', extract(hour from tm.end),
           'end_minute', extract(minute from tm.end),
-          'textual_ident', i.textual_view, 
+          'textual_ident', right(i.textual_view, length(i.textual_view) - 3), 
           'status', i.status,
           'ident', i.id,
           'tm', cast(i.appearance_on_timeline as text) || 'Z',
@@ -250,7 +250,7 @@ getGap =
   [vectorStatement|
     select
       json_build_object(
-        'textual_ident', textual_view, 
+        'textual_ident', right(textual_view, length(textual_view) - 3), 
         'status', status,
         'ident', id,
         'tm', cast(appearance_on_timeline as text) || 'Z',
@@ -280,15 +280,16 @@ getTransaction =
         'senderCity', it.city,
         'senderCountry', it.country,
         'senderBank', it.sender_bank,
+        'receiver', ii.seller,
         'receiverBank', it.receiver_bank,
         'amount', it.amount,
         'currency', it.currency,
         'correspondentBank', it.correspondent_bank,
         'charges', it.charges, 
-        'tm', it.created_at,
+        'tm', cast(it.created_at as text) || 'Z',
         'description', it.description
       ) :: jsonb
     from institution.transaction as it 
-    inner join institution.invoice as ii 
+    inner join institution.invoice as ii
     on it.invoice_id = ii.id 
     where ii.institution_id = $1 :: int8 and ii.id = $2 :: int8|]
