@@ -9,6 +9,7 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE DerivingStrategies #-}
 
 module Database.Transaction
   ( transactionIO,
@@ -53,6 +54,7 @@ import Data.Tuple (Solo (..))
 import Data.UUID (UUID)
 import Data.Time.Calendar.OrdinalDate (Day)
 import Data.Tuple.Extended
+import Data.String.Conv (toS)
 
 
 newtype QueryErrorWrapper = QueryErrorWrapper Hasql.QueryError
@@ -68,12 +70,12 @@ deriving instance Generic CommandError
 
 deriving instance Generic ResultError
 
-data ViolationError = ForeignKeyVlolation | UniqueViolation
-  deriving (Show)
+data ViolationError = ForeignKeyVlolation T.Text | UniqueViolation T.Text
+  deriving stock Show
 
 instance AsError ViolationError where
-  asError ForeignKeyVlolation = asError @T.Text "foreign key violation"
-  asError UniqueViolation = asError @T.Text "unique key violation"
+  asError (ForeignKeyVlolation e) = asError @T.Text $ "foreign key violation: " <> e
+  asError (UniqueViolation e) = asError @T.Text $ "unique key violation: " <> e
 
 instance Exception ViolationError
 
@@ -111,10 +113,10 @@ runSessionIO pool logger session =
                 handleDBResult
         let withBegin = do
               result <-
-                onException
-                  (release action)
-                  (logger CriticalS "error while performing sql" >>
-                     Hasql.run (Hasql.sql [uncheckedSql|rollback|]) conn)
+                release action 
+                `onException` do
+                  logger CriticalS "error while performing sql"
+                  Hasql.run (Hasql.sql [uncheckedSql|rollback|]) conn
               cm <- Hasql.run (Hasql.sql [uncheckedSql|commit|]) conn
               traverse (const (pure result)) cm
         traverse (const withBegin) bg
@@ -124,14 +126,16 @@ handleDBResult (Left e) =
   case codem of
     Just code ->
       if code == foreign_key_violation
-        then return $ Left ForeignKeyVlolation
+        then return $ Left $ ForeignKeyVlolation $ msg <> ", " <> detail
         else
           if code == unique_violation
-            then return $ Left UniqueViolation
+            then return $ Left $ UniqueViolation $ msg <> ", " <> detail
             else throwIO $ QueryErrorWrapper e
     Nothing -> throwIO $ QueryErrorWrapper e
   where
     codem = e ^? position @3 . _Ctor @"ResultError" . _Ctor @"ServerError" . _1
+    msg = maybe mempty toS $ e ^? position @3 . _Ctor @"ResultError" . _Ctor @"ServerError" . _2
+    detail = maybe mempty toS $ join $ e ^? position @3 . _Ctor @"ResultError" . _Ctor @"ServerError" . _3
 handleDBResult (Right val) = return $ Right val
 
 class ParamsShow a where
