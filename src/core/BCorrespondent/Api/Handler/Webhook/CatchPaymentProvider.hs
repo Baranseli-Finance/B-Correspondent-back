@@ -6,7 +6,7 @@
 
 module BCorrespondent.Api.Handler.Webhook.CatchPaymentProvider (catch) where
 
-import BCorrespondent.Transport.Model.Transaction (TransactionFromPaymentProvider)
+import BCorrespondent.Transport.Model.Transaction (OkTransaction)
 import BCorrespondent.Transport.Model.Institution (WithdrawalPaymentProviderResponse)
 import qualified BCorrespondent.Api.Handler.Webhook.PaymentProvider.Elekse.Payload as Elekse
 import qualified BCorrespondent.Api.Handler.Webhook.PaymentProvider.Elekse.Transaction as Elekse.Transaction
@@ -47,7 +47,7 @@ catch Elekse payload = do
   where
     alt =
          [ fmap Elekse.TransactionPayload 
-           (reify @TransactionFromPaymentProvider payload)
+           (reify @OkTransaction payload)
          , fmap Elekse.WithdrawalPayload 
            (reify @WithdrawalPaymentProviderResponse payload)
          ]

@@ -17,8 +17,7 @@ module BCorrespondent.Statement.Transaction
        ) where
 
 import BCorrespondent.Transport.Model.Transaction 
-       (TransactionFromPaymentProvider,
-        encodeTransactionFromPaymentProvider)
+       (OkTransaction, encodeOkTransaction)
 import BCorrespondent.Statement.Invoice
        (QueryCredentials,
         Status (ProcessedByPaymentProvider, ForwardedToPaymentProvider, Declined))
@@ -38,12 +37,12 @@ import qualified Data.Vector as V
 import Data.Tuple.Extended (app2)
 
 
-create :: HS.Statement TransactionFromPaymentProvider (Maybe (Int64, T.Text))
+create :: HS.Statement OkTransaction (Maybe (Int64, T.Text))
 create =
   (lmap (
       snocT (toS @_ @T.Text (show ForwardedToPaymentProvider))
     . snocT (toS @_ @T.Text (show ProcessedByPaymentProvider)) 
-    . encodeTransactionFromPaymentProvider))
+    . encodeOkTransaction))
   [maybeStatement|
     with new_transaction as (
       insert into institution.transaction

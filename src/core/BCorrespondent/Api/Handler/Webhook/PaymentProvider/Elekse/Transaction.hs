@@ -9,8 +9,7 @@
 module BCorrespondent.Api.Handler.Webhook.PaymentProvider.Elekse.Transaction (handle) where
 
 import qualified BCorrespondent.Statement.Cache as Cache (insert)
-import BCorrespondent.Transport.Model.Transaction
-       (TransactionFromPaymentProvider (..))
+import BCorrespondent.Transport.Model.Transaction (OkTransaction (..))
 import BCorrespondent.Statement.Transaction (create, checkTransaction)
 import qualified BCorrespondent.Statement.Transaction as S (TransactionCheck (..))
 import BCorrespondent.Transport.Response (Response (Ok, Error))
@@ -31,9 +30,8 @@ import Data.Default (def)
 mkTransactionKey :: UUID -> Text
 mkTransactionKey uuid = "transaction" <> toText uuid
 
-handle :: TransactionFromPaymentProvider -> KatipHandlerM (Response ())
-handle transaction@TransactionFromPaymentProvider 
-       {transactionFromPaymentProviderIdent = uuid} = do
+handle :: OkTransaction -> KatipHandlerM (Response ())
+handle transaction@OkTransaction {okTransactionIdent = uuid} = do
   hasql <- fmap (^. katipEnv . hasqlDbPool) ask
   checkRes <- transactionM hasql $ statement checkTransaction uuid
   withCheckRes checkRes

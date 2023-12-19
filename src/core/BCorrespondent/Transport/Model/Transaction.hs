@@ -18,12 +18,12 @@
 {-# OPTIONS_GHC -fno-warn-unused-top-binds #-}
 
 module BCorrespondent.Transport.Model.Transaction 
-       ( TransactionFromPaymentProvider (..),
+       ( OkTransaction (..),
          TransactionId (..),
          WireTransferAgent (..),
          BankOperationCode (..),
          AbortedTransactionRequest (..),
-         encodeTransactionFromPaymentProvider
+         encodeOkTransaction
        ) where
 
 import BCorrespondent.Transport.Model.Invoice (Currency, Fee)
@@ -95,49 +95,48 @@ data BankOperationCode = Cred | Unknown
 mkArbitrary ''BankOperationCode
 
 {-
--- description msg pattern; <b><c>{trid}</c><m>{msg}</m><b>
 
-       "ident": "36fab9bc-40d4-4975-887b-c729edf6cd18",
-       "transactionId": "TCKAFUSD000000006",
-       "sender": "...",
-       "city": "NY",
-       "country": "USA"
-       "senderBank": "Bank of NewYork",
-       "senderWireTransferAgent": "swift",
-       "senderTransferAgentCode": "IRVTUS3N",
-       "bankOperationCode": "CRED", 
-       "receiverBank": "Vakifbank",
-       "receiverWireTransferAgentCode": "TVBATR2AFEX",
-       "amount": 234.89,
-       "currency": "usd",
-       "correspondentBank": "BankOne",
-       "correspondentBankWireTransferAgentCode": "BKONMUMU",
-       "charges": "our",
-       "timestamp": "2016-07-22T00:00:00Z",
-       "description": "Payment for invoice 123445 for software development services"
+  "ident": "36fab9bc-40d4-4975-887b-c729edf6cd18",
+  "transactionId": "TCKAFUSD000000006",
+  "sender": "...",
+  "city": "NY",
+  "country": "USA"
+  "senderBank": "Bank of NewYork",
+  "senderWireTransferAgent": "swift",
+  "senderTransferAgentCode": "IRVTUS3N",
+  "bankOperationCode": "CRED", 
+  "receiverBank": "Vakifbank",
+  "receiverWireTransferAgentCode": "TVBATR2AFEX",
+  "amount": 234.89,
+  "currency": "usd",
+  "correspondentBank": "BankOne",
+  "correspondentBankWireTransferAgentCode": "BKONMUMU",
+  "charges": "our",
+  "timestamp": "2016-07-22T00:00:00Z",
+  "description": "Payment for invoice 123445 for software development services"
 -}
-data TransactionFromPaymentProvider =
-     TransactionFromPaymentProvider 
+data OkTransaction =
+     OkTransaction 
      { -- | there is an external ident that is sent previously in the invoice request. 
         -- you simply take it from the invoice request and forward it in the webhook
-       transactionFromPaymentProviderIdent :: !UUID,
-       transactionFromPaymentProviderTransactionId :: !T.Text,
-       transactionFromPaymentProviderSender :: !T.Text,
-       transactionFromPaymentProviderCity :: !T.Text,
-       transactionFromPaymentProviderCountry :: !T.Text,
-       transactionFromPaymentProviderSenderBank :: !T.Text,
-       transactionFromPaymentProviderSenderWireTransferAgent :: !WireTransferAgent,
-       transactionFromPaymentProviderSenderTransferAgentCode :: !T.Text,
-       transactionFromPaymentProviderBankOperationCode :: !BankOperationCode, 
-       transactionFromPaymentProviderReceiverBank :: !T.Text,
-       transactionFromPaymentProviderReceiverWireTransferAgentCode :: !T.Text,
-       transactionFromPaymentProviderAmount :: !Double,
-       transactionFromPaymentProviderCurrency :: !Currency,
-       transactionFromPaymentProviderCorrespondentBank :: !T.Text,
-       transactionFromPaymentProviderCorrespondentBankWireTransferAgentCode :: !T.Text,
-       transactionFromPaymentProviderCharges :: !Fee,
-       transactionFromPaymentProviderTimestamp :: !UTCTime,
-       transactionFromPaymentProviderDescription :: !T.Text
+       okTransactionIdent :: !UUID,
+       okTransactionTransactionId :: !T.Text,
+       okTransactionSender :: !T.Text,
+       okTransactionCity :: !T.Text,
+       okTransactionCountry :: !T.Text,
+       okTransactionSenderBank :: !T.Text,
+       okTransactionSenderWireTransferAgent :: !WireTransferAgent,
+       okTransactionSenderTransferAgentCode :: !T.Text,
+       okTransactionBankOperationCode :: !BankOperationCode, 
+       okTransactionReceiverBank :: !T.Text,
+       okTransactionReceiverWireTransferAgentCode :: !T.Text,
+       okTransactionAmount :: !Double,
+       okTransactionCurrency :: !Currency,
+       okTransactionCorrespondentBank :: !T.Text,
+       okTransactionCorrespondentBankWireTransferAgentCode :: !T.Text,
+       okTransactionCharges :: !Fee,
+       okTransactionTimestamp :: !UTCTime,
+       okTransactionDescription :: !T.Text
      }
      deriving stock (Generic, Show)
      deriving (ToJSON, FromJSON)
@@ -145,18 +144,18 @@ data TransactionFromPaymentProvider =
           '[OmitNothingFields 'True, 
             FieldLabelModifier 
             '[UserDefined FirstLetterToLower, 
-              UserDefined (StripConstructor TransactionFromPaymentProvider)]]
-          TransactionFromPaymentProvider
+              UserDefined (StripConstructor OkTransaction)]]
+          OkTransaction
 
-mkEncoder ''TransactionFromPaymentProvider
-mkArbitrary ''TransactionFromPaymentProvider
+mkEncoder ''OkTransaction
+mkArbitrary ''OkTransaction
 
-encodeTransactionFromPaymentProvider 
-  :: TransactionFromPaymentProvider
+encodeOkTransaction 
+  :: OkTransaction
   -> (UUID, T.Text, T.Text,
       T.Text, T.Text, T.Text, T.Text, T.Text, T.Text, T.Text, 
       Double, T.Text, T.Text, T.Text, T.Text, UTCTime, T.Text)
-encodeTransactionFromPaymentProvider =
+encodeOkTransaction =
     fromMaybe undefined
   . fmap (
         del2
@@ -164,10 +163,10 @@ encodeTransactionFromPaymentProvider =
       . app9 (toS . show)
       . app13 (toS . encode)
       . app16 (toS . encode))
-  . mkEncoderTransactionFromPaymentProvider
+  . mkEncoderOkTransaction
 
-instance ParamsShow TransactionFromPaymentProvider where
-  render = render . encodeTransactionFromPaymentProvider
+instance ParamsShow OkTransaction where
+  render = render . encodeOkTransaction
 
 newtype TransactionId = TransactionId UUID
   deriving stock (Generic, Show)
