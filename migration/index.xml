@@ -33,4 +33,5 @@
     <include file="./changelog/index/version31.sql" />
     <include file="./changelog/index/version32.sql" />
     <include file="./changelog/index/version33.sql" />
+    <include file="./changelog/index/version34.sql" />
 </databaseChangeLog>

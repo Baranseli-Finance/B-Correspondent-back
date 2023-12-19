@@ -108,7 +108,7 @@ register =
           amount,
           vat,
           fee,
-          textual_view,
+          transaction_textual_ident,
           status)
         values (
           $19 :: int8, 
@@ -142,7 +142,7 @@ register =
           || cast((select * from curr_idx) as text),
           $18 :: text)
         on conflict (customer_id, invoice_id, institution_id) do nothing
-        returning id :: int8 as invoice_id, invoice_id as external_id, textual_view),
+        returning id :: int8 as invoice_id, invoice_id as external_id, transaction_textual_ident),
       external_ident as (
         insert into institution.invoice_external_ident
         (invoice_id)
@@ -150,8 +150,10 @@ register =
         returning invoice_id, external_id)
       select  
         jsonb_build_object(
-          'externalIdent', f.external_id,
-          'transactionIdent', s.textual_view,
+          'externalIdent', 
+          f.external_id,
+          'transactionIdent', 
+          s.transaction_textual_ident,
           'ident', s.external_id)
         :: jsonb
       from external_ident as f
@@ -252,7 +254,7 @@ getInvoicesToBeSent =
           'currency', s.currency,
           'amount', s.amount,
           'externalId', s.external_id,
-          'textualIdent', s.textual_view,
+          'textualIdent', s.transaction_textual_ident,
           'external', s.invoice_ext_id))
         :: jsonb[]? as xs
       from auth.institution as f

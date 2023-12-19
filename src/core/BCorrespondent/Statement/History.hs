@@ -50,7 +50,10 @@ initTimeline =
              'start_minute', extract(minute from f.start),
              'end_hour', extract(hour from f.end),
              'end_minute', extract(minute from f.end),
-             'textual_ident', right(s.textual_view, length(s.textual_view) - 3), 
+             'textual_ident', 
+              right(
+                s.transaction_textual_ident, 
+                length(s.transaction_textual_ident) - 3), 
              'status', s.status,
              'ident', s.invoice_ident,
              'tm', cast(s.appearance_on_timeline as text) || 'Z',
@@ -125,7 +128,10 @@ getHourShift =
           'start_minute', extract(minute from tm.start),
           'end_hour', extract(hour from tm.end),
           'end_minute', extract(minute from tm.end),
-          'textual_ident', right(i.textual_view, length(i.textual_view) - 3), 
+          'textual_ident', 
+          right(
+            i.transaction_textual_ident, 
+            length(i.transaction_textual_ident) - 3), 
           'status', i.status,
           'ident', i.invoice_ident,
           'tm', cast(i.appearance_on_timeline as text) || 'Z',
@@ -144,7 +150,7 @@ getHourShift =
          as tm
         cross join (
           select
-            textual_view,
+            transaction_textual_ident,
             invoice_ident,
             invoice_timestamp,
             invoice_currency,
@@ -155,7 +161,7 @@ getHourShift =
           where institution_id = $1 :: int8 and not $7 :: bool 
           union
           select
-            textual_view,
+            transaction_textual_ident,
             id as invoice_ident,
             created_at,
             currency as invoice_currency,

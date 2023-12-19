@@ -119,13 +119,16 @@ getDashboard =
             'start_minute', extract(minute from tm.start),
             'end_hour', extract(hour from tm.end),
             'end_minute', extract(minute from tm.end),
-            'textual_ident', right(i.textual_view, length(i.textual_view) - 3), 
+            'textual_ident', 
+             right(
+              i.transaction_textual_ident, 
+              length(i.transaction_textual_ident) - 3), 
             'status', i.status,
             'ident', i.id,
             'tm', cast(i.appearance_on_timeline as text) || 'Z',
             'currency', i.currency,
             'amount', i.amount)
-            order by i.appearance_on_timeline asc, i.textual_view asc)
+            order by i.appearance_on_timeline asc, i.transaction_textual_ident asc)
             :: jsonb[] as values
           from (
             select
@@ -188,13 +191,16 @@ get1HourTimeline =
           'start_minute', extract(minute from tm.start),
           'end_hour', extract(hour from tm.end),
           'end_minute', extract(minute from tm.end),
-          'textual_ident', right(i.textual_view, length(i.textual_view) - 3), 
+          'textual_ident', 
+           right(
+            i.transaction_textual_ident, 
+            length(i.transaction_textual_ident) - 3), 
           'status', i.status,
           'ident', i.id,
           'tm', cast(i.appearance_on_timeline as text) || 'Z',
           'currency', i.currency,
           'amount', i.amount)
-          order by i.appearance_on_timeline asc, i.textual_view asc)
+          order by i.appearance_on_timeline asc, i.transaction_textual_ident asc)
           :: jsonb[] as values
         from (
           select
@@ -250,7 +256,10 @@ getGap =
   [vectorStatement|
     select
       json_build_object(
-        'textual_ident', right(textual_view, length(textual_view) - 3), 
+        'textual_ident', 
+        right(
+          transaction_textual_ident, 
+          length(transaction_textual_ident) - 3), 
         'status', status,
         'ident', id,
         'tm', cast(appearance_on_timeline as text) || 'Z',
@@ -268,7 +277,7 @@ getGap =
               cast($4 :: int as text) || ':' || 
               cast($5 :: int as text) || ':00') 
               as timestamp)
-    order by appearance_on_timeline asc, textual_view asc|]
+    order by appearance_on_timeline asc, transaction_textual_ident asc|]
 
 getTransaction :: HS.Statement (Int64, Int64) (Maybe (Either String TimelineTransaction))
 getTransaction = 

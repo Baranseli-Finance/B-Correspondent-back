@@ -89,7 +89,7 @@ create =
     set status = $18 :: text
     where id = (select invoice_id from new_transaction)
     and status = $19 :: text
-    returning institution_id :: int8, textual_view :: text|]
+    returning institution_id :: int8, transaction_textual_ident :: text|]
 
 data TransactionCheck = NotFound | Already | Ok
   deriving stock (Generic, Show)
@@ -123,7 +123,7 @@ fetchAbortedTransaction =
     select 
       i.id :: int8,
       s.cred :: jsonb?,
-      i.textual_view :: text
+      i.transaction_textual_ident :: text
     from institution.invoice as i
     inner join institution.transaction as t
     on i.id = t.invoice_id
