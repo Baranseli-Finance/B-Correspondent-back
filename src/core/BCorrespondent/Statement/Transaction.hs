@@ -56,11 +56,11 @@ create =
         sender_wire_transfer_agent_code,
         sender_bank_operation_code,
         receiver_bank,
-        receiver_wire_transfer_agent,
+        receiver_wire_transfer_agent_code,
         amount,
         currency,
         correspondent_bank,
-        correspondent_wire_bank_transfer_agent,
+        correspondent_bank_wire_transfer_agent_code,
         charges,
         created_at,
         description)

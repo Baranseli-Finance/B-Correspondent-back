@@ -36,7 +36,7 @@ import Test.QuickCheck.Extended (Arbitrary)
 import Database.Transaction (ParamsShow)
 import qualified Data.Text as T
 import TH.Mk (mkEncoder, mkArbitrary)
-import Data.Tuple.Extended (app9, app7, app11, app13, app15, app16, del2)
+import Data.Tuple.Extended (app9, app7, app13, app16, del2)
 import Data.Maybe (fromMaybe)
 import Database.Transaction (ParamsShow (..))
 import Data.String.Conv (toS)
@@ -95,24 +95,26 @@ data BankOperationCode = Cred | Unknown
 mkArbitrary ''BankOperationCode
 
 {-
+-- description msg pattern; <b><c>{trid}</c><m>{msg}</m><b>
+
        "ident": "36fab9bc-40d4-4975-887b-c729edf6cd18",
        "transactionId": "TCKAFUSD000000006",
        "sender": "...",
        "city": "NY",
        "country": "USA"
-       "senderBank": "...",
+       "senderBank": "Bank of NewYork",
        "senderWireTransferAgent": "swift",
-       "senderTransferAgentCode": "...",
-       "bankOperationCode": "cred", 
-       "receiverBank": "...",
-       "receiverWireTransferAgent": "swift",
+       "senderTransferAgentCode": "IRVTUS3N",
+       "bankOperationCode": "CRED", 
+       "receiverBank": "Vakifbank",
+       "receiverWireTransferAgentCode": "TVBATR2AFEX",
        "amount": 234.89,
        "currency": "usd",
-       "correspondentBank": "..",
-       "correspondentBankWireTransferAgent": "swift",
+       "correspondentBank": "BankOne",
+       "correspondentBankWireTransferAgentCode": "BKONMUMU",
        "charges": "our",
        "timestamp": "2016-07-22T00:00:00Z",
-       "description": "“TRID: TCKAFUSD000000006. The payment in according to Invoice Number: 123445, date: 11/11/2023 in amount of 12.500,00 USD for software development services"
+       "description": "Payment for invoice 123445 for software development services"
 -}
 data TransactionFromPaymentProvider =
      TransactionFromPaymentProvider 
@@ -122,17 +124,17 @@ data TransactionFromPaymentProvider =
        transactionFromPaymentProviderTransactionId :: !T.Text,
        transactionFromPaymentProviderSender :: !T.Text,
        transactionFromPaymentProviderCity :: !T.Text,
-       transactionFromPaymentProviderCountry :: !T.Text, -- data type needs resolving
+       transactionFromPaymentProviderCountry :: !T.Text,
        transactionFromPaymentProviderSenderBank :: !T.Text,
        transactionFromPaymentProviderSenderWireTransferAgent :: !WireTransferAgent,
        transactionFromPaymentProviderSenderTransferAgentCode :: !T.Text,
        transactionFromPaymentProviderBankOperationCode :: !BankOperationCode, 
        transactionFromPaymentProviderReceiverBank :: !T.Text,
-       transactionFromPaymentProviderReceiverWireTransferAgent :: !WireTransferAgent,
+       transactionFromPaymentProviderReceiverWireTransferAgentCode :: !T.Text,
        transactionFromPaymentProviderAmount :: !Double,
        transactionFromPaymentProviderCurrency :: !Currency,
        transactionFromPaymentProviderCorrespondentBank :: !T.Text,
-       transactionFromPaymentProviderCorrespondentBankWireTransferAgent :: !WireTransferAgent,
+       transactionFromPaymentProviderCorrespondentBankWireTransferAgentCode :: !T.Text,
        transactionFromPaymentProviderCharges :: !Fee,
        transactionFromPaymentProviderTimestamp :: !UTCTime,
        transactionFromPaymentProviderDescription :: !T.Text
@@ -159,10 +161,8 @@ encodeTransactionFromPaymentProvider =
   . fmap (
         del2
       . app7 (toS . show) 
-      . app9 (toS . show) 
-      . app11 (toS . show) 
-      . app13 (toS . encode) 
-      . app15 (toS . show) 
+      . app9 (toS . show)
+      . app13 (toS . encode)
       . app16 (toS . encode))
   . mkEncoderTransactionFromPaymentProvider
 

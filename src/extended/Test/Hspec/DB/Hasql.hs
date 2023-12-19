@@ -76,9 +76,7 @@ itHasql str action = str `HSpec.it` (void . runSession action)
 -- | Run a hasql session bases test. Test takes a function that
 -- can run the `Session` in on the current connection.
 session :: String -> ((forall a. Hasql.Session a -> IO (Either Hasql.QueryError a)) -> IO a) -> SpecWith TestDBHasql
-session name f = HSpec.it name (void . test)
-  where
-    test db = f (`Hasql.run` conn db)
+session name io = HSpec.it name $ \db -> void $ io (`Hasql.run` conn db)
 
 -- | Hasql test.
 describeHasql ::

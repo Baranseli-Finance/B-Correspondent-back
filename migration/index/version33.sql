@@ -1,0 +1,2 @@
+alter table institution.transaction rename receiver_wire_transfer_agent to receiver_wire_transfer_agent_code;
+alter table institution.transaction rename correspondent_wire_bank_transfer_agent to correspondent_bank_wire_transfer_agent_code;

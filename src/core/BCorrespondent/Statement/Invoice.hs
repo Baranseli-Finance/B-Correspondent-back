@@ -177,11 +177,13 @@ setInvoiceInMotion =
             appearance_on_timeline = now()
         from unnest($1 :: int8[]) as x(ident)
       where id = x.ident
-      returning id)
-    update delivery
-    set is_delivered = true
-    where table_ref = ($3 :: jsonb) #>> '{}' 
-    and table_ident = any(select * from delivered)|]
+      returning id as ident)
+    insert into delivery
+    (table_ref, table_ident, is_delivered)
+    select ($3 :: jsonb) #>> '{}', ident, true
+    from delivered
+    on conflict (table_ref, table_ident)
+    do update set is_delivered = true|]
 
 updateStatus :: HS.Statement [(Int64, Status)] ()
 updateStatus = 
