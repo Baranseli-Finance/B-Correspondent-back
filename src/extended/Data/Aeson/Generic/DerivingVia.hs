@@ -157,6 +157,7 @@ module Data.Aeson.Generic.DerivingVia
     FirstLetterToLower,
     FirstLetterToUpper,
     StripConstructorParamType,
+    StripPrefix
   )
 where
 
@@ -372,3 +373,8 @@ instance Typeable a => Reifies (StripConstructorParamType a) (String -> String) 
   reflect _ = \s ->
     let constructor = show $ typeRepTyCon (typeRep (Proxy @a))
      in fromMaybe s $ stripPrefix constructor s
+
+data StripPrefix (s :: Symbol)
+
+instance KnownSymbol s => Reifies (StripPrefix s) (String -> String) where
+  reflect _ = \s -> fromMaybe s $ stripPrefix (symbolVal (Proxy @s)) s

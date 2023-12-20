@@ -20,7 +20,7 @@ import BCorrespondent.Transport.Model.Transaction
        (OkTransaction, encodeOkTransaction)
 import BCorrespondent.Statement.Invoice
        (QueryCredentials,
-        Status (ProcessedByPaymentProvider, ForwardedToPaymentProvider, Declined))
+        Status (Confirmed, ForwardedToPaymentProvider, Declined))
 import BCorrespondent.Statement.Delivery (TableRef (Transaction))
 import qualified Hasql.Statement as HS
 import Hasql.TH
@@ -37,32 +37,32 @@ import qualified Data.Vector as V
 import Data.Tuple.Extended (app2)
 
 
-create :: HS.Statement OkTransaction (Maybe (Int64, T.Text))
+create :: HS.Statement OkTransaction (Maybe (Int64, Int64, T.Text))
 create =
   (lmap (
       snocT (toS @_ @T.Text (show ForwardedToPaymentProvider))
-    . snocT (toS @_ @T.Text (show ProcessedByPaymentProvider)) 
+    . snocT (toS @_ @T.Text (show Confirmed)) 
     . encodeOkTransaction))
   [maybeStatement|
     with new_transaction as (
       insert into institution.transaction
       ( invoice_id,
-        sender,
-        city,
-        country,
-        sender_bank,
-        sender_wire_transfer_agent,
-        sender_wire_transfer_agent_code,
-        sender_bank_operation_code,
-        receiver_bank,
-        receiver_wire_transfer_agent_code,
-        amount,
-        currency,
-        correspondent_bank,
-        correspondent_bank_wire_transfer_agent_code,
-        charges,
-        created_at,
-        description)
+        ok_sender,
+        ok_city,
+        ok_country,
+        ok_sender_bank,
+        ok_sender_wire_transfer_agent_code,
+        ok_sender_bank_operation_code,
+        ok_receiver_bank,
+        ok_receiver_wire_transfer_agent_code,
+        ok_correspondent_bank,
+        ok_correspondent_bank_wire_transfer_agent_code,
+        ok_transaction_date,
+        ok_transaction_time,
+        ok_description,
+        ok_amount,
+        ok_currency,
+        ok_fee)
       select
         invoice.id,
         $2 :: text,
@@ -74,13 +74,13 @@ create =
         $8 :: text,
         $9 :: text,
         $10 :: text,
-        $11 :: float8,
-        trim(both '"' from $12 :: text),
-        $13 :: text,
+        $11 :: text,
+        $12 :: date,
+        $13 :: time,
         $14 :: text,
-        trim(both '"' from $15 :: text),
-        $16 :: timestamptz,
-        $17 :: text
+        $15 :: float8,
+        trim(both '"' from $16 :: text),
+        trim(both '"' from $17 :: text)
       from institution.invoice
       where external_id = $1 :: uuid
       on conflict (invoice_id) do nothing
@@ -89,7 +89,7 @@ create =
     set status = $18 :: text
     where id = (select invoice_id from new_transaction)
     and status = $19 :: text
-    returning institution_id :: int8, transaction_textual_ident :: text|]
+    returning id :: int8, institution_id :: int8, transaction_textual_ident :: text|]
 
 data TransactionCheck = NotFound | Already | Ok
   deriving stock (Generic, Show)

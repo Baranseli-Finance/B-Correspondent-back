@@ -204,7 +204,6 @@ run Cfg {..} = do
                       hoistedServer
 
     forwardToProviderAsync <- Async.Lifted.async $ Job.Invoice.forwardToPaymentProvider $ jobFrequency + 3
-    validateAsync <- Async.Lifted.async $ Job.Invoice.validateAgainstTransaction $ jobFrequency + 6
     refreshMVAsync <- Async.Lifted.async $ Job.History.refreshMV $ jobFrequency + 9
     withdrawAsync <- Async.Lifted.async $ Job.Wallet.withdraw $ jobFrequency + 11
     archiveAsync <- Async.Lifted.async $ Job.Wallet.archive $ jobFrequency + 13
@@ -225,7 +224,6 @@ run Cfg {..} = do
             backupAsync,
             abortTrAsync,
             webhookAsync,
-            validateAsync,
             refreshMVAsync,
             withdrawAsync,
             cleanCacheAsync,

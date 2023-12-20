@@ -12,29 +12,23 @@
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE NamedFieldPuns #-}
 
-module BCorrespondent.Job.Invoice (forwardToPaymentProvider, validateAgainstTransaction) where
+module BCorrespondent.Job.Invoice (forwardToPaymentProvider) where
 
 import qualified BCorrespondent.Institution.Query.Invoice as Q
 import qualified BCorrespondent.Institution.Query as Q
 import BCorrespondent.Statement.Invoice 
        (getInvoicesToBeSent,
-        updateStatus,
         setInvoiceInMotion,
-        getValidation,
-        Status (Confirmed, Declined),
-        Validation (..),
         InvoiceToBeSent,
         QueryCredentials (..)
        )
-import BCorrespondent.Statement.Institution (updateWallet)
 import BCorrespondent.Statement.Delivery (addAttempt)
 import qualified BCorrespondent.Statement.Delivery as D (TableRef (Invoice))
 import BCorrespondent.Job.Utils (withElapsedTime)
 import qualified BCorrespondent.Statement.Webhook as Webhook
 import BCorrespondent.ServerM
 import BCorrespondent.Transport.Model.Invoice 
-       (InvoiceToPaymentProvider (..), 
-        Fee (..),
+       (InvoiceToPaymentProvider (..),
         invoiceToPaymentProviderAmount,
         invoiceToPaymentProviderCurrency
        )
@@ -159,34 +153,3 @@ sendInvoices manager queries (Just QueryCredentials {..}) xs = do
       let notifBody = Invoice textIdent amount currency
       let mkResp = bimap ((ident,) . toS) ((notifBody, ident, external,) . Q.acceptedAt)
       fmap mkResp $ query manager Q.path token invoice
-
-validateAgainstTransaction :: Int -> KatipContextT ServerM ()
-validateAgainstTransaction freq = 
-  forever $ do 
-    threadDelay $ freq * 1_000_000
-    withElapsedTime ($location <> ":validateAgainstTransaction") $ do
-      hasql <- fmap (^. hasqlDbPool) ask
-      res <- transactionM hasql $ statement getValidation ()
-      case res of
-        Right xs -> do
-          hasql <- fmap (^. hasqlDbPool) ask
-          recordsUpdated <- 
-            transactionM hasql $ do
-              let ys = map validate xs
-              statement updateStatus ys
-              let zs = flip filter ys $ \(_, s) -> s == Confirmed
-              statement updateWallet $ fst $ unzip zs
-          $(logTM) InfoS $ logStr @T.Text $ $location <> " there are " <> T.pack (show recordsUpdated) <> " wallets updated"   
-        Left err -> $(logTM) CriticalS $ logStr @T.Text $ $location <> ":validateAgainstTransaction: decode error ---> " <> toS err
-
-validate :: Validation -> (Int64, Status)
-validate Validation {..} 
-  | validationInvoiceAmount == validationTransactionAmount
-    && validationInvoiceCurrency == validationTransactionCurrency
-    && validationInvoiceFee == OUR
-    = (validationInvoiceIdent, Confirmed)
-  | validationInvoiceAmount /= validationTransactionAmount
-    && validationInvoiceCurrency == validationTransactionCurrency
-    && validationInvoiceFee == SHA 
-    = (validationInvoiceIdent, Confirmed)
-  | otherwise = (validationInvoiceIdent, Declined)

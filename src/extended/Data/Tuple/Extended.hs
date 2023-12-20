@@ -83,6 +83,7 @@ module Data.Tuple.Extended
     app16,
     app17,
     app18,
+    app19,
 
     -- * Constructing tuples
     consT,
@@ -390,6 +391,9 @@ app17 f s = appN f s (Proxy :: Proxy 16)
 
 app18 :: AppN f s 17 t => f -> s -> t
 app18 f s = appN f s (Proxy :: Proxy 17)
+
+app19 :: AppN f s 18 t => f -> s -> t
+app19 f s = appN f s (Proxy :: Proxy 18)
 
 class AppF f s t | f s -> t where
   -- | Apply an n-ary function to an n-ary tuple. The function takes an argument for each component of the tuple in left-to-right order.

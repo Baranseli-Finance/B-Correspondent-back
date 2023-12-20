@@ -8,6 +8,7 @@
 
 module BCorrespondent.Api.Handler.Webhook.PaymentProvider.Elekse.Transaction (handle) where
 
+import BCorrespondent.Statement.Institution (updateWallet)
 import qualified BCorrespondent.Statement.Cache as Cache (insert)
 import BCorrespondent.Transport.Model.Transaction (OkTransaction (..))
 import BCorrespondent.Statement.Transaction (create, checkTransaction)
@@ -25,13 +26,13 @@ import Katip (logTM, logStr, Severity(ErrorS))
 import Control.Monad (void)
 import Data.UUID (toText, UUID)
 import Data.Default (def)
-
+import Data.Tuple.Extended (del1, sel1)
 
 mkTransactionKey :: UUID -> Text
 mkTransactionKey uuid = "transaction" <> toText uuid
 
 handle :: OkTransaction -> KatipHandlerM (Response ())
-handle transaction@OkTransaction {okTransactionIdent = uuid} = do
+handle transaction@OkTransaction {okIdent = uuid} = do
   hasql <- fmap (^. katipEnv . hasqlDbPool) ask
   checkRes <- transactionM hasql $ statement checkTransaction uuid
   withCheckRes checkRes
@@ -41,7 +42,8 @@ handle transaction@OkTransaction {okTransactionIdent = uuid} = do
         hasql <- fmap (^. katipEnv . hasqlDbPool) ask
         dbRes <- transactionM hasql $ do
           void $ statement Cache.insert (mkTransactionKey uuid, transaction, Just True)
-          statement create transaction
+          r <- statement create transaction
+          fmap (const (fmap del1 r)) $ for_ (fmap sel1 r) $ statement updateWallet . (:[])
         for_ dbRes $ \(instIdent, textualIdent) ->
           makeH @"transaction_processed" instIdent [Transaction textualIdent uuid]
     withCheckRes (Right S.NotFound) = pure $ Error (Just 404) $ asError @Text $ toText uuid <> " not found"

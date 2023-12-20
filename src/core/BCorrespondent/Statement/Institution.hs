@@ -252,14 +252,14 @@ updateWallet =
           w.wallet_ident,
           w.amount,
           w.currency
-        from unnest($1 :: int8[]) 
+        from unnest($1 :: int8[])
           as list(invoice_ident)
         inner join (
           select
             w.id as wallet_ident,
             inv.id as invoice_ident,
             w.currency,
-            tr.amount
+            tr.ok_amount as amount
           from institution.wallet as w
           inner join auth.institution as i
           on w.institution_id = i.id
@@ -268,7 +268,7 @@ updateWallet =
           inner join institution.transaction as tr
           on inv.id = tr.invoice_id
           and w.wallet_type = ($2 :: jsonb) #>> '{}'
-          and tr.currency = w.currency) as w
+          and tr.ok_currency = w.currency) as w
         on list.invoice_ident = w.invoice_ident) as w
       where id = w.wallet_ident
       returning institution_id, w.amount, w.currency)

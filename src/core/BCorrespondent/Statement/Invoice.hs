@@ -15,10 +15,8 @@ module BCorrespondent.Statement.Invoice
        ( register, 
          getInvoicesToBeSent,
          updateStatus,
-         getValidation,
          setInvoiceInMotion,
          Status (..),
-         Validation (..),
          InvoiceToBeSent,
          RegisteredInvoice,
          QueryCredentials (..)
@@ -31,8 +29,6 @@ import BCorrespondent.Transport.Model.Invoice
         ExternalInvoiceId (..), 
         ExternalCustomerId (..),
         InvoiceToPaymentProvider,
-        Fee,
-        Currency,
         encodeInvoice
        )
 import qualified BCorrespondent.Statement.Delivery as D (TableRef (Invoice))
@@ -45,7 +41,7 @@ import Data.String.Conv (toS)
 import qualified Data.Vector.Extended as V
 import Data.Tuple.Extended (app1, app2, app3, snocT, app16)
 import Database.Transaction (ParamsShow (..))
-import Data.Aeson (encode, eitherDecode, FromJSON, ToJSON, parseJSON, withText, toJSON)
+import Data.Aeson (encode, eitherDecode, FromJSON, parseJSON, withText, toJSON)
 import Data.Bifunctor (second)
 import TH.Mk (mkArbitrary)
 import GHC.Generics
@@ -284,42 +280,3 @@ getInvoicesToBeSent =
                   in fmap decodeYs ys
                 cred' <- sequence $ fmap (eitherDecode @QueryCredentials . encode) cred
                 pure (ident, cred', ys')
-
-data Validation = 
-     Validation 
-     { validationInvoiceIdent :: Int64,
-       validationInvoiceAmount :: Double,
-       validationInvoiceCurrency :: Currency,
-       validationInvoiceFee :: Fee,
-       validationTransactionAmount :: Double,
-       validationTransactionCurrency :: Currency 
-     }
-    deriving stock (Generic)
-     deriving
-     (FromJSON, ToJSON)
-     via WithOptions
-          '[FieldLabelModifier
-            '[CamelTo2 "_", 
-              UserDefined 
-              (StripConstructor Validation)]]
-          Validation
-
-getValidation :: HS.Statement () (Either String [Validation])
-getValidation =
-  dimap
-  (const (toS (show ProcessedByPaymentProvider)))
-  (sequence . V.toList . V.map (eitherDecode @Validation . encode))
-  [vectorStatement|
-    select
-      jsonb_build_object(
-        'invoice_ident', i.id,
-        'invoice_amount', i.amount,
-        'invoice_currency', i.currency,
-        'invoice_fee', i.fee,
-        'transaction_amount', t.amount,
-        'transaction_currency', t.currency
-      ) :: jsonb
-    from institution.invoice as i
-    inner join institution.transaction as t
-    on i.id = t.invoice_id
-    where i.status = $1 :: text|]
