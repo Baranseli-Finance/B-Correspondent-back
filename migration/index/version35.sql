@@ -1,0 +1,1 @@
+alter table auth.institution add constraint abbreviation_check check (char_length(abbreviation) = 3);
