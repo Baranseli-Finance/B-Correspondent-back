@@ -22,7 +22,8 @@ module BCorrespondent.Transport.Model.Transaction
          TransactionId (..),
          AbortedTransactionRequest (..),
          FailedTransaction (..),
-         encodeOkTransaction
+         encodeOkTransaction,
+         encodeFailedTransaction
        ) where
 
 import BCorrespondent.Transport.Model.Invoice (Currency, Fee)
@@ -142,3 +143,13 @@ data FailedTransaction =
           '[UserDefined FirstLetterToLower,
             UserDefined (StripPrefix "failed")]]
        FailedTransaction
+
+mkEncoder ''FailedTransaction
+mkArbitrary ''FailedTransaction
+
+encodeFailedTransaction :: FailedTransaction -> (UUID, T.Text, UTCTime)
+encodeFailedTransaction = fromMaybe undefined . fmap del2 . mkEncoderFailedTransaction
+{-# INLINE encodeFailedTransaction #-}
+
+instance ParamsShow FailedTransaction where
+  render = render . encodeFailedTransaction

@@ -6,10 +6,11 @@
 
 module BCorrespondent.Api.Handler.Webhook.CatchPaymentProvider (catch) where
 
-import BCorrespondent.Transport.Model.Transaction (OkTransaction)
+import BCorrespondent.Transport.Model.Transaction (OkTransaction, FailedTransaction)
 import BCorrespondent.Transport.Model.Institution (WithdrawalPaymentProviderResponse)
 import qualified BCorrespondent.Api.Handler.Webhook.PaymentProvider.Elekse.Payload as Elekse
-import qualified BCorrespondent.Api.Handler.Webhook.PaymentProvider.Elekse.Transaction as Elekse.Transaction
+import qualified BCorrespondent.Api.Handler.Webhook.PaymentProvider.Elekse.OkTransaction as Elekse.OkTransaction
+import qualified BCorrespondent.Api.Handler.Webhook.PaymentProvider.Elekse.FailedTransaction as Elekse.FailedTransaction
 import qualified BCorrespondent.Api.Handler.Webhook.PaymentProvider.Elekse.Withdrawal as Elekse.Withdrawal
 import BCorrespondent.Transport.Model.Webhook (PaymentProvider (..))
 import BCorrespondent.Transport.Payload (Payload)
@@ -39,15 +40,19 @@ catch Elekse payload = do
           toS msg <> ", payload: " <> show payload
     [x] ->
       case x of
-        Elekse.TransactionPayload body -> 
-          Elekse.Transaction.handle body
+        Elekse.OkTransactionPayload body -> 
+          Elekse.OkTransaction.handle body
+        Elekse.FailedTransactionPayload body -> 
+          Elekse.FailedTransaction.handle body  
         Elekse.WithdrawalPayload body -> 
           Elekse.Withdrawal.handle body
     _ -> pure $ Error (Just 500) $ asError @Text ("decode error: payload has been resolved into more then one type")
   where
     alt =
-         [ fmap Elekse.TransactionPayload 
+         [ fmap Elekse.OkTransactionPayload 
            (reify @OkTransaction payload)
+         , fmap Elekse.FailedTransactionPayload 
+           (reify @FailedTransaction payload)  
          , fmap Elekse.WithdrawalPayload 
            (reify @WithdrawalPaymentProviderResponse payload)
          ]

@@ -6,12 +6,11 @@
 {-# LANGUAGE NumericUnderscores #-}
 {-# LANGUAGE DataKinds #-}
 
-module BCorrespondent.Api.Handler.Webhook.PaymentProvider.Elekse.Transaction (handle) where
+module BCorrespondent.Api.Handler.Webhook.PaymentProvider.Elekse.FailedTransaction (handle) where
 
-import BCorrespondent.Statement.Institution (updateWallet)
 import qualified BCorrespondent.Statement.Cache as Cache (insert)
-import BCorrespondent.Transport.Model.Transaction (OkTransaction (..))
-import BCorrespondent.Statement.Transaction (create, checkTransaction)
+import BCorrespondent.Transport.Model.Transaction (FailedTransaction (..))
+import BCorrespondent.Statement.Transaction (createFailure, checkTransaction)
 import qualified BCorrespondent.Statement.Transaction as S (TransactionCheck (..))
 import BCorrespondent.Transport.Response (Response (Ok, Error))
 import BCorrespondent.Transport.Error (asError)
@@ -26,13 +25,12 @@ import Katip (logTM, logStr, Severity(ErrorS))
 import Control.Monad (void)
 import Data.UUID (toText, UUID)
 import Data.Default (def)
-import Data.Tuple.Extended (del1, sel1)
 
 mkTransactionKey :: UUID -> Text
 mkTransactionKey uuid = "transaction" <> toText uuid
 
-handle :: OkTransaction -> KatipHandlerM (Response ())
-handle transaction@OkTransaction {okIdent = uuid} = do
+handle :: FailedTransaction -> KatipHandlerM (Response ())
+handle transaction@FailedTransaction {failedIdent = uuid} = do
   hasql <- fmap (^. katipEnv . hasqlDbPool) ask
   checkRes <- transactionM hasql $ statement checkTransaction uuid
   withCheckRes checkRes
@@ -42,8 +40,7 @@ handle transaction@OkTransaction {okIdent = uuid} = do
         hasql <- fmap (^. katipEnv . hasqlDbPool) ask
         dbRes <- transactionM hasql $ do
           void $ statement Cache.insert (mkTransactionKey uuid, transaction, Just True)
-          r <- statement create transaction
-          fmap (const (fmap del1 r)) $ for_ (fmap sel1 r) $ statement updateWallet . (:[])
+          statement createFailure transaction
         for_ dbRes $ \(instIdent, textualIdent) ->
           makeH @"transaction_processed" instIdent [Transaction textualIdent uuid]
     withCheckRes (Right S.NotFound) = pure $ Error (Just 404) $ asError @Text $ toText uuid <> " not found"

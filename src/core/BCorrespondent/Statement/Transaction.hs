@@ -10,17 +10,18 @@
 {-# OPTIONS_GHC -fno-warn-unused-top-binds #-}
 
 module BCorrespondent.Statement.Transaction 
-       (create, 
+       (createOk,
+        createFailure, 
         checkTransaction, 
         fetchAbortedTransaction, 
         TransactionCheck (..)
        ) where
 
 import BCorrespondent.Transport.Model.Transaction 
-       (OkTransaction, encodeOkTransaction)
+       (OkTransaction, FailedTransaction, encodeOkTransaction, encodeFailedTransaction)
 import BCorrespondent.Statement.Invoice
        (QueryCredentials,
-        Status (Confirmed, ForwardedToPaymentProvider, Declined))
+        Status (Confirmed, Declined, ForwardedToPaymentProvider, Declined))
 import BCorrespondent.Statement.Delivery (TableRef (Transaction))
 import qualified Hasql.Statement as HS
 import Hasql.TH
@@ -37,8 +38,8 @@ import qualified Data.Vector as V
 import Data.Tuple.Extended (app2)
 
 
-create :: HS.Statement OkTransaction (Maybe (Int64, Int64, T.Text))
-create =
+createOk :: HS.Statement OkTransaction (Maybe (Int64, Int64, T.Text))
+createOk =
   (lmap (
       snocT (toS @_ @T.Text (show ForwardedToPaymentProvider))
     . snocT (toS @_ @T.Text (show Confirmed)) 
@@ -90,6 +91,30 @@ create =
     where id = (select invoice_id from new_transaction)
     and status = $19 :: text
     returning id :: int8, institution_id :: int8, transaction_textual_ident :: text|]
+
+createFailure :: HS.Statement FailedTransaction (Maybe (Int64, T.Text))
+createFailure =
+    (lmap (
+      snocT (toS @_ @T.Text (show ForwardedToPaymentProvider))
+    . snocT (toS @_ @T.Text (show Declined)) 
+    . encodeFailedTransaction))
+  [maybeStatement|
+    with new_transaction as (
+      insert into institution.transaction
+      (invoice_id, failure_reason, failure_timestamp)
+      select
+        invoice.id,
+        $2 :: text,
+        $3 :: timestamptz
+      from institution.invoice
+      where external_id = $1 :: uuid
+      on conflict (invoice_id) do nothing
+      returning id, invoice_id)
+    update institution.invoice
+    set status = $4 :: text
+    where id = (select invoice_id from new_transaction)
+    and status = $5 :: text
+    returning institution_id :: int8, transaction_textual_ident :: text|]
 
 data TransactionCheck = NotFound | Already | Ok
   deriving stock (Generic, Show)
