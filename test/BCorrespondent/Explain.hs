@@ -92,11 +92,11 @@ explainTests =
      [ "register" =>> BCorrespondent.Statement.Invoice.register,
        "getInvoicesToBeSent" =>> BCorrespondent.Statement.Invoice.getInvoicesToBeSent,
        "updateStatus" =>> BCorrespondent.Statement.Invoice.updateStatus,
-       "getValidation" =>> BCorrespondent.Statement.Invoice.getValidation,
        "setInvoiceInMotion" =>> BCorrespondent.Statement.Invoice.setInvoiceInMotion
      ] 
   , "BCorrespondent.Statement.Transaction" ==>
-     [ "create" =>> BCorrespondent.Statement.Transaction.create,
+     [ "createOk" =>> BCorrespondent.Statement.Transaction.createOk,
+       "createFailure" =>> BCorrespondent.Statement.Transaction.createFailure,
        "checkTransaction" =>> BCorrespondent.Statement.Transaction.checkTransaction,
        "fetchAbortedTransaction" =>> BCorrespondent.Statement.Transaction.fetchAbortedTransaction
      ]
