@@ -23,6 +23,7 @@ import BCorrespondent.Transport.Model.Frontend
         GapItemUnit, GapItemUnitStatus, GapItemTime, 
         InvoiceSince, GapItemAmount, HistoryTimeline, InitDashboard, 
         WalletType, Wallet, FetchGap, TimelineTransactionResponse,
+        TimelineTransactionOk, TimelineTransactionFailure,
         TimelineTransaction, Notifications, Notification, Issue,
         BalancedBook, BalancedBookInstitution, DayOfWeeksHourly, 
         AmountInDayOfWeek, DayOfWeeksHourlyTotalSum, BalancedBookWallet,
@@ -55,6 +56,8 @@ mkArbitrary ''GapItemWrapper
 mkArbitrary ''WalletType
 mkArbitrary ''Wallet
 mkArbitrary ''FetchGap
+mkArbitrary ''TimelineTransactionOk
+mkArbitrary ''TimelineTransactionFailure
 mkArbitrary ''TimelineTransaction
 mkArbitrary ''TimelineTransactionResponse
 mkArbitrary ''DailyBalanceSheet

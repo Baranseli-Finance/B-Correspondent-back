@@ -15,7 +15,7 @@ import BCorrespondent.Transport.Model.Frontend (TimelineTransactionResponse (..)
 import BCorrespondent.Api.Handler.Frontend.User.Utils (checkInstitution)
 import Katip.Handler (KatipHandlerM, katipEnv, hasqlDbPool, ask)
 import Control.Lens ((^.))
-import Data.Tuple.Extended (snocT, del1)
+import Data.Tuple.Extended (snocT)
 import Data.Coerce (coerce)
 import Data.String (fromString)
 import Data.Text (Text)
@@ -33,6 +33,4 @@ handle user ident =
             asError $ 
               fromString @Text "transaction doesn't exist"
     fmap (maybe error404 (`withError` TimelineTransactionResponse)) $ 
-      transactionM hasql $ 
-        statement getTransaction $ 
-          del1 $ snocT (coerce ident) x
+      transactionM hasql $ statement getTransaction $ snocT (coerce ident) x

@@ -279,26 +279,76 @@ getGap =
               as timestamp)
     order by appearance_on_timeline asc, transaction_textual_ident asc|]
 
-getTransaction :: HS.Statement (Int64, Int64) (Maybe (Either String TimelineTransaction))
+getTransaction :: HS.Statement (Int64, Int64, Int64) (Maybe (Either String TimelineTransaction))
 getTransaction = 
   rmap (fmap (eitherDecode @TimelineTransaction . encode)) 
-  [maybeStatement|
-    select 
-      jsonb_build_object(
-        'sender', it.sender,
-        'senderCity', it.city,
-        'senderCountry', it.country,
-        'senderBank', it.sender_bank,
-        'receiver', ii.seller,
-        'receiverBank', it.receiver_bank,
-        'amount', it.amount,
-        'currency', it.currency,
-        'correspondentBank', it.correspondent_bank,
-        'charges', it.charges, 
-        'tm', cast(it.created_at as text) || 'Z',
-        'description', it.description
-      ) :: jsonb
-    from institution.transaction as it 
-    inner join institution.invoice as ii
-    on it.invoice_id = ii.id 
-    where ii.institution_id = $1 :: int8 and ii.id = $2 :: int8|]
+  [singletonStatement|
+    with 
+      history_tr as (
+        select
+          case 
+            when ok_transaction_sender is not null 
+            then
+              jsonb_build_object(
+                'ok', jsonb_build_object(
+                  'sender', ok_transaction_sender,
+                  'country', ok_transaction_country,
+                  'city', ok_transaction_city,
+                  'senderBank', ok_sender_bank,
+                  'receiverBank', ok_receiver_bank,
+                  'amount', ok_transaction_amount,
+                  'currency', ok_transaction_currency,
+                  'correspondentBank', ok_correspondent_bank,
+                  'charges', ok_transaction_fee,
+                  'tm', ok_transaction_date || ' ' || ok_transaction_time || 'Z',
+                  'description', ok_transaction_payment_description
+                ),
+                'failure', null)
+            when failure_reason is not null 
+            then 
+              jsonb_build_object(
+                'ok', null, 
+                'failure', jsonb_build_object(
+                  'reason', failure_reason,
+                  'tm', failure_timestamp
+                ))
+            else null
+          end
+        from mv.invoice_and_transaction as it
+        where it.invoice_ident = $3 :: int8 
+        and it.user_ident = $1 :: int8),
+      current_tr as (
+        select 
+          case 
+            when ok_sender is not null
+            then
+              jsonb_build_object(
+                'ok', jsonb_build_object(
+                  'sender', ok_sender,
+                  'country', ok_country,
+                  'city', ok_city,
+                  'senderBank', ok_sender_bank,
+                  'receiverBank', ok_receiver_bank,
+                  'amount', ok_amount,
+                  'currency', ok_currency,
+                  'correspondentBank', ok_correspondent_bank,
+                  'charges', ok_fee,
+                  'tm', ok_transaction_date || ' ' || ok_transaction_time || 'Z',
+                  'description', ok_description
+                ),
+                'failure', null)
+            when failure_reason is not null
+            then
+              jsonb_build_object(
+                'ok', null, 
+                'failure', jsonb_build_object(
+                  'reason', failure_reason,
+                  'tm', failure_timestamp
+                ))
+            else null
+          end    
+        from institution.transaction as it
+        inner join institution.invoice as ii
+        on it.invoice_id = ii.id 
+        where ii.institution_id = $2 :: int8 and ii.id = $1 :: int8)
+    select coalesce((select * from history_tr), (select * from current_tr)) :: jsonb?|]

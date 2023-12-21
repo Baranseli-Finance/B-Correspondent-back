@@ -41,7 +41,9 @@ module BCorrespondent.Transport.Model.Frontend
         GapItemTime (..),
         TimelineDirection (..),
         FetchGap (..),
-        TimelineTransaction (..),
+        TimelineTransactionFailure,
+        TimelineTransactionOk,
+        TimelineTransaction,
         TimelineTransactionResponse (..),
         InitDashboard (..),
         Wallet (..),
@@ -390,20 +392,21 @@ data FetchGap = FetchGap { fetchGapGap :: GapItem }
 
 deriveToSchemaFieldLabelModifier ''FetchGap [|firstLetterModify (Proxy @FetchGap)|]
 
-data TimelineTransaction =
-     TimelineTransaction
-     { timelineTransactionSender :: Text,
-       timelineTransactionSenderCity :: Text,
-       timelineTransactionSenderCountry :: Text,
-       timelineTransactionSenderBank :: Text,
-       timelineTransactionReceiver :: Text,
-       timelineTransactionReceiverBank :: Text,
-       timelineTransactionAmount :: Double,
-       timelineTransactionCurrency :: Currency,
-       timelineTransactionCorrespondentBank :: Text,
-       timelineTransactionCharges :: Fee,
-       timelineTransactionTm :: UTCTime,
-       timelineTransactionDescription :: Text
+
+data TimelineTransactionOk =
+     TimelineTransactionOk
+     { timelineTransactionOkSender :: Text,
+       timelineTransactionOkSenderCity :: Text,
+       timelineTransactionOkSenderCountry :: Text,
+       timelineTransactionOkSenderBank :: Text,
+       timelineTransactionOkReceiver :: Text,
+       timelineTransactionOkReceiverBank :: Text,
+       timelineTransactionOkAmount :: Double,
+       timelineTransactionOkCurrency :: Currency,
+       timelineTransactionOkCorrespondentBank :: Text,
+       timelineTransactionOkCharges :: Fee,
+       timelineTransactionOkTm :: UTCTime,
+       timelineTransactionOkDescription :: Text
      }
     deriving stock (Generic, Show)
     deriving
@@ -413,12 +416,55 @@ data TimelineTransaction =
             '[UserDefined FirstLetterToLower,
               UserDefined 
               (StripConstructor 
+               TimelineTransactionOk)]]
+      TimelineTransactionOk
+
+deriveToSchemaFieldLabelModifier 
+  ''TimelineTransactionOk 
+  [|firstLetterModify (Proxy @TimelineTransactionOk)|]
+
+
+data TimelineTransactionFailure =
+     TimelineTransactionFailure
+     { timelineTransactionFailureReason :: Text,
+       timelineTransactionFailureTm :: UTCTime  
+     }
+    deriving stock (Generic, Show)
+    deriving
+      (ToJSON, FromJSON)
+      via WithOptions 
+          '[FieldLabelModifier
+            '[UserDefined FirstLetterToLower,
+              UserDefined 
+              (StripConstructor 
+               TimelineTransactionFailure)]]
+      TimelineTransactionFailure
+
+deriveToSchemaFieldLabelModifier 
+  ''TimelineTransactionFailure 
+  [|firstLetterModify (Proxy @TimelineTransactionFailure)|]
+
+data TimelineTransaction =
+     TimelineTransaction 
+     { timelineTransactionOk :: Maybe TimelineTransactionOk, 
+       timelineTransactionFailure :: Maybe TimelineTransactionFailure 
+     }
+    deriving stock (Generic, Show)
+    deriving
+      (ToJSON, FromJSON)
+      via WithOptions 
+          '[ OmitNothingFields 'True,
+             FieldLabelModifier
+            '[UserDefined FirstLetterToLower,
+              UserDefined 
+              (StripConstructor 
                TimelineTransaction)]]
       TimelineTransaction
 
 deriveToSchemaFieldLabelModifier 
   ''TimelineTransaction 
   [|firstLetterModify (Proxy @TimelineTransaction)|]
+
 
 data TimelineTransactionResponse =
      TimelineTransactionResponse
