@@ -20,7 +20,10 @@ module BCorrespondent.Statement.Transaction
         getForwardedTransactionUUID,
         getTransactionId,
         getTransactionStatus,
-        TransactionCheck (..)
+        ForwardedTransaction (..),
+        TransactionCheck (..),
+        TOk (..),
+        TRejected (..)
        ) where
 
 import BCorrespondent.Transport.Model.Invoice (Currency, Fee)
@@ -38,14 +41,15 @@ import Data.String.Conv (toS)
 import Data.UUID (UUID)
 import Data.Aeson.Generic.DerivingVia
 import GHC.Generics (Generic)
-import Data.Aeson (FromJSON, ToJSON, eitherDecode, encode, Value (Object), decode)
+import Data.Aeson (FromJSON, parseJSON, withObject, eitherDecode, encode, Value (Object))
 import qualified Data.Vector as V
 import Data.Tuple.Extended (app2)
 import Data.Time.Clock (UTCTime)
-import Data.Maybe (catMaybes, fromMaybe)
-import Database.Transaction (ParamsShow (..))
-import qualified Data.Aeson.KeyMap as A
-import Control.Monad (join)
+import Data.Maybe (catMaybes)
+import BuildInfo (location)
+import Data.Proxy (Proxy (..))
+import Data.Typeable (typeRep)
+import Control.Applicative ((<|>))
 
 
 createOk :: HS.Statement OkTransaction (Maybe (Int64, Int64, T.Text))
@@ -149,9 +153,9 @@ checkTransaction =
         where f.external_id = $1 :: uuid)
     select to_jsonb(coalesce((select * from check_already), 'notfound') :: text) :: jsonb|]
 
-data TConfirmed = 
-     TConfirmed
-     { okInvoiceExternalIdent :: UUID,
+data TOk = 
+     TOk
+     { okExternalIdent :: UUID,
        okTransactionId :: T.Text,
        okSender :: T.Text,
        okCountry :: T.Text,
@@ -164,28 +168,28 @@ data TConfirmed =
        okFee :: Fee,
        okDescription :: T.Text,
        okTimestamp :: UTCTime,
-       okStatus :: T.Text
+       okStatus :: Status
      }
   deriving stock (Generic, Show)
   deriving
-    (FromJSON, ToJSON)
+    (FromJSON)
     via WithOptions 
         '[ FieldLabelModifier 
           '[UserDefined FirstLetterToLower, 
             UserDefined (StripPrefix "ok")]
-         ] TConfirmed    
+         ] TOk    
 
 data TRejected =
      TRejected
      { rejectedExternalIdent :: UUID,
        rejectedTransactionId :: T.Text,
-       rejectedReason :: T.Text,
+       rejectedError :: T.Text,
        rejectedTimestamp :: UTCTime,
-       rejectedStatus :: T.Text
+       rejectedStatus :: Status
      }
   deriving stock (Generic, Show)
   deriving
-    (FromJSON, ToJSON)
+    (FromJSON)
     via WithOptions 
         '[ FieldLabelModifier 
           '[UserDefined FirstLetterToLower,
@@ -193,33 +197,36 @@ data TRejected =
          ] TRejected
 
 data ForwardedTransaction = 
-       ForwardedTransactionOk TConfirmed 
+       ForwardedTransactionOk TOk 
      | ForwardedTransactionRejected TRejected
-  deriving stock (Generic, Show)
-  deriving
-    (FromJSON, ToJSON)
-    via WithOptions '[SumEnc UntaggedVal] ForwardedTransaction
+   deriving Show  
+ 
+instance FromJSON ForwardedTransaction where
+  parseJSON =
+    let msg = 
+          $location <> 
+          toS (show (typeRep (Proxy @ForwardedTransaction))) 
+    in withObject msg $ \o ->
+         fmap ForwardedTransactionOk (parseJSON @TOk (Object o)) <|>
+         fmap ForwardedTransactionRejected (parseJSON @TRejected (Object o))
 
-instance ParamsShow ForwardedTransaction where
-  render = toS . encode
+getForwardedTransactionUUID :: ForwardedTransaction -> UUID
+getForwardedTransactionUUID (ForwardedTransactionOk (TOk{okExternalIdent})) = okExternalIdent
+getForwardedTransactionUUID (ForwardedTransactionRejected (TRejected{rejectedExternalIdent})) = rejectedExternalIdent 
 
-getForwardedTransactionUUID :: Value -> UUID
-getForwardedTransactionUUID (Object o) = fromMaybe undefined $ join $ fmap (decode . encode) $ A.lookup "external_ident" o
-getForwardedTransactionUUID _ = error "object is expected"
+getTransactionId :: ForwardedTransaction -> T.Text
+getTransactionId (ForwardedTransactionOk (TOk{okTransactionId})) = okTransactionId
+getTransactionId (ForwardedTransactionRejected (TRejected{rejectedTransactionId})) = T.drop 3 $ rejectedTransactionId
 
-getTransactionId :: Value -> T.Text
-getTransactionId (Object o) = T.drop 3 $ fromMaybe undefined $ join $ fmap (decode . encode) $ A.lookup "transaction_id" o
-getTransactionId _ = error "object is expected"
+getTransactionStatus :: ForwardedTransaction -> T.Text
+getTransactionStatus (ForwardedTransactionOk (TOk{okStatus})) = toS $ show okStatus
+getTransactionStatus (ForwardedTransactionRejected (TRejected{rejectedStatus})) = toS $ show $ rejectedStatus
 
-getTransactionStatus :: Value -> T.Text
-getTransactionStatus (Object o)  = fromMaybe undefined $ join $ fmap (decode . encode) $ A.lookup "status" o
-getTransactionStatus _ = error "object is expected"
-
-fetchForwardedTransaction :: HS.Statement () [(Int64, [Value])]
+fetchForwardedTransaction :: HS.Statement () [(Int64, Either String [ForwardedTransaction])]
 fetchForwardedTransaction =
   dimap
   (const (toS (show Confirmed), toS (show Declined)))  
-  (map (app2 (catMaybes . V.toList)) . V.toList)
+  (map (app2 (sequence . map (eitherDecode @ForwardedTransaction . encode) . catMaybes . V.toList)) . V.toList)
   [vectorStatement|
     select
       i.id :: int8,
@@ -229,31 +236,29 @@ fetchForwardedTransaction =
             when tr.ok_sender is not null
             then
               jsonb_build_object(
-                'external_ident', ext.external_id,
-                'transaction_id', inv.transaction_textual_ident,
+                'externalIdent', ext.external_id,
+                'transactionId', inv.transaction_textual_ident,
                 'sender', tr.ok_sender,
                 'country', tr.ok_country,
                 'city', tr.ok_city,
-                'sender_bank', tr.ok_sender_bank,
-                'sender_bank_operation_code', tr.ok_sender_bank_operation_code,
-                'receiver_bank', tr.ok_receiver_bank,
+                'senderBank', tr.ok_sender_bank,
+                'senderBankOperationCode', tr.ok_sender_bank_operation_code,
+                'receiverBank', tr.ok_receiver_bank,
                 'amount', tr.ok_amount,
                 'currency', tr.ok_currency,
                 'fee', tr.ok_fee,
                 'description', tr.ok_description,
-                'created_at', tr.ok_transaction_date || 'T' || tr.ok_transaction_time || '.00Z',
-                'status', 'accepted'
+                'timestamp', tr.ok_transaction_date || ' ' || tr.ok_transaction_time || 'Z',
+                'status', inv.status
               )
             when tr.failure_reason is not null
             then
               jsonb_build_object(
-                'external_ident', ext.external_id,
-                'transaction_id', inv.transaction_textual_ident,
-                'reason', tr.failure_reason,
-                'created_at', 
-                to_char(tr.failure_timestamp, 'YYYY-MM-DD') || 'T' || 
-                to_char(tr.failure_timestamp, 'HH12:MI:SS.00') || 'Z',
-                'status', 'rejected'
+                'externalIdent', ext.external_id,
+                'transactionId', inv.transaction_textual_ident,
+                'error', tr.failure_reason,
+                'timestamp', cast(tr.failure_timestamp as text) || 'Z',
+                'status', inv.status
               )
             else null
           end), null) :: jsonb?[]    

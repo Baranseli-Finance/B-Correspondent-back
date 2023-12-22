@@ -10,10 +10,11 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module BCorrespondent.Institution.Webhook.Detail.Tochka (webhook) where
+module BCorrespondent.Institution.Webhook.Detail.Tochka (webhook, Transaction (..), Status (..)) where
 
 import BCorrespondent.ServerM (ServerM)
 import BCorrespondent.Institution.Webhook.Factory (Webhook (..))
+import BCorrespondent.Transport.Model.Invoice (Currency, Fee)
 import Data.Aeson.Types (Value)
 import Data.Text (Text)
 import Data.Aeson 
@@ -45,6 +46,8 @@ import Network.HTTP.Client
 import Network.HTTP.Types (hContentType, hAuthorization)
 import Network.HTTP.Types.Status (status401)
 import Katip (KatipContextT, logTM, Severity (DebugS), ls)
+import Data.UUID (UUID)
+import Data.Default.Class.Extended (Default, def)
 
 
 data Method = Login | Callback
@@ -216,3 +219,43 @@ fetchAuthToken manager login pass = do
   let hs = [(hContentType, "application/json")]
   fmap (join . second mkResp) $ 
     makePostReq @(Request Auth) "https://letspay.to/api/v1/jrpc/auth" manager hs req onFailure
+
+
+data Status = Accepted | Rejected | Processed
+  deriving stock (Generic, Show)
+  deriving (ToJSON)
+    via WithOptions
+       '[ConstructorTagModifier '[UserDefined ToLower]]
+    Status
+
+instance Default Status where
+  def = Accepted
+
+data Transaction = 
+     Transaction
+     { transactionExternalIdent :: UUID,
+       transactionTransactionId :: Text,
+       transactionCreatedAt :: Text,
+       transactionStatus :: Status,
+       transactionSender :: Maybe Text,
+       transactionCountry :: Maybe Text,
+       transactionCity :: Maybe Text,
+       transactionSenderBank :: Maybe Text,
+       transactionSenderBankOperationCode :: Maybe Text,
+       transactionReceiverBank :: Maybe Text,
+       transactionAmount :: Maybe Double,
+       transactionCurrency :: Maybe Currency,
+       transactionFee :: Maybe Fee,
+       transactionDescription :: Maybe Text,
+       transactionReason :: Maybe Text
+     }
+     deriving stock (Generic, Show)
+     deriving (ToJSON)
+      via WithOptions
+          '[ OmitNothingFields 'True,
+             FieldLabelModifier 
+            '[CamelTo2 "_", 
+              UserDefined (StripPrefix "transaction")]]
+          Transaction
+
+instance Default Transaction
