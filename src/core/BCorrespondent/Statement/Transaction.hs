@@ -17,6 +17,8 @@ module BCorrespondent.Statement.Transaction
         fetchForwardedTransaction,
         setPickedForDelivery,
         getForwardedTransactionUUID,
+        getTransactionId,
+        getTransactionStatus,
         TransactionCheck (..),
         ForwardedTransaction (..)
        ) where
@@ -145,8 +147,8 @@ checkTransaction =
         where f.external_id = $1 :: uuid)
     select to_jsonb(coalesce((select * from check_already), 'notfound') :: text) :: jsonb|]
 
-data ForwardedTransaction = 
-     ForwardedTransactionOk
+data TConfirmed = 
+     TConfirmed
      { okInvoiceExternalIdent :: UUID,
        okTransactionId :: T.Text,
        okSender :: T.Text,
@@ -159,32 +161,57 @@ data ForwardedTransaction =
        okCurrency :: Currency,
        okFee :: Fee,
        okDescription :: T.Text,
-       okTimestamp :: UTCTime
-     }
-     |
-     ForwardedTransactionRejected
-     { rejectedExternalIdent :: UUID,
-       rejectedTransactionId :: T.Text,
-       rejectedReason :: T.Text,
-       rejectedTimestamp :: UTCTime
+       okTimestamp :: UTCTime,
+       okStatus :: T.Text
      }
   deriving stock (Generic, Show)
   deriving
     (FromJSON, ToJSON)
     via WithOptions 
-        '[SumEnc UntaggedVal, 
-          FieldLabelModifier 
-          '[UserDefined ToLower, 
-            UserDefined (StripPrefix "ok"), 
+        '[ FieldLabelModifier 
+          '[UserDefined FirstLetterToLower, 
+            UserDefined (StripPrefix "ok")]
+         ] TConfirmed    
+
+data TRejected =
+     TRejected
+     { rejectedExternalIdent :: UUID,
+       rejectedTransactionId :: T.Text,
+       rejectedReason :: T.Text,
+       rejectedTimestamp :: UTCTime,
+       rejectedStatus :: T.Text
+     }
+  deriving stock (Generic, Show)
+  deriving
+    (FromJSON, ToJSON)
+    via WithOptions 
+        '[ FieldLabelModifier 
+          '[UserDefined FirstLetterToLower,
             UserDefined (StripPrefix "rejected")]
-         ] ForwardedTransaction
+         ] TRejected
+
+data ForwardedTransaction = 
+       ForwardedTransactionOk TConfirmed 
+     | ForwardedTransactionRejected TRejected
+  deriving stock (Generic, Show)
+  deriving
+    (FromJSON, ToJSON)
+    via WithOptions '[SumEnc UntaggedVal] ForwardedTransaction
 
 instance ParamsShow ForwardedTransaction where
   render = toS . encode
 
 getForwardedTransactionUUID :: ForwardedTransaction -> UUID
-getForwardedTransactionUUID ForwardedTransactionOk{okInvoiceExternalIdent} = okInvoiceExternalIdent
-getForwardedTransactionUUID ForwardedTransactionRejected{rejectedExternalIdent} = rejectedExternalIdent
+getForwardedTransactionUUID (ForwardedTransactionOk (TConfirmed {okInvoiceExternalIdent})) = okInvoiceExternalIdent
+getForwardedTransactionUUID (ForwardedTransactionRejected (TRejected {rejectedExternalIdent})) = rejectedExternalIdent
+
+getTransactionId :: ForwardedTransaction -> T.Text
+getTransactionId (ForwardedTransactionOk (TConfirmed{okTransactionId})) = okTransactionId
+getTransactionId (ForwardedTransactionRejected (TRejected {rejectedTransactionId})) = rejectedTransactionId
+
+getTransactionStatus :: ForwardedTransaction -> T.Text
+getTransactionStatus (ForwardedTransactionOk (TConfirmed{okStatus})) = okStatus
+getTransactionStatus (ForwardedTransactionRejected (TRejected {rejectedStatus})) = rejectedStatus
 
 fetchForwardedTransaction :: HS.Statement () [(Int64, Either String [ForwardedTransaction])]
 fetchForwardedTransaction =
@@ -221,7 +248,7 @@ fetchForwardedTransaction =
                 'externalIdent', ext.external_id,
                 'transactionId', inv.transaction_textual_ident,
                 'reason', tr.failure_reason,
-                'timestamp', tr.failure_timestamp,
+                'timestamp', cast(tr.failure_timestamp as text) || 'Z',
                 'status', 'rejected'
               )
             else null
@@ -234,8 +261,7 @@ fetchForwardedTransaction =
     inner join institution.transaction as tr
     on inv.id = tr.invoice_id
     where (inv.status = $1 :: text or inv.status = $2 :: text)
-    and not tr.picked_for_delivery
-    group by i.id|]
+    and not tr.picked_for_delivery group by i.id|]
 
 setPickedForDelivery :: HS.Statement [UUID] ()
 setPickedForDelivery =
@@ -243,4 +269,7 @@ setPickedForDelivery =
   [resultlessStatement|
     update institution.transaction 
     set picked_for_delivery = true
-    where invoice_id = any(select invoice_id from institution.invoice_external_ident where external_id = any($1 :: uuid[]))|]
+    where invoice_id = any(
+      select invoice_id
+      from institution.invoice_external_ident 
+      where external_id = any($1 :: uuid[]))|]

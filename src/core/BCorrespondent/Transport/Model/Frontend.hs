@@ -399,7 +399,6 @@ data TimelineTransactionOk =
        timelineTransactionOkSenderCity :: Text,
        timelineTransactionOkSenderCountry :: Text,
        timelineTransactionOkSenderBank :: Text,
-       timelineTransactionOkReceiver :: Text,
        timelineTransactionOkReceiverBank :: Text,
        timelineTransactionOkAmount :: Double,
        timelineTransactionOkCurrency :: Currency,

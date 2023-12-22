@@ -22,6 +22,7 @@ module BCorrespondent.Notification
        , Invoice (..)
        , Transaction (..)
        , WithdrawalRegister (..)
+       , TransactionStatus (..)
        ) where
 
 import BCorrespondent.Statement.Institution (insertNotification)
@@ -111,10 +112,27 @@ data WithdrawalRegister =
                WithdrawalRegister)]]
       WithdrawalRegister
 
+data TransactionStatus = 
+     TransactionStatus
+     { transactionStatusIdent :: !Text,
+       transactionStatusStatus :: !Text
+     }
+    deriving stock (Generic, Show)
+    deriving
+      (ToJSON)
+      via WithOptions 
+          '[FieldLabelModifier
+            '[UserDefined FirstLetterToLower,
+              UserDefined 
+              (StripConstructor
+               TransactionStatus)]]
+      TransactionStatus
+
 type instance Notification "new_invoice_issued" Invoice = ()
 type instance Notification "invoice_forwarded" Invoice = ()
 type instance Notification "transaction_processed" Transaction = ()
 type instance Notification "new_withdrawal" WithdrawalRegister = ()
+type instance Notification "transaction_status" TransactionStatus = ()
 
 make ::
   forall m s a . 

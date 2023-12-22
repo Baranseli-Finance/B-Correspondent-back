@@ -292,8 +292,8 @@ getTransaction =
               jsonb_build_object(
                 'ok', jsonb_build_object(
                   'sender', ok_transaction_sender,
-                  'country', ok_transaction_country,
-                  'city', ok_transaction_city,
+                  'senderCountry', ok_transaction_country,
+                  'senderCity', ok_transaction_city,
                   'senderBank', ok_sender_bank,
                   'receiverBank', ok_receiver_bank,
                   'amount', ok_transaction_amount,
@@ -310,7 +310,7 @@ getTransaction =
                 'ok', null, 
                 'failure', jsonb_build_object(
                   'reason', failure_reason,
-                  'tm', failure_timestamp
+                  'tm', cast(failure_timestamp as text) || 'Z'
                 ))
             else null
           end
@@ -325,8 +325,8 @@ getTransaction =
               jsonb_build_object(
                 'ok', jsonb_build_object(
                   'sender', ok_sender,
-                  'country', ok_country,
-                  'city', ok_city,
+                  'senderCountry', ok_country,
+                  'senderCity', ok_city,
                   'senderBank', ok_sender_bank,
                   'receiverBank', ok_receiver_bank,
                   'amount', ok_amount,
@@ -343,12 +343,12 @@ getTransaction =
                 'ok', null, 
                 'failure', jsonb_build_object(
                   'reason', failure_reason,
-                  'tm', failure_timestamp
+                  'tm', cast(failure_timestamp as text) || 'Z'
                 ))
             else null
           end    
         from institution.transaction as it
         inner join institution.invoice as ii
         on it.invoice_id = ii.id 
-        where ii.institution_id = $2 :: int8 and ii.id = $1 :: int8)
+        where ii.institution_id = $2 :: int8 and ii.id = $3 :: int8)
     select coalesce((select * from history_tr), (select * from current_tr)) :: jsonb?|]

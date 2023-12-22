@@ -45,5 +45,8 @@ addError =
   [resultlessStatement|
     update webhook 
     set error = f.error
-    from (select id, error from unnest($1 :: uuid[], $2 :: text[]) as _(id, error)) as f
+    from (
+      select id, error 
+      from unnest($1 :: uuid[], $2 :: text[]) 
+      as _(id, error)) as f
     where webhook.id = f.id|]
