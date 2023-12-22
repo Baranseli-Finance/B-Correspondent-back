@@ -376,5 +376,5 @@ instance Typeable a => Reifies (StripConstructorParamType a) (String -> String) 
 
 data StripPrefix (s :: Symbol)
 
-instance KnownSymbol s => Reifies (StripPrefix s) (String -> String) where
-  reflect _ = \s -> fromMaybe s $ stripPrefix (symbolVal (Proxy @s)) s
+instance KnownSymbol k => Reifies (StripPrefix k) (String -> String) where
+  reflect _ = \s -> fromMaybe s $ stripPrefix (symbolVal (Proxy @k)) s
