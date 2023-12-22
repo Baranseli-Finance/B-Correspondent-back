@@ -10,7 +10,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module BCorrespondent.Institution.Webhook.Detail.Tochka (make) where
+module BCorrespondent.Institution.Webhook.Detail.Tochka (webhook) where
 
 import BCorrespondent.ServerM (ServerM)
 import BCorrespondent.Institution.Webhook.Factory (Webhook (..))
@@ -146,8 +146,8 @@ instance FromJSON a => FromJSON (Response a) where
         let msg = toS $ $location <> " couldn't parse Response, raw: " <> show o
         pure $ fromMaybe (Failure (Error 0 msg mempty)) $ resp <|> err
 
-make :: Webhook
-make =  
+webhook :: Webhook
+webhook =  
   Webhook 
   { send = \manager login pass msg -> 
               go manager login pass $ 

@@ -211,7 +211,7 @@ run Cfg {..} = do
     backupAsync <- Async.Lifted.async $ Job.Backup.run $ jobFrequency + 17
     webhookAsync <- Async.Lifted.async $ Job.Webhook.go $ jobFrequency + 19
     cleanCacheAsync <- Async.Lifted.async $ Job.Cache.removeExpiredItems $ jobFrequency + 21
-    abortTrAsync <- Async.Lifted.async $ Job.Transaction.abort $ jobFrequency + 23
+    forwardTransactionAsync <- Async.Lifted.async $ Job.Transaction.forward $ jobFrequency + 23
     
     ServerState c _ <- get
     when (c == 50) $ throwM RecoveryFailed
@@ -222,12 +222,12 @@ run Cfg {..} = do
             archiveAsync,
             reportAsync,
             backupAsync,
-            abortTrAsync,
             webhookAsync,
             refreshMVAsync,
             withdrawAsync,
             cleanCacheAsync,
-            forwardToProviderAsync
+            forwardToProviderAsync,
+            forwardTransactionAsync
           ]
     whenLeft end $ \e -> do
       ST.modify' $ \s -> s { errorCounter = errorCounter s + 1 }

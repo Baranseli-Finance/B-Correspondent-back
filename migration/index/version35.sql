@@ -36,6 +36,8 @@ alter table institution.transaction alter column ok_fee drop not null;
 alter table institution.transaction add column failure_reason text;
 alter table institution.transaction add column failure_timestamp timestamp;
 
+alter table institution.transaction add column picked_for_delivery bool default false;
+
 
 create materialized view mv.invoice_and_transaction
 as 
@@ -95,3 +97,5 @@ with no data;
 create unique index invoice_and_transaction_uq on mv.invoice_and_transaction (invoice_ident, transaction_ident, user_ident);
 
 refresh materialized view mv.invoice_and_transaction;
+
+alter table webhook add column error text;

@@ -7,23 +7,18 @@
 {-#LANGUAGE NamedFieldPuns #-}
 {-#LANGUAGE ScopedTypeVariables #-}
 
-module BCorrespondent.Job.Transaction (abort) where
+module BCorrespondent.Job.Transaction (forward) where
 
-import qualified BCorrespondent.Institution.Query as Q
-import BCorrespondent.Statement.Transaction (fetchAbortedTransaction)
-import BCorrespondent.Transport.Model.Transaction (AbortedTransactionRequest (..))
-import BCorrespondent.Statement.Delivery (TableRef (Transaction), addAttempt, setDelivered)
-import qualified BCorrespondent.Institution.Query.AbortedTransaction as Q
-import BCorrespondent.Statement.Invoice (QueryCredentials (..))
+
+import BCorrespondent.Statement.Transaction (fetchForwardedTransaction, setPickedForDelivery, getForwardedTransactionUUID)
+import qualified BCorrespondent.Statement.Webhook as Webhook
 import BCorrespondent.Job.Utils (withElapsedTime)
 import BCorrespondent.ServerM (ServerM)
-import Katip (KatipContextT, logTM, Severity (ErrorS, InfoS), logStr)
+import Katip (KatipContextT, logTM, Severity (ErrorS), logStr)
 import BuildInfo (location)
-import Control.Monad (forever, join, when)
+import Control.Monad (forever)
 import Control.Concurrent.Lifted (threadDelay)
-import qualified Control.Concurrent.Async.Lifted as Async
 import Data.Text (Text)
-import Data.Int (Int64)
 import Data.Either (partitionEithers)
 import Data.Foldable (for_)
 import Data.Traversable (for)
@@ -31,39 +26,30 @@ import Data.String.Conv (toS)
 import Database.Transaction (statement, transactionM)
 import Control.Lens ((^.))
 import Katip.Handler (hasqlDbPool, ask, httpReqManager)
-import Data.Bifunctor (bimap)
-import Data.Tuple.Extended (sel1, sel2, sel3)
-import Data.Maybe (fromMaybe)
+import Data.Bifunctor (first)
 
 
-abort :: Int -> KatipContextT ServerM ()
-abort freq =
+forward :: Int -> KatipContextT ServerM ()
+forward freq =
   forever $ do
     threadDelay $ freq * 1_000_000
-    withElapsedTime ($location <> ":abort") $ do 
+    withElapsedTime ($location <> ":forward") $ do 
       hasql <- fmap (^. hasqlDbPool) ask
       manager <- fmap (^.httpReqManager) ask
-      xs <- transactionM hasql $ statement fetchAbortedTransaction ()
-      ys <- Async.forConcurrently xs $ \x -> do
-        let body = AbortedTransactionRequest $ sel3 x
-        let mkResp = bimap ((sel1 x,) . toS) (const (sel1 x))
-        fmap (mkResp . join) $ 
-          for (sel2 x) $ \cred ->
-            fmap (fromMaybe (Left "payment provider credentials aren't set")) $ 
-              for cred $ \QueryCredentials {..} ->
-                fmap (join . fromMaybe (Left "provider not found")) $
-                  for (lookup provider Q.queries) $ 
-                    \(Q.Query {fetchToken, makeRequest}) -> do
-                      authRes <- fetchToken manager login password
-                      for authRes $ \token -> makeRequest @() manager Q.path token body
-      let (es, os) = partitionEithers ys
-      transactionM hasql $ statement setDelivered (Transaction, os)
-      for_ es $ \(ident, error) -> do
-        $(logTM) ErrorS $
-          logStr @Text $
-            $location <>
-            ":abort: --> \
-            \ abort transaction request failed to be sent, invoice " <>
-            toS (show @Int64 ident) <> ", error: " <> error
-        isStuck <- transactionM hasql $ statement addAttempt (Transaction, ident, error)
-        when isStuck $ $(logTM) InfoS $ logStr @Text $ $location <> "transaction for invoice " <> toS (show ident) <> " is stuck"
+      dbRes <- transactionM hasql $ do 
+        xs <- statement fetchForwardedTransaction ()
+        for xs $ \(instId, yse) -> 
+          fmap (first (instId,)) $ 
+            for yse $ \ys -> do 
+              statement Webhook.insert (instId, ys)
+              statement setPickedForDelivery $ 
+                map getForwardedTransactionUUID ys 
+      let es = fst $ partitionEithers dbRes
+      for_ es $ \(ident, error) ->
+        let msg = 
+              $location <> 
+              ":forward: transactions forwarding error " <> 
+              toS error <>
+              ", institution " <> 
+              toS (show ident)
+        in $(logTM) ErrorS $ logStr @Text msg

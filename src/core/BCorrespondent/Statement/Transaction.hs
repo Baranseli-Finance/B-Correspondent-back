@@ -7,22 +7,25 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE NamedFieldPuns #-}
 {-# OPTIONS_GHC -fno-warn-unused-top-binds #-}
 
 module BCorrespondent.Statement.Transaction 
        (createOk,
         createFailure, 
         checkTransaction, 
-        fetchAbortedTransaction, 
-        TransactionCheck (..)
+        fetchForwardedTransaction,
+        setPickedForDelivery,
+        getForwardedTransactionUUID,
+        TransactionCheck (..),
+        ForwardedTransaction (..)
        ) where
 
-import BCorrespondent.Transport.Model.Transaction 
+import BCorrespondent.Transport.Model.Invoice (Currency, Fee)
+import BCorrespondent.Transport.Model.Transaction
        (OkTransaction, FailedTransaction, encodeOkTransaction, encodeFailedTransaction)
 import BCorrespondent.Statement.Invoice
-       (QueryCredentials,
-        Status (Confirmed, Declined, ForwardedToPaymentProvider, Declined))
-import BCorrespondent.Statement.Delivery (TableRef (Transaction))
+       (Status (Confirmed, Declined, ForwardedToPaymentProvider, Declined))
 import qualified Hasql.Statement as HS
 import Hasql.TH
 import qualified Data.Text as T
@@ -33,9 +36,12 @@ import Data.String.Conv (toS)
 import Data.UUID (UUID)
 import Data.Aeson.Generic.DerivingVia
 import GHC.Generics (Generic)
-import Data.Aeson (FromJSON, eitherDecode, encode, toJSON)
+import Data.Aeson (FromJSON, ToJSON, eitherDecode, encode)
 import qualified Data.Vector as V
 import Data.Tuple.Extended (app2)
+import Data.Time.Clock (UTCTime)
+import Data.Maybe (catMaybes)
+import Database.Transaction (ParamsShow (..))
 
 
 createOk :: HS.Statement OkTransaction (Maybe (Int64, Int64, T.Text))
@@ -139,36 +145,102 @@ checkTransaction =
         where f.external_id = $1 :: uuid)
     select to_jsonb(coalesce((select * from check_already), 'notfound') :: text) :: jsonb|]
 
-fetchAbortedTransaction :: HS.Statement () [(Int64, Either String (Maybe QueryCredentials), T.Text)]
-fetchAbortedTransaction = 
-  dimap 
-  (const (toS (show Declined), toJSON Transaction))
-  (map (app2 (sequence . fmap (eitherDecode @QueryCredentials . encode))) . V.toList)
+data ForwardedTransaction = 
+     ForwardedTransactionOk
+     { okInvoiceExternalIdent :: UUID,
+       okTransactionId :: T.Text,
+       okSender :: T.Text,
+       okCountry :: T.Text,
+       okCity :: T.Text,
+       okSenderBank :: T.Text,
+       okSenderBankOperationCode :: T.Text,
+       okReceiverBank :: T.Text,
+       okAmount :: Double,
+       okCurrency :: Currency,
+       okFee :: Fee,
+       okDescription :: T.Text,
+       okTimestamp :: UTCTime
+     }
+     |
+     ForwardedTransactionRejected
+     { rejectedExternalIdent :: UUID,
+       rejectedTransactionId :: T.Text,
+       rejectedReason :: T.Text,
+       rejectedTimestamp :: UTCTime
+     }
+  deriving stock (Generic, Show)
+  deriving
+    (FromJSON, ToJSON)
+    via WithOptions 
+        '[SumEnc UntaggedVal, 
+          FieldLabelModifier 
+          '[UserDefined ToLower, 
+            UserDefined (StripPrefix "ok"), 
+            UserDefined (StripPrefix "rejected")]
+         ] ForwardedTransaction
+
+instance ParamsShow ForwardedTransaction where
+  render = toS . encode
+
+getForwardedTransactionUUID :: ForwardedTransaction -> UUID
+getForwardedTransactionUUID ForwardedTransactionOk{okInvoiceExternalIdent} = okInvoiceExternalIdent
+getForwardedTransactionUUID ForwardedTransactionRejected{rejectedExternalIdent} = rejectedExternalIdent
+
+fetchForwardedTransaction :: HS.Statement () [(Int64, Either String [ForwardedTransaction])]
+fetchForwardedTransaction =
+  dimap
+  (const (toS (show Confirmed), toS (show Declined)))  
+  (map (app2 (sequence . catMaybes . map (fmap (eitherDecode @ForwardedTransaction . encode)) . V.toList)) . V.toList)
   [vectorStatement|
-    select 
+    select
       i.id :: int8,
-      s.cred :: jsonb?,
-      i.transaction_textual_ident :: text
-    from institution.invoice as i
-    inner join institution.transaction as t
-    on i.id = t.invoice_id
-    left join (
-      select
-        i.id as source,
-        coalesce(rf.second_id, rs.first_id) as sink,
-        jsonb_build_object(
-          'provider', coalesce(rf.second_id, rs.first_id),
-          'login', qc.login,
-          'password', qc.password) as cred
-      from auth.institution as i
-      left join institution.relation rf
-      on i.id = rf.first_id
-      left join institution.relation rs
-      on i.id = rs.second_id
-      inner join auth.query_credentials as qc
-      on rs.first_id = qc.institution_id or rf.second_id = qc.institution_id
-      where rf.second_id is not null or rs.first_id is not null) as s
-    on i.institution_id = s.source
-    left join public.delivery as d
-    on (d.table_ref = ($2 :: jsonb) #>> '{}') and d.table_ident = i.id
-    where i.status = $1 :: text and not coalesce(d.is_delivered, false) and not coalesce(d.is_stuck, false)|]
+      array_remove(
+        array_agg(
+          case
+            when tr.ok_sender is not null
+            then
+              jsonb_build_object(
+                'externalIdent', ext.external_id,
+                'transactionId', inv.transaction_textual_ident,
+                'sender', tr.ok_sender,
+                'country', tr.ok_country,
+                'city', tr.ok_city,
+                'senderBank', tr.ok_sender_bank,
+                'senderBankOperationCode', tr.ok_sender_bank_operation_code,
+                'receiverBank', tr.ok_receiver_bank,
+                'amount', tr.ok_amount,
+                'currency', tr.ok_currency,
+                'fee', tr.ok_fee,
+                'description', tr.ok_description,
+                'timestamp', tr.ok_transaction_date || ' ' || tr.ok_transaction_time || 'Z',
+                'status', 'confirmed'
+              )
+            when tr.failure_reason is not null
+            then
+              jsonb_build_object(
+                'externalIdent', ext.external_id,
+                'transactionId', inv.transaction_textual_ident,
+                'reason', tr.failure_reason,
+                'timestamp', tr.failure_timestamp,
+                'status', 'rejected'
+              )
+            else null
+          end), null) :: jsonb?[]    
+    from auth.institution as i
+    inner join institution.invoice as inv
+    on i.id = inv.institution_id
+    inner join institution.invoice_external_ident as ext
+    on inv.id = ext.invoice_id
+    inner join institution.transaction as tr
+    on inv.id = tr.invoice_id
+    where (inv.status = $1 :: text or inv.status = $2 :: text)
+    and not tr.picked_for_delivery
+    group by i.id|]
+
+setPickedForDelivery :: HS.Statement [UUID] ()
+setPickedForDelivery =
+  lmap V.fromList
+  [resultlessStatement|
+    update institution.transaction 
+    set picked_for_delivery = true
+    where invoice_id = any(select invoice_id from institution.invoice_external_ident where external_id = any($1 :: uuid[]))|]

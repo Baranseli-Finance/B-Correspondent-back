@@ -1,7 +1,7 @@
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE RankNTypes #-}
 
-module BCorrespondent.Statement.Webhook (fetch, insert, markDelivered) where
+module BCorrespondent.Statement.Webhook (fetch, insert, markDelivered, addError) where
 
 import qualified Hasql.Statement as HS
 import Hasql.TH (vectorStatement, resultlessStatement)
@@ -9,7 +9,7 @@ import Data.Int (Int64)
 import Data.Aeson.Types (Value, ToJSON (toJSON))
 import Data.UUID (UUID)
 import Control.Lens (rmap, lmap)
-import Data.Vector (toList, fromList)
+import Data.Vector (toList, fromList, unzip)
 import Data.Text (Text) 
 import Data.Bifunctor (second)
 
@@ -38,3 +38,12 @@ insert =
   [resultlessStatement| 
     insert into webhook (institution_id, message) 
     select $1 :: int8, v from unnest($2 :: jsonb[]) _(v)|]
+
+addError :: HS.Statement [(UUID, Text)] ()
+addError =
+  lmap (Data.Vector.unzip .fromList)
+  [resultlessStatement|
+    update webhook 
+    set error = f.error
+    from (select id, error from unnest($1 :: uuid[], $2 :: text[]) as _(id, error)) as f
+    where webhook.id = f.id|]

@@ -52,15 +52,15 @@ import Data.String.Conv (toS)
    "city”: "...",
    "country”: "...",
    "senderBankName”: "...",
-   "senderSwiftSepaCode": "...",
+   "senderSwiftOrSepaCode": "...",
    "transactionOperationCode": "...",
    "amount": 12.34,
    "currency": "usd",
    "charges": "our",
    "receiverBankName”: "...",
-   "receiverSwiftSepaCode": "...",
+   "receiverSwiftOrSepaCode": "...",
    "correspondentBank": "...",
-   "correspondentBankSwiftSepaCode": "...",
+   "correspondentBankSwiftOrSepaCode": "...",
    "transactionTime": "00:00:00",
    "transactionDate": "1970-01-01",
    "transactionDescription": "..."
@@ -90,7 +90,7 @@ data OkTransaction =
        transactionDescription :: !T.Text,
        amount :: !Double,
        currency :: !Currency, 
-       fee :: !Fee
+       charges :: !Fee
      }
      deriving stock (Generic, Show)
      deriving (ToJSON, FromJSON)

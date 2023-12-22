@@ -98,7 +98,8 @@ explainTests =
      [ "createOk" =>> BCorrespondent.Statement.Transaction.createOk,
        "createFailure" =>> BCorrespondent.Statement.Transaction.createFailure,
        "checkTransaction" =>> BCorrespondent.Statement.Transaction.checkTransaction,
-       "fetchAbortedTransaction" =>> BCorrespondent.Statement.Transaction.fetchAbortedTransaction
+       "fetchForwardedTransaction" =>> BCorrespondent.Statement.Transaction.fetchForwardedTransaction,
+       "setPickedForDelivery" =>> BCorrespondent.Statement.Transaction.setPickedForDelivery
      ]
   , "BCorrespondent.Statement.Fs" ==> 
      [ "insertFiles" =>> BCorrespondent.Statement.Fs.insertFiles]
@@ -146,7 +147,8 @@ explainTests =
   , "BCorrespondent.Statement.Webhook" ==>
      ["fetch" =>> BCorrespondent.Statement.Webhook.fetch,
       "markDelivered" =>> BCorrespondent.Statement.Webhook.markDelivered,
-      "insert" =>> BCorrespondent.Statement.Webhook.insert @()
+      "insert" =>> BCorrespondent.Statement.Webhook.insert @(),
+      "addError" =>> BCorrespondent.Statement.Webhook.addError
      ]
   , "BCorrespondent.Statement.Institution.Auth" ==>
     [ "insertToken" =>> BCorrespondent.Statement.Institution.Auth.insertToken,
