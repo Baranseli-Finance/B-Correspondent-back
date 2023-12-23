@@ -249,6 +249,7 @@ executables:
       - base64-bytestring
       - prometheus-client
       - prometheus-metrics-ghc
+      - cryptonite
 
 tests:
   tasty:

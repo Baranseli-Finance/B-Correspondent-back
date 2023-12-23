@@ -73,6 +73,9 @@ import qualified Data.ByteString.Base64 as B64
 import Data.Text.Encoding (encodeUtf8)
 import qualified Prometheus as Prometheus (register)
 import qualified Prometheus.Metric.GHC as GHC.Prometheus (ghcMetrics)
+import qualified Crypto.PubKey.Ed448 as Ed448
+import qualified Crypto.Error as Crypto
+import Data.Bifunctor (first)
 
 
 data PrintCfg = Y | N deriving stock (Generic)
@@ -336,7 +339,9 @@ main = do
   symmetricKeyBasee <- fmap (B64.decode . encodeUtf8 . toS) $ B.readFile pathToSymmetricBase
   ed448Basee <- fmap (B64.decode . encodeUtf8 . toS) $ B.readFile pathToEd448Base
  
-  keysRes <- for ((,,) <$> jwke <*> symmetricKeyBasee <*> ed448Basee) $ \(jwk, symmetricKeyBase, ed448Base)  -> do
+  let ed448Secrete = join $ fmap (first show . Crypto.eitherCryptoError . Ed448.secretKey) ed448Basee
+
+  keysRes <- for ((,,) <$> jwke <*> symmetricKeyBasee <*> ed448Secrete) $ \(jwk, symmetricKeyBase, ed448Secret)  -> do
 
     print "--------- jwk ------------"
     putStrLn $ (take 200 (show jwk)) <> ".... }"
@@ -364,7 +369,7 @@ main = do
               katipEnvGoogle = envKeys >>= envKeysGoogle,
               katipEnvSymmetricKeyBase = symmetricKeyBase,
               katipEnvBackupBigDB = cfg^.BCorrespondent.Config.backupBigDB,
-              katipEnvEd448Base = ed448Base
+              katipEnvEd448Secret = ed448Secret
           }
 
     serverCache <- MemCache.init
