@@ -79,6 +79,7 @@ toTochkaMsg (ForwardedTransactionOk x) =
        Tochka.transactionTransactionId = okTransactionId x,
        Tochka.transactionCreatedAt =  toS $ formatTime defaultTimeLocale "%Y-%m-%dT%H:%M:%S.00Z" $ okTimestamp x,
        Tochka.transactionStatus = Tochka.Processed,
+       Tochka.transactionSignature = undefined,
        Tochka.transactionSender = Just $ okSender x,
        Tochka.transactionCountry = Just $ okCountry x,
        Tochka.transactionCity = Just $ okCity x,
@@ -96,5 +97,6 @@ toTochkaMsg (ForwardedTransactionRejected x) =
     Tochka.transactionTransactionId = rejectedTransactionId x,
     Tochka.transactionCreatedAt = toS $ formatTime defaultTimeLocale "%Y-%m-%dT%H:%M:%S.00Z" $ rejectedTimestamp x,
     Tochka.transactionStatus = Tochka.Rejected,
+    Tochka.transactionSignature = undefined,
     Tochka.transactionReason = Just $ rejectedError x
   }

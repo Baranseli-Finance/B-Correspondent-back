@@ -237,6 +237,7 @@ data Transaction =
        transactionTransactionId :: Text,
        transactionCreatedAt :: Text,
        transactionStatus :: Status,
+       transactionSignature :: Text,
        transactionSender :: Maybe Text,
        transactionCountry :: Maybe Text,
        transactionCity :: Maybe Text,

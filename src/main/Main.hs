@@ -101,6 +101,7 @@ data Cmd w = Cmd
     pathToKatip :: w ::: Maybe FilePath <?> "path to katip log",
     pathToJwk :: w ::: FilePath <?> "path to jwk",
     pathToSymmetricBase :: w ::: FilePath <?> "path to ByteString upon which Twofish128 is made",
+    pathToEd448Base :: w ::: FilePath <?> "path to ByteString upon which Ed448 is made",
     minioHost :: w ::: Maybe String <?> "minio host",
     minioPort :: w ::: Maybe String <?> "minio port",
     minioAccessKey :: w ::: String <?> "minio access key",
@@ -333,8 +334,9 @@ main = do
 
   jwke <- liftIO $ fmap (eitherDecode' @JWK) $ B.readFile pathToJwk
   symmetricKeyBasee <- fmap (B64.decode . encodeUtf8 . toS) $ B.readFile pathToSymmetricBase
-
-  keysRes <- for ((,) <$> jwke <*> symmetricKeyBasee) $ \(jwk, symmetricKeyBase)  -> do
+  ed448Basee <- fmap (B64.decode . encodeUtf8 . toS) $ B.readFile pathToEd448Base
+ 
+  keysRes <- for ((,,) <$> jwke <*> symmetricKeyBasee <*> ed448Basee) $ \(jwk, symmetricKeyBase, ed448Base)  -> do
 
     print "--------- jwk ------------"
     putStrLn $ (take 200 (show jwk)) <> ".... }"
@@ -361,7 +363,8 @@ main = do
               katipEnvPsqlConn = psqlConnInfo,
               katipEnvGoogle = envKeys >>= envKeysGoogle,
               katipEnvSymmetricKeyBase = symmetricKeyBase,
-              katipEnvBackupBigDB = cfg^.BCorrespondent.Config.backupBigDB
+              katipEnvBackupBigDB = cfg^.BCorrespondent.Config.backupBigDB,
+              katipEnvEd448Base = ed448Base
           }
 
     serverCache <- MemCache.init

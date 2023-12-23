@@ -162,7 +162,11 @@ data TOk =
        okCity :: T.Text,
        okSenderBank :: T.Text,
        okSenderBankOperationCode :: T.Text,
+       okSenderBankSwiftOrSepaCode :: T.Text,
        okReceiverBank :: T.Text,
+       okReceiverBankSwiftOrSepaCode :: T.Text,
+       okCorrespondentBank :: T.Text,
+       okCorrespondentBankSwiftOrSepaCode :: T.Text,
        okAmount :: Double,
        okCurrency :: Currency,
        okFee :: Fee,
@@ -215,7 +219,7 @@ getForwardedTransactionUUID (ForwardedTransactionOk (TOk{okExternalIdent})) = ok
 getForwardedTransactionUUID (ForwardedTransactionRejected (TRejected{rejectedExternalIdent})) = rejectedExternalIdent 
 
 getTransactionId :: ForwardedTransaction -> T.Text
-getTransactionId (ForwardedTransactionOk (TOk{okTransactionId})) = okTransactionId
+getTransactionId (ForwardedTransactionOk (TOk{okTransactionId})) = T.drop 3 $ okTransactionId
 getTransactionId (ForwardedTransactionRejected (TRejected{rejectedTransactionId})) = T.drop 3 $ rejectedTransactionId
 
 getTransactionStatus :: ForwardedTransaction -> T.Text
@@ -242,8 +246,16 @@ fetchForwardedTransaction =
                 'country', tr.ok_country,
                 'city', tr.ok_city,
                 'senderBank', tr.ok_sender_bank,
-                'senderBankOperationCode', tr.ok_sender_bank_operation_code,
+                'senderBankSwiftOrSepaCode', 
+                 tr.ok_sender_wire_transfer_agent_code,
+                'senderBankOperationCode', 
+                 tr.ok_sender_bank_operation_code,
                 'receiverBank', tr.ok_receiver_bank,
+                'receiverBankSwiftOrSepaCode', 
+                 tr.ok_receiver_wire_transfer_agent_code,
+                'correspondentBank', tr.ok_correspondent_bank,
+                'correspondentBankSwiftOrSepaCode', 
+                 tr.ok_correspondent_bank_wire_transfer_agent_code,
                 'amount', tr.ok_amount,
                 'currency', tr.ok_currency,
                 'fee', tr.ok_fee,
