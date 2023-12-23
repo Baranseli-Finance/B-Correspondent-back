@@ -70,7 +70,7 @@ import BuildInfo (getSystemInfo)
 import qualified Cache.MVar as MemCache
 import qualified Cache.PostgreSQL as SqlCache
 import qualified Data.ByteString.Base64 as B64 
-import Data.Text.Encoding (encodeUtf8)
+import Data.Text.Encoding (encodeUtf8, decodeUtf8)
 import qualified Prometheus as Prometheus (register)
 import qualified Prometheus.Metric.GHC as GHC.Prometheus (ghcMetrics)
 import qualified Crypto.PubKey.Ed448 as Ed448
@@ -345,6 +345,9 @@ main = do
 
     print "--------- jwk ------------"
     putStrLn $ (take 200 (show jwk)) <> ".... }"
+
+    print "--------- ed448 public key ------------"
+    print $ decodeUtf8 $ B64.encode $ toS $ show $ Ed448.toPublic ed448Secret
 
     let katipMinio = Minio minioEnv (cfg ^. BCorrespondent.Config.minio . BCorrespondent.Config.bucketPrefix)
     let katipEnv = 
