@@ -78,7 +78,7 @@ run freq = do
           void $ liftIO $ readProcess "make" args mempty
           let file = "b-correspondent_" <> show tm <> ".sql"
           content <- liftIO $ readFile $ tmp <> "/" <> file
-          let hash = mkHashMd5 content
+          let hash = mkHashMd5 toS content
           hasql <- fmap (^. hasqlDbPool) ask
           isOk <- transactionM hasql $ statement insert hash
           when isOk $ do 

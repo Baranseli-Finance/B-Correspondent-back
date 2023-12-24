@@ -10,7 +10,8 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module BCorrespondent.Institution.Webhook.Detail.Tochka (webhook, Transaction (..), Status (..)) where
+module BCorrespondent.Institution.Webhook.Detail.Tochka 
+       (webhook, mkTransactionHash, Transaction (..), Status (..)) where
 
 import BCorrespondent.ServerM (ServerM)
 import BCorrespondent.Institution.Webhook.Factory (Webhook (..))
@@ -46,9 +47,10 @@ import Network.HTTP.Client
 import Network.HTTP.Types (hContentType, hAuthorization)
 import Network.HTTP.Types.Status (status401)
 import Katip (KatipContextT, logTM, Severity (DebugS), ls)
-import Data.UUID (UUID)
+import Data.UUID (UUID, toText)
 import Data.Default.Class.Extended (Default, def)
 import Data.Hashable (Hashable)
+import Hash (mkHash)
 
 
 data Method = Login | Callback
@@ -268,3 +270,26 @@ data Transaction =
 
 instance Default Transaction
 instance Hashable Transaction
+
+mkTransactionHash :: Transaction -> Text
+mkTransactionHash Transaction {..} =
+  mkHash toS $
+    toText transactionExternalIdent <> 
+    transactionTransactionId <>
+    transactionCreatedAt <>
+    toS (show transactionStatus) <>
+    fromMaybe mempty transactionSender <>
+    fromMaybe mempty transactionCountry <>
+    fromMaybe mempty transactionCity <>
+    fromMaybe mempty transactionSenderBank <>
+    fromMaybe mempty transactionSenderBankOperationCode <>
+    fromMaybe mempty transactionSenderBankSwiftOrSepaCode <>
+    fromMaybe mempty transactionReceiverBank <>
+    fromMaybe mempty transactionReceiverBankSwiftOrSepaCode <>
+    fromMaybe mempty transactionCorrespondentBank <>
+    fromMaybe mempty transactionCorrespondentBankSwiftOrSepaCode <>
+    maybe mempty (toS . show) transactionAmount <>
+    maybe mempty (toS . show) transactionCurrency <>
+    maybe mempty (toS . show) transactionFee <>
+    fromMaybe mempty transactionDescription <>
+    fromMaybe mempty transactionReason

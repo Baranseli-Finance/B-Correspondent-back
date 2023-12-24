@@ -36,7 +36,7 @@ mkScribe conn bucket permitF verbosity = do
       msgm <- atomically $ readTMQueue logsQueue
       for_ msgm $ \msg -> do
         resp <- runMinioWith conn $ do
-          let hash = mkHash msg
+          let hash = mkHash toS msg
           exists <- bucketExists bucket
           unless exists $ makeBucket bucket Nothing
           let opts = 

@@ -43,7 +43,6 @@ import qualified Crypto.PubKey.Ed448 as Ed448
 import Data.ByteString (ByteString)
 import qualified Data.ByteString.Base64 as Base64 
 import Data.Text.Encoding (decodeUtf8)
-import Data.Hashable (hash)
 import Data.Aeson.WithField (WithField (..))
 
 
@@ -107,10 +106,10 @@ toTochkaMsg secret (ForwardedTransactionOk x) =
           Tochka.transactionFee = Just $ okFee x,
           Tochka.transactionDescription = Just $ okDescription x
         }
-      signature = Ed448.sign secret (Ed448.toPublic secret) $ toS @_ @ByteString $ show $ hash ok
-      textSignature = decodeUtf8 $  Base64.encode $ toS $ show signature
+      signature = Ed448.sign secret (Ed448.toPublic secret) $ toS @_ @ByteString $ Tochka.mkTransactionHash ok
+      textSignature = decodeUtf8 $ Base64.encode $ toS $ show signature
   in WithField textSignature ok
-toTochkaMsg secret (ForwardedTransactionRejected x) = 
+toTochkaMsg secret (ForwardedTransactionRejected x) =
   let fail = 
           def 
           { Tochka.transactionExternalIdent = rejectedExternalIdent x,
@@ -120,6 +119,6 @@ toTochkaMsg secret (ForwardedTransactionRejected x) =
             Tochka.transactionStatus = Tochka.Rejected,
             Tochka.transactionReason = Just $ rejectedError x
           }
-      signature = Ed448.sign secret (Ed448.toPublic secret) $ toS @_ @ByteString $ show $ hash fail
-      textSignature = decodeUtf8 $  Base64.encode $ toS $ show signature
+      signature = Ed448.sign secret (Ed448.toPublic secret) $ toS @_ @ByteString $ Tochka.mkTransactionHash fail
+      textSignature = decodeUtf8 $ Base64.encode $ toS $ show signature
   in WithField textSignature fail

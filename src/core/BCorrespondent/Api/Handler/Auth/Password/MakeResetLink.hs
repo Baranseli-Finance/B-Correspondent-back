@@ -54,7 +54,7 @@ handle :: Auth.AuthenticatedUser 'Auth.Reader -> KatipHandlerM (Response (Maybe 
 handle Auth.AuthenticatedUser {..} = do
   hasql <- fmap (^. katipEnv . hasqlDbPool) ask
   tm <- fmap (fromIntegral . systemSeconds) $ liftIO $ getSystemTime
-  let hash = mkHash512 $ show tm <> show ident
+  let hash = mkHash512 id $ show tm <> show ident
   res <- transactionM hasql $ statement Auth.insertPasswordResetLink (ident, hash)
   for_ res $ \case
     Auth.Success email -> do

@@ -50,12 +50,12 @@ handle AuthenticatedUser {..} bucket files = do
         \file@File {..} -> do 
           tm <- currentTime
           let hash = 
-                mkHash $ 
+                mkHash toS $ 
                   fileName <> 
                   fileMime <> 
                   toS (show tm)
           tmp <- liftIO getTemporaryDirectory
-          let path = tmp </> toS (mkHash file)
+          let path = tmp </> toS (mkHash show file)
           liftIO $ copyFile filePath path
           let newBucket = 
                 minioBucketPrefix <>

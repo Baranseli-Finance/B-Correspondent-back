@@ -9,17 +9,17 @@ import "hashing" Crypto.Hash
 import Data.Text
 import Data.String.Conv (toS)
 
-mkHashG :: forall al a . (HashAlgorithm  al, Show al, Show a) => a -> Text
-mkHashG = toS . show . hash @al . toS . show
+mkHashG :: forall al a . (HashAlgorithm  al, Show al, Show a) => (a -> String) -> a -> Text
+mkHashG stringfy = toS . show . hash @al . toS . stringfy
 
-mkHash :: Show a => a -> Text
-mkHash = mkHashG @SHA256
+mkHash :: Show a => (a -> String) -> a -> Text
+mkHash stringfy = mkHashG @SHA256 stringfy
 
-mkHash512 :: Show a => a -> Text
-mkHash512 = mkHashG @SHA512
+mkHash512 :: Show a => (a -> String) -> a -> Text
+mkHash512 stringfy = mkHashG @SHA512 stringfy
 
-mkHashWhirlpool :: Show a => a -> Text
-mkHashWhirlpool = mkHashG @Whirlpool
+mkHashWhirlpool :: Show a => (a -> String) -> a -> Text
+mkHashWhirlpool stringfy = mkHashG @Whirlpool stringfy
 
-mkHashMd5 :: Show a => a -> Text
-mkHashMd5 = mkHashG @MD5
+mkHashMd5 :: Show a => (a -> String) -> a -> Text
+mkHashMd5 stringfy = mkHashG @MD5 stringfy
