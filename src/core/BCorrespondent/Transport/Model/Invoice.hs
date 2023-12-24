@@ -52,6 +52,8 @@ import Data.UUID (UUID)
 import Data.Tuple.Extended (del17)
 import Data.Coerce (coerce)
 import Data.String.Conv (toS)
+import Data.Hashable (Hashable)
+
 
 data Currency = USD | EUR
      deriving stock (Generic, Show, Eq, Read, Ord)
@@ -60,6 +62,8 @@ data Currency = USD | EUR
           '[ConstructorTagModifier 
             '[UserDefined ToLower]]
           Currency
+
+instance Hashable Currency
 
 mkArbitrary ''Currency
 
@@ -91,6 +95,8 @@ data Fee = OUR | SHA
           '[ConstructorTagModifier 
             '[UserDefined ToLower]]
           Fee
+
+instance Hashable Fee
 
 mkArbitrary ''Fee
 

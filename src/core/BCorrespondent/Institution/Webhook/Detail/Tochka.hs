@@ -48,6 +48,7 @@ import Network.HTTP.Types.Status (status401)
 import Katip (KatipContextT, logTM, Severity (DebugS), ls)
 import Data.UUID (UUID)
 import Data.Default.Class.Extended (Default, def)
+import Data.Hashable (Hashable)
 
 
 data Method = Login | Callback
@@ -222,7 +223,7 @@ fetchAuthToken manager login pass = do
 
 
 data Status = Accepted | Rejected | Processed
-  deriving stock (Generic, Show)
+  deriving stock (Generic, Eq, Show)
   deriving (ToJSON)
     via WithOptions
        '[ConstructorTagModifier '[UserDefined ToLower]]
@@ -231,13 +232,15 @@ data Status = Accepted | Rejected | Processed
 instance Default Status where
   def = Accepted
 
+instance Hashable Status
+
+
 data Transaction = 
      Transaction
      { transactionExternalIdent :: UUID,
        transactionTransactionId :: Text,
        transactionCreatedAt :: Text,
        transactionStatus :: Status,
-       transactionSignature :: Text,
        transactionSender :: Maybe Text,
        transactionCountry :: Maybe Text,
        transactionCity :: Maybe Text,
@@ -254,7 +257,7 @@ data Transaction =
        transactionDescription :: Maybe Text,
        transactionReason :: Maybe Text
      }
-     deriving stock (Generic, Show)
+     deriving stock (Generic, Eq, Show)
      deriving (ToJSON)
       via WithOptions
           '[ OmitNothingFields 'True,
@@ -264,3 +267,4 @@ data Transaction =
           Transaction
 
 instance Default Transaction
+instance Hashable Transaction
