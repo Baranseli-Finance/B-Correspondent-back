@@ -7,4 +7,7 @@ import Data.Text (Text)
 import Katip (KatipContextT)
 
 
-data Webhook = Webhook { send :: Manager -> Text -> Text -> Value -> KatipContextT ServerM (Either String ()) }
+data Webhook = 
+     Webhook 
+     { send :: Manager -> Text -> Text -> Value -> KatipContextT ServerM (Either String ())
+     }

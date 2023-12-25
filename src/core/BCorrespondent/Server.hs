@@ -23,9 +23,8 @@
 
 module BCorrespondent.Server (Cfg (..), ServerM (..), run, populateCache, addServerNm) where
 
-import BCorrespondent.Statement.Institution.Auth (Institution (Elekse), fetchToken)
+import BCorrespondent.Statement.Institution.Auth (Institution (..), fetchToken)
 import qualified BCorrespondent.Job.Invoice as Job.Invoice
-import BCorrespondent.Institution.Query.Elekse.Token (tokenKey)
 import qualified BCorrespondent.Job.History as Job.History
 import qualified BCorrespondent.Job.Wallet as Job.Wallet
 import qualified BCorrespondent.Job.Report as Job.Report
@@ -313,5 +312,5 @@ mkApplication hoistedApp =
 populateCache :: Cache (KatipContextT ServerM) T.Text Value -> KatipContextT ServerM ()
 populateCache Cache {insert} = do
   hasql <- fmap (^. hasqlDbPool) ask
-  res <- transactionM hasql $ statement fetchToken Elekse
-  for_ res $ flip (insert tokenKey) True . toJSON
+  res <- transactionM hasql $ statement fetchToken [Elekse, Tochka]
+  for_ res $ \(key, token) -> flip (insert key) True $ toJSON token

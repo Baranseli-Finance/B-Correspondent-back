@@ -65,11 +65,13 @@ fetch manager login password = do
   ServerState {cache} <- lift $ ST.get
   tokenRes <- fmap (fmap (eitherDecode @Text . encode)) $ (get cache) tokenKey
   case tokenRes of 
-    Just v -> 
-      fmap (const v) $ 
+    Just token -> 
+      fmap (const token) $ 
         $(logTM) DebugS $ 
           ls @Text $ 
-            $location <> " elekse token ---> " <> toS (show v)
+            $location <> 
+            " elekse token ---> " <> 
+            toS (show token)
     Nothing -> do
       let hs = [(hContentType, "application/json")]
       let onFailure = pure . Left . toS . show
@@ -83,6 +85,5 @@ fetch manager login password = do
       resp <- fmap (join . second mkResp) $ makePostReq @Credentials authUrl manager hs req onFailure
       fmap (const resp) $ for_ resp $ \token -> do
         isOk <- (insert cache) tokenKey (toJSON token) True
-        when isOk $ do
-          hasql <- fmap (^. hasqlDbPool) ask
-          transactionM hasql $ statement insertToken (Elekse, token)
+        hasql <- fmap (^. hasqlDbPool) ask
+        when isOk $ transactionM hasql $ statement insertToken (Elekse, token)

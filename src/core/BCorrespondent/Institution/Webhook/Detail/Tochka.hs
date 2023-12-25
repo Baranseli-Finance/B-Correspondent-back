@@ -9,12 +9,14 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE NamedFieldPuns #-}
 
 module BCorrespondent.Institution.Webhook.Detail.Tochka 
        (webhook, defRequest, Method (..), Transaction (..), SignedTransaction (..), Status (..), requestMethod, requestParams) where
 
-import BCorrespondent.ServerM (ServerM)
+
+import BCorrespondent.Statement.Institution.Auth (Institution (Tochka), insertToken)
+import BCorrespondent.ServerM (ServerM, ServerState (..))
 import BCorrespondent.Institution.Webhook.Factory (Webhook (..))
 import BCorrespondent.Transport.Model.Invoice (Currency, Fee)
 import Data.Text (Text)
@@ -37,7 +39,7 @@ import Data.Traversable (for)
 import Data.Maybe (fromMaybe)
 import Data.String.Conv (toS)
 import Request (makePostReq)
-import Control.Monad (join)
+import Control.Monad (join, when, void)
 import Data.Bifunctor (second)
 import Network.HTTP.Client 
       (Manager, 
@@ -52,6 +54,13 @@ import Data.UUID (UUID)
 import Data.Default.Class.Extended (Default, def)
 import Data.Hashable (Hashable)
 import Database.Transaction (ParamsShow (..))
+import qualified Control.Monad.State.Class as ST
+import Control.Monad.Trans.Class (lift)
+import Cache (Cache (..))
+import Database.Transaction (transactionM, statement, ask)
+import Control.Lens ((^.))
+import Katip.Handler (hasqlDbPool)
+import Data.Foldable (for_)
 
 
 data Method = 
@@ -168,6 +177,8 @@ data Success = Success { success :: Bool }
      deriving (FromJSON)
       via WithOptions DefaultOptions Success
 
+baseUrl = "https://letspay.to/api/v1/jrpc/b-correspondent"
+
 go :: Manager -> Text -> Text -> Value -> KatipContextT ServerM (Either String ())
 go manager login pass req = do 
   $(logTM) DebugS $ ls @Text $ $location <> " webhook request ---->  " <> toS (show req)
@@ -180,12 +191,20 @@ go manager login pass req = do
            case error of 
               HttpExceptionRequest  _ (StatusCodeException resp _) -> 
                 if status401 == responseStatus resp
-                then fmap (second (const mempty)) $ go manager login pass req
+                then fmap (second (const mempty)) $ do
+                       ServerState {cache} <- lift $ ST.get
+                       void $ fmap (Left . const "token error") $ (delete cache) tokenKey
+                       go manager login pass req
                 else pure . Left . toS . show $ error
               _ -> pure . Left . toS . show $ error
       fmap (join . second mkResp) $ 
-        makePostReq @Value "https://letspay.to/api/v1/jrpc/b-correspondent" manager hs req onFailure
+        makePostReq @Value baseUrl manager hs req onFailure
 
+
+tokenKey :: Text
+tokenKey = "tochka_token"
+
+tokenUrl = "https://letspay.to/api/v1/jrpc/auth"
 
 -- request:
 -- curl --location --request POST 'letspay.to/api/v1/jrpc/auth' \
@@ -217,13 +236,26 @@ go manager login pass req = do
 -- }
 fetchAuthToken :: Manager -> Text -> Text -> KatipContextT ServerM (Either String Token)
 fetchAuthToken manager login pass = do
-  let onFailure = pure . Left . toS . show
-  let req = defRequest $ Auth login pass
-  let mkResp = join . fmap toEither . eitherDecode @(Response Token) . toS
-  let hs = [(hContentType, "application/json")]
-  fmap (join . second mkResp) $ 
-    makePostReq @(Request Auth) "https://letspay.to/api/v1/jrpc/auth" manager hs req onFailure
-
+  ServerState {cache} <- lift $ ST.get
+  tokenRes <- fmap (fmap (eitherDecode @Text . encode)) $ (get cache) tokenKey
+  case tokenRes of 
+    Just token -> 
+      fmap (const (fmap Token token)) $ 
+        $(logTM) DebugS $ 
+          ls @Text $ 
+            $location <> 
+            " tochka token ---> " <> 
+            toS (show token)
+    Nothing -> do
+      let onFailure = pure . Left . toS . show
+      let req = defRequest $ Auth login pass
+      let mkResp = join . fmap toEither . eitherDecode @(Response Token) . toS
+      let hs = [(hContentType, "application/json")]
+      tokene <- fmap (join . second mkResp) $ makePostReq @(Request Auth) tokenUrl manager hs req onFailure
+      fmap (const tokene) $ for_ tokene $ \token -> do
+        isOk <- (insert cache) tokenKey (toJSON (accessToken token)) True
+        hasql <- fmap (^. hasqlDbPool) ask
+        when isOk $ transactionM hasql $ statement insertToken (Tochka, accessToken token)
 
 data Status = Accepted | Rejected
   deriving stock (Generic, Eq, Show)
