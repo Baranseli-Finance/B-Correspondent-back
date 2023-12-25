@@ -36,14 +36,13 @@ import Data.Bifunctor (bimap, second)
 import Data.Either.Combinators (swapEither)
 import Control.Arrow ((&&&))
 import Data.Int (Int64)
-import Data.Aeson (Value, toJSON)
+import Data.Aeson (Value, toJSON, encode)
 import Data.Default.Class.Extended (def)
 import Data.Time.Format (formatTime, defaultTimeLocale)
 import qualified Crypto.PubKey.Ed448 as Ed448 
 import Data.ByteString (ByteString)
 import qualified Data.ByteString.Base64 as Base64 
 import Data.Text.Encoding (decodeUtf8)
-import Data.Aeson.WithField (WithField (..))
 
 
 forward :: Int -> KatipContextT ServerM ()
@@ -78,7 +77,7 @@ toWebhookMsg :: Ed448.SecretKey -> Int64 -> ForwardedTransaction -> Value
 toWebhookMsg secret 1 x = toJSON $ toTochkaMsg secret x 
 toWebhookMsg _ _ _ = error $ $location <> ":toWebhookMsg: webhook conversion not found"
 
-toTochkaMsg :: Ed448.SecretKey -> ForwardedTransaction -> WithField "signature" Text Tochka.Transaction
+toTochkaMsg :: Ed448.SecretKey -> ForwardedTransaction -> Tochka.SignedTransaction
 toTochkaMsg secret (ForwardedTransactionOk x) =
   let ok = 
         def
@@ -106,9 +105,9 @@ toTochkaMsg secret (ForwardedTransactionOk x) =
           Tochka.transactionFee = Just $ okFee x,
           Tochka.transactionDescription = Just $ okDescription x
         }
-      signature = Ed448.sign secret (Ed448.toPublic secret) $ toS @_ @ByteString $ Tochka.mkTransactionHash ok
+      signature = Ed448.sign secret (Ed448.toPublic secret) $ toS @_ @ByteString $ encode ok
       textSignature = decodeUtf8 $ Base64.encode $ toS $ show signature
-  in WithField textSignature ok
+  in Tochka.SignedTransaction ok textSignature
 toTochkaMsg secret (ForwardedTransactionRejected x) =
   let fail = 
           def 
@@ -119,6 +118,6 @@ toTochkaMsg secret (ForwardedTransactionRejected x) =
             Tochka.transactionStatus = Tochka.Rejected,
             Tochka.transactionReason = Just $ rejectedError x
           }
-      signature = Ed448.sign secret (Ed448.toPublic secret) $ toS @_ @ByteString $ Tochka.mkTransactionHash fail
+      signature = Ed448.sign secret (Ed448.toPublic secret) $ toS @_ @ByteString $ encode fail
       textSignature = decodeUtf8 $ Base64.encode $ toS $ show signature
-  in WithField textSignature fail
+  in Tochka.SignedTransaction fail textSignature

@@ -20,7 +20,7 @@ module BCorrespondent.Statement.Institution
          fetchWithdrawals,
          updateWithdrawalStatus,
          modifyWalletAfterWebhook,
-         refreshWalletMV,
+         archiveWallets,
          readNotification,
          loadNotification,
          loadUnreadNotification,
@@ -45,8 +45,6 @@ import GHC.Generics
 import Data.Tuple.Extended (snocT, app1, app2)
 import Data.Text (Text)
 import Data.UUID (UUID)
-import Hasql.Decoders (noResult)
-import Hasql.Encoders (noParams)
 import Data.Maybe (fromMaybe)
 
 
@@ -384,8 +382,25 @@ modifyWalletAfterWebhook =
        and w.currency = (select currency from wallet_data)) as tbl
     where id = tbl.ident|]
 
-refreshWalletMV :: HS.Statement () ()
-refreshWalletMV = HS.Statement [uncheckedSql|refresh materialized view mv.wallet|] noParams noResult True
+archiveWallets :: HS.Statement () ()
+archiveWallets = 
+  [resultlessStatement|
+    insert into institution.wallet_history
+    (institution_id,
+     currency,
+     amount,
+     wallet_type,
+     startpoint,
+     endpoint)
+    select
+      institution_id,
+      currency,
+      amount,
+      wallet_type,
+      (select (date_trunc('week', now() - interval '1 day'))),
+      ((now() - interval '1 day'))
+    from institution.wallet
+    on conflict (institution_id, currency, wallet_type, startpoint, endpoint) do nothing|]
 
 readNotification :: HS.Statement [Int64] ()
 readNotification = lmap V.fromList [resultlessStatement|update public.notification set is_read = true where id = any($1 :: int8[]) and not is_read|]

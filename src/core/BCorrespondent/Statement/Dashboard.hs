@@ -315,7 +315,7 @@ getTransaction =
                 ))
             else null
           end
-        from mv.invoice_and_transaction as it
+        from institution.invoice_and_transaction as it
         where it.invoice_ident = $3 :: int8 
         and it.user_ident = $1 :: int8),
       current_tr as (

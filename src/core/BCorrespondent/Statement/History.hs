@@ -74,7 +74,7 @@ initTimeline =
             interval '5 min') as _(el)) as f
         cross join (
           select *
-            from mv.invoice_and_transaction
+            from institution.invoice_and_transaction
             where user_ident = $1 :: int8 and 
             extract('year' from appearance_on_timeline) = $2 :: int
             and extract('month' from appearance_on_timeline) = $3 :: int
@@ -100,7 +100,7 @@ initTimeline =
     decode title xs = fmap (title,) $ fromMaybe (Right []) $ fmap (sequence . map (A.eitherDecode @TimelineGapsItem . A.encode) . V.toList) xs
 
 refreshMV :: HS.Statement () ()
-refreshMV = HS.Statement [uncheckedSql|refresh materialized view mv.invoice_and_transaction|] noParams noResult True
+refreshMV = HS.Statement [uncheckedSql|refresh materialized view institution.invoice_and_transaction|] noParams noResult True
 
 getHourShift :: HS.Statement (Int64, Year, Month, Day, Hour, Hour, Bool) (Either String [TimelineGapsItem])
 getHourShift =
@@ -157,7 +157,7 @@ getHourShift =
             invoice_amount,
             status,
             appearance_on_timeline
-          from mv.invoice_and_transaction
+          from institution.invoice_and_transaction
           where institution_id = $1 :: int8 and not $7 :: bool 
           union
           select

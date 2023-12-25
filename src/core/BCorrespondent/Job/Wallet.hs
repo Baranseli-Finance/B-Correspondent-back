@@ -10,7 +10,7 @@ module BCorrespondent.Job.Wallet (withdraw, archive) where
 import BCorrespondent.Transport.Model.Institution 
        (WithdrawalPaymentProviderRequest (..), WithdrawalStatus (Processing))
 import BCorrespondent.Statement.Institution 
-       (fetchWithdrawals, updateWithdrawalStatus, refreshWalletMV)    
+       (fetchWithdrawals, updateWithdrawalStatus, archiveWallets)    
 import BCorrespondent.Job.Utils (withElapsedTime)
 import BCorrespondent.ServerM (ServerM)
 import Katip
@@ -68,4 +68,4 @@ archive freq =
       let firstDay  = weekFirstDay Monday day
       when (day == firstDay) $ do 
         hasql <- fmap (^. hasqlDbPool) ask
-        void $ transactionM hasql $ statement refreshWalletMV ()
+        void $ transactionM hasql $ statement archiveWallets ()

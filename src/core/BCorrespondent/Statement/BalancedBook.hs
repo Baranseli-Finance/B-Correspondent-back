@@ -381,7 +381,7 @@ fetchFirstBalancedBook =
               extract(isodow from appearance_on_timeline) as day_of_week,
               extract(hour from appearance_on_timeline) as start_point,
               extract(hour from appearance_on_timeline) + 1 as end_point
-            from mv.invoice_and_transaction
+            from institution.invoice_and_transaction
             where extract(doy from appearance_on_timeline) >= $1 :: int
             and coalesce(extract(doy from appearance_on_timeline) <= $2 :: int, false)
             and institution_id = $3 :: int8
@@ -414,7 +414,7 @@ fetchFirstBalancedBook =
               invoice_amount as amount,
               extract(hour from appearance_on_timeline) as start,
               extract(hour from appearance_on_timeline) + 1 as end
-            from mv.invoice_and_transaction
+            from institution.invoice_and_transaction
             where extract(doy from appearance_on_timeline) >= $1 :: int
             and coalesce(extract(doy from appearance_on_timeline) <= $2 :: int, false)
             and institution_id = $3 :: int8) as i
@@ -432,7 +432,7 @@ fetchFirstBalancedBook =
           'walletType', wallet_type)
         order by wallet_type asc, currency asc)
         as balances
-      from mv.wallet
+      from institution.wallet_history
       where institution_id = $3 :: int8
       and extract(doy from startpoint) = $1 :: int
       and extract(doy from endpoint) = $2 :: int) as t on true|]
@@ -506,7 +506,7 @@ fetchSecondBalancedBook =
               left join institution.relation rs
               on i.id = rs.second_id and rs.second_id = $3 :: int8
               where rf.second_id is not null or rs.first_id is not null) as i
-            left join mv.invoice_and_transaction as inv
+            left join institution.invoice_and_transaction as inv
             on i.ident = inv.institution_id
             where extract(doy from appearance_on_timeline) >= $1 :: int
             and coalesce(extract(doy from appearance_on_timeline) <= $2 :: int, false)
@@ -548,7 +548,7 @@ fetchSecondBalancedBook =
               left join institution.relation rs
               on i.id = rs.second_id and rs.second_id = $3 :: int8
               where rf.second_id is not null or rs.first_id is not null) as i
-            left join mv.invoice_and_transaction as inv
+            left join institution.invoice_and_transaction as inv
             on i.ident = inv.institution_id
             where extract(doy from appearance_on_timeline) >= $1 :: int
             and coalesce(extract(doy from appearance_on_timeline) <= $2 :: int, false)) as i
@@ -575,7 +575,7 @@ fetchSecondBalancedBook =
         left join institution.relation rs
         on i.id = rs.second_id and rs.second_id = $3 :: int8
         where rf.second_id is not null or rs.first_id is not null) as f
-      inner join mv.wallet
+      inner join institution.wallet_history
       on institution_id = f.ident
       where extract(doy from startpoint) = $1 :: int
       and extract(doy from endpoint) = $2 :: int) as t on true|]
