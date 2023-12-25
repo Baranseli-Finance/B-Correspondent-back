@@ -58,7 +58,7 @@ forward freq =
         for xs $ \(instId, yse) -> 
           fmap (bimap (instId,) (instId,) . swapEither) $ 
             for yse $ \ys -> do
-              statement Webhook.insert (instId, map (toWebhookMsg ed448 instId) ys)
+              statement Webhook.insert (instId, map (mkWebhookMsg ed448 instId) ys)
               fmap (const (map (getTransactionId &&& getTransactionStatus) ys)) $
                 statement setPickedForDelivery $ 
                   map getForwardedTransactionUUID ys 
@@ -73,9 +73,9 @@ forward freq =
         in $(logTM) ErrorS $ logStr @Text msg
       for_ os $ \o -> uncurry (N.makeS @"transaction_status") $ second (map (uncurry N.TransactionStatus)) o
 
-toWebhookMsg :: Ed448.SecretKey -> Int64 -> ForwardedTransaction -> Value 
-toWebhookMsg secret 1 x = toJSON $ toTochkaMsg secret x 
-toWebhookMsg _ _ _ = error $ $location <> ":toWebhookMsg: webhook conversion not found"
+mkWebhookMsg :: Ed448.SecretKey -> Int64 -> ForwardedTransaction -> Value 
+mkWebhookMsg secret 1 x = toJSON $ (Tochka.defRequest (toTochkaMsg secret x)) { Tochka.requestMethod = Tochka.Processed }
+mkWebhookMsg _ _ _ = error $ $location <> ":toWebhookMsg: webhook conversion not found"
 
 toTochkaMsg :: Ed448.SecretKey -> ForwardedTransaction -> Tochka.SignedTransaction
 toTochkaMsg secret (ForwardedTransactionOk x) =
@@ -85,7 +85,7 @@ toTochkaMsg secret (ForwardedTransactionOk x) =
           Tochka.transactionTransactionId = okTransactionId x,
           Tochka.transactionCreatedAt = 
             toS $ formatTime defaultTimeLocale "%Y-%m-%dT%H:%M:%S.00Z" $ okTimestamp x,
-          Tochka.transactionStatus = Tochka.Processed,
+          Tochka.transactionStatus = Tochka.Accepted,
           Tochka.transactionSender = Just $ okSender x,
           Tochka.transactionCountry = Just $ okCountry x,
           Tochka.transactionCity = Just $ okCity x,

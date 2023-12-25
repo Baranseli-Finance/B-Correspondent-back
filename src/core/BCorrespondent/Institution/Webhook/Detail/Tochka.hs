@@ -9,15 +9,16 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE KindSignatures #-}
 
 module BCorrespondent.Institution.Webhook.Detail.Tochka 
-       (webhook, Transaction (..), SignedTransaction (..), Status (..)) where
+       (webhook, defRequest, Method (..), Transaction (..), SignedTransaction (..), Status (..), requestMethod, requestParams) where
 
 import BCorrespondent.ServerM (ServerM)
 import BCorrespondent.Institution.Webhook.Factory (Webhook (..))
 import BCorrespondent.Transport.Model.Invoice (Currency, Fee)
-import Data.Aeson.Types (Value)
 import Data.Text (Text)
+import Data.Aeson.Types (Value)
 import Data.Aeson 
        (ToJSON (toJSON), 
         object, 
@@ -50,9 +51,15 @@ import Katip (KatipContextT, logTM, Severity (DebugS), ls)
 import Data.UUID (UUID)
 import Data.Default.Class.Extended (Default, def)
 import Data.Hashable (Hashable)
+import Database.Transaction (ParamsShow (..))
 
 
-data Method = Login | Callback
+data Method = 
+        Login
+        -- invoice scope
+      | Registered
+        -- transaction scope
+      | Processed
      deriving stock (Generic, Show)
      deriving (ToJSON)
       via WithOptions
@@ -71,20 +78,22 @@ data Request a =
        requestId :: !Text,
        requestParams :: !a
      }
-    
+
 instance ToJSON a => Show (Request a) where
   show = toS . encode
 
- 
+instance ToJSON a => ParamsShow (Request a) where
+  render = show
+
 -- |
 --
 -- >>> :set -XTypeApplications
 -- >>> :set -XOverloadedStrings
 -- >>> import Data.Aeson (encode)
 --
--- >>> let req = Request "2.0" Callback "refer" "{\"status\":\"accepted\",\"accepted_at\":\"2023-11-18T08:55:19.8836435Z\",\"external_id\":\"9185dc07-772f-452e-9fc2-b77f671133d3\"}"
+-- >>> let req = Request "2.0" Registered "refer" "{\"status\":\"accepted\",\"accepted_at\":\"2023-11-18T08:55:19.8836435Z\",\"external_id\":\"9185dc07-772f-452e-9fc2-b77f671133d3\"}"
 -- >>> encode req
--- "{\"id\":\"refer\",\"jsonrpc\":\"2.0\",\"method\":\"callback\",\"params\":\"{\\\"status\\\":\\\"accepted\\\",\\\"accepted_at\\\":\\\"2023-11-18T08:55:19.8836435Z\\\",\\\"external_id\\\":\\\"9185dc07-772f-452e-9fc2-b77f671133d3\\\"}\"}"
+-- "{\"id\":\"refer\",\"jsonrpc\":\"2.0\",\"method\":\"registered\",\"params\":\"{\\\"status\\\":\\\"accepted\\\",\\\"accepted_at\\\":\\\"2023-11-18T08:55:19.8836435Z\\\",\\\"external_id\\\":\\\"9185dc07-772f-452e-9fc2-b77f671133d3\\\"}\"}"
 instance ToJSON a => ToJSON (Request a) where
   toJSON Request {..} = 
     object 
@@ -102,7 +111,7 @@ data Auth = Auth { email :: Text, password :: Text }
      deriving (ToJSON)
       via WithOptions DefaultOptions Auth
 
-data Error = Error { errorCode :: Int, errorMessage :: Text, errorData :: Text }
+data Error = Error { errorCode :: Int, errorMessage :: Text }
      deriving stock (Generic, Show)
      deriving (FromJSON)
       via WithOptions
@@ -115,7 +124,7 @@ data Response a = Ok a | Failure Error deriving Show
 
 toEither :: Response a -> Either String a
 toEither (Ok x) = Right x
-toEither (Failure (Error {..})) = Left $ toS errorMessage <> ", " <> toS errorData
+toEither (Failure (Error {..})) = Left $ toS errorMessage
 
 data Token = Token { accessToken :: Text }
      deriving stock (Generic, Show)
@@ -140,7 +149,7 @@ data Token = Token { accessToken :: Text }
 --  let msg = "{\"jsonrpc\": \"2.0\", \"error\": { \"code\": -32602, \"message\": \"Invalid login/password\", \"data\": \"error\" }, \"id\": \"refer\"}"
 --  in eitherDecode @(Response ()) msg  
 -- :}
--- Right (Failure (Error {errorCode = -32602, errorMessage = "Invalid login/password", errorData = "error"}))
+-- Right (Failure (Error {errorCode = -32602, errorMessage = "Invalid login/password"}))
 instance FromJSON a => FromJSON (Response a) where
     parseJSON = 
       withObject ($location <> ":Response") $ \o -> do
@@ -149,25 +158,18 @@ instance FromJSON a => FromJSON (Response a) where
         resp <- for r $ fmap Ok . parseJSON @a
         err <- for e $ fmap Failure . parseJSON @Error
         let msg = toS $ $location <> " couldn't parse Response, raw: " <> show o
-        pure $ fromMaybe (Failure (Error 0 msg mempty)) $ resp <|> err
+        pure $ fromMaybe (Failure (Error 0 msg)) $ resp <|> err
 
 webhook :: Webhook
-webhook =  
-  Webhook 
-  { send = \manager login pass msg -> 
-              go manager login pass $ 
-                (defRequest msg) 
-                { requestMethod = Callback }
-  }
+webhook = Webhook { send = go }
 
 data Success = Success { success :: Bool }
      deriving stock (Generic, Show)
      deriving (FromJSON)
       via WithOptions DefaultOptions Success
 
-
-go :: Manager -> Text -> Text -> Request Value -> KatipContextT ServerM (Either String ())
-go manager login pass req = do
+go :: Manager -> Text -> Text -> Value -> KatipContextT ServerM (Either String ())
+go manager login pass req = do 
   $(logTM) DebugS $ ls @Text $ $location <> " webhook request ---->  " <> toS (show req)
   tokene <- fetchAuthToken manager login pass
   fmap join $ 
@@ -182,7 +184,7 @@ go manager login pass req = do
                 else pure . Left . toS . show $ error
               _ -> pure . Left . toS . show $ error
       fmap (join . second mkResp) $ 
-        makePostReq @(Request Value) "https://letspay.to/api/v1/jrpc/b-correspondent" manager hs req onFailure
+        makePostReq @Value "https://letspay.to/api/v1/jrpc/b-correspondent" manager hs req onFailure
 
 
 -- request:
@@ -223,7 +225,7 @@ fetchAuthToken manager login pass = do
     makePostReq @(Request Auth) "https://letspay.to/api/v1/jrpc/auth" manager hs req onFailure
 
 
-data Status = Accepted | Rejected | Processed
+data Status = Accepted | Rejected
   deriving stock (Generic, Eq, Show)
   deriving (ToJSON)
     via WithOptions

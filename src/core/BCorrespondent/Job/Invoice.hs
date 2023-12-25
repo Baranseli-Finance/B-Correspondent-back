@@ -14,6 +14,7 @@
 
 module BCorrespondent.Job.Invoice (forwardToPaymentProvider) where
 
+import qualified BCorrespondent.Institution.Webhook.Detail.Tochka as Tochka
 import qualified BCorrespondent.Institution.Query.Invoice as Q
 import qualified BCorrespondent.Institution.Query as Q
 import BCorrespondent.Statement.Invoice 
@@ -46,6 +47,7 @@ import Data.Either (partitionEithers)
 import qualified Data.Text as T
 import Data.String.Conv (toS)
 import qualified Control.Concurrent.Async.Lifted as Async
+import Data.Aeson (Value, toJSON)
 import Data.Aeson.WithField (WithField (..))
 import Data.Int (Int64)
 import Data.Bifunctor (bimap, second)
@@ -109,14 +111,15 @@ forwardToPaymentProvider freq =
                       then group by ident using groupWith 
                   ]
             let webhookParams =
-                  [ (the ident, message)
+                  [ (the ident, val)
                     | (ident, _, _, external, tm) <- os,
-                      let formatTm = toS . formatTime defaultTimeLocale "%Y-%m-%dT%H:%M:%S.00Z",
-                      let message = WebhookMsg external (formatTm tm) "accepted",
-                      then group by ident using groupWith 
+                    let val = mkWebhookMsg ident external tm,
+                    then group by ident using groupWith
                   ]   
             for_ notifParams $ uncurry (makeS @"invoice_forwarded")
-            for_ webhookParams $ transactionM hasql . statement Webhook.insert
+            for_ webhookParams $ \(ident, xse) -> do 
+              let (_, os) = partitionEithers xse
+              transactionM hasql $ statement Webhook.insert (ident,os)
             for_ es' $ \(ident, is_stuck) -> 
               when is_stuck $ 
                 $(logTM) ErrorS $ 
@@ -153,3 +156,10 @@ sendInvoices manager queries (Just QueryCredentials {..}) xs = do
       let notifBody = Invoice textIdent amount currency
       let mkResp = bimap ((ident,) . toS) ((notifBody, ident, external,) . Q.acceptedAt)
       fmap mkResp $ query manager Q.path token invoice
+  
+mkWebhookMsg :: Int64 -> UUID -> UTCTime -> Either String Value
+mkWebhookMsg 1 external tm = 
+   let formatTm = toS . formatTime defaultTimeLocale "%Y-%m-%dT%H:%M:%S.00Z"
+       message = WebhookMsg external (formatTm tm) "accepted"
+   in Right $ toJSON $ (Tochka.defRequest message) { Tochka.requestMethod = Tochka.Registered }
+mkWebhookMsg ident _ _ = Left $ "cannot make webhook value for institution " <> show ident
