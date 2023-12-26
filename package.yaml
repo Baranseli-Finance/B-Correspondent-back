@@ -212,6 +212,7 @@ library:
     - google-oauth2-jwt
     - parallel
     - wai-middleware-prometheus
+    - HsOpenSSL
 
   source-dirs:
     - src/core
@@ -249,7 +250,6 @@ executables:
       - base64-bytestring
       - prometheus-client
       - prometheus-metrics-ghc
-      - cryptonite
 
 tests:
   tasty:

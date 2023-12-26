@@ -45,7 +45,7 @@ module Katip.Handler
     psqlConn,
     google,
     symmetricKeyBase,
-    ed448Secret,
+    rSAKey,
     backupBigDB,
 
     -- * run
@@ -92,7 +92,7 @@ import Cache (Cache)
 import Data.Aeson (Value)
 import Database.PostgreSQL.Simple.Internal (ConnectInfo)
 import Data.ByteString (ByteString)
-import qualified Crypto.PubKey.Ed448 as Ed448 
+import qualified Crypto.PubKey.RSA as RSA
 
 
 type KatipLoggerIO = Severity -> LogStr -> IO ()
@@ -118,7 +118,7 @@ data KatipEnv = KatipEnv
     katipEnvGoogle :: !(Maybe Google),
     katipEnvSymmetricKeyBase :: !ByteString,
     katipEnvBackupBigDB :: !Bool,
-    katipEnvEd448Secret :: !Ed448.SecretKey
+    katipEnvRSAKey :: !RSA.RSAKey
   }
 
 data Minio = Minio {minioConn :: !Minio.MinioConn, minioBucketPrefix :: !T.Text}

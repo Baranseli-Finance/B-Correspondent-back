@@ -13,6 +13,7 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE NumericUnderscores #-}
+{-# LANGUAGE PackageImports #-}
 
 module Main (main) where
 
@@ -70,12 +71,13 @@ import BuildInfo (getSystemInfo)
 import qualified Cache.MVar as MemCache
 import qualified Cache.PostgreSQL as SqlCache
 import qualified Data.ByteString.Base64 as B64 
-import Data.Text.Encoding (encodeUtf8, decodeUtf8)
+import Data.Text.Encoding (encodeUtf8)
 import qualified Prometheus as Prometheus (register)
 import qualified Prometheus.Metric.GHC as GHC.Prometheus (ghcMetrics)
-import qualified Crypto.PubKey.Ed448 as Ed448
-import qualified Crypto.Error as Crypto
+import Text.Read (readEither)
+import qualified "b-correspondent" Crypto.PubKey.RSA as RSA
 import Data.Bifunctor (first)
+
 
 
 data PrintCfg = Y | N deriving stock (Generic)
@@ -104,7 +106,7 @@ data Cmd w = Cmd
     pathToKatip :: w ::: Maybe FilePath <?> "path to katip log",
     pathToJwk :: w ::: FilePath <?> "path to jwk",
     pathToSymmetricBase :: w ::: FilePath <?> "path to ByteString upon which Twofish128 is made",
-    pathToEd448Base :: w ::: FilePath <?> "path to ByteString upon which Ed448 is made",
+    pathToRsa :: w ::: FilePath <?> "path to RSA key",
     minioHost :: w ::: Maybe String <?> "minio host",
     minioPort :: w ::: Maybe String <?> "minio port",
     minioAccessKey :: w ::: String <?> "minio access key",
@@ -337,17 +339,15 @@ main = do
 
   jwke <- liftIO $ fmap (eitherDecode' @JWK) $ B.readFile pathToJwk
   symmetricKeyBasee <- fmap (B64.decode . encodeUtf8 . toS) $ B.readFile pathToSymmetricBase
-  ed448Basee <- fmap (B64.decode . encodeUtf8 . toS) $ B.readFile pathToEd448Base
+  rsaKeye <- fmap (first (const "cannot read RSA") . readEither @RSA.RSAKey) $ readFile pathToRsa
  
-  let ed448Secrete = join $ fmap (first show . Crypto.eitherCryptoError . Ed448.secretKey) ed448Basee
-
-  keysRes <- for ((,,) <$> jwke <*> symmetricKeyBasee <*> ed448Secrete) $ \(jwk, symmetricKeyBase, ed448Secret)  -> do
+  keysRes <- for ((,,) <$> jwke <*> symmetricKeyBasee <*> rsaKeye) $ \(jwk, symmetricKeyBase, rsaKey)  -> do
 
     print "--------- jwk ------------"
     putStrLn $ (take 200 (show jwk)) <> ".... }"
 
-    print "--------- ed448 public key ------------"
-    print $ decodeUtf8 $ B64.encode $ toS $ show $ Ed448.toPublic ed448Secret
+    print "--------- rsa ------------"
+    putStrLn $ (take 200 (show rsaKey)) <> ".... }"
 
     let katipMinio = Minio minioEnv (cfg ^. BCorrespondent.Config.minio . BCorrespondent.Config.bucketPrefix)
     let katipEnv = 
@@ -372,7 +372,7 @@ main = do
               katipEnvGoogle = envKeys >>= envKeysGoogle,
               katipEnvSymmetricKeyBase = symmetricKeyBase,
               katipEnvBackupBigDB = cfg^.BCorrespondent.Config.backupBigDB,
-              katipEnvEd448Secret = ed448Secret
+              katipEnvRSAKey = rsaKey
           }
 
     serverCache <- MemCache.init
@@ -384,4 +384,4 @@ main = do
               Server.populateCache serverCache >> Server.run serverCfg
     bracket env (flip (>>) shutdownMsg . closeScribes) $ void . (\serverM -> evalRWST (Server.runServerM serverM) katipEnv def) . runKatip
 
-  whenLeft keysRes $ print . ((<>) "jwk or cipher key decode error ---> ")
+  whenLeft keysRes $ print . ((<>) "jwk, cipher key or rsa decode error ---> ")

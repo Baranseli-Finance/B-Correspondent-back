@@ -31,7 +31,7 @@ import Data.Traversable (for)
 import Data.String.Conv (toS)
 import Database.Transaction (statement, transactionM)
 import Control.Lens ((^.))
-import Katip.Handler (hasqlDbPool, ask, httpReqManager, ed448Secret)
+import Katip.Handler (hasqlDbPool, ask, httpReqManager, rSAKey)
 import Data.Bifunctor (bimap, second)
 import Data.Either.Combinators (swapEither)
 import Control.Arrow ((&&&))
@@ -39,10 +39,13 @@ import Data.Int (Int64)
 import Data.Aeson (Value, toJSON, encode)
 import Data.Default.Class.Extended (def)
 import Data.Time.Format (formatTime, defaultTimeLocale)
-import qualified Crypto.PubKey.Ed448 as Ed448 
 import Data.ByteString (ByteString)
 import qualified Data.ByteString.Base64 as Base64 
 import Data.Text.Encoding (decodeUtf8)
+import qualified Crypto.PubKey.RSA as RSA
+import qualified Crypto.PubKey.RSA.PKCS15 as RSA 
+import qualified Crypto.PubKey.RSA.Types as RSA
+import qualified Crypto.Hash.Algorithms as RSA
 
 
 forward :: Int -> KatipContextT ServerM ()
@@ -52,13 +55,13 @@ forward freq =
     withElapsedTime ($location <> ":forward") $ do 
       hasql <- fmap (^. hasqlDbPool) ask
       manager <- fmap (^.httpReqManager) ask
-      ed448 <- fmap (^.ed448Secret) ask 
+      k <- fmap (^.rSAKey) ask 
       dbRes <- transactionM hasql $ do 
         xs <- statement fetchForwardedTransaction ()
         for xs $ \(instId, yse) -> 
           fmap (bimap (instId,) (instId,) . swapEither) $ 
             for yse $ \ys -> do
-              statement Webhook.insert (instId, map (mkWebhookMsg ed448 instId) ys)
+              statement Webhook.insert (instId, map (mkWebhookMsg k instId) ys)
               fmap (const (map (getTransactionId &&& getTransactionStatus) ys)) $
                 statement setPickedForDelivery $ 
                   map getForwardedTransactionUUID ys 
@@ -73,11 +76,11 @@ forward freq =
         in $(logTM) ErrorS $ logStr @Text msg
       for_ os $ \o -> uncurry (N.makeS @"transaction_status") $ second (map (uncurry N.TransactionStatus)) o
 
-mkWebhookMsg :: Ed448.SecretKey -> Int64 -> ForwardedTransaction -> Value 
-mkWebhookMsg secret 1 x = toJSON $ (Tochka.defRequest (toTochkaMsg secret x)) { Tochka.requestMethod = Tochka.Processed }
+mkWebhookMsg :: RSA.RSAKey -> Int64 -> ForwardedTransaction -> Value 
+mkWebhookMsg k 1 x = toJSON $ (Tochka.defRequest (toTochkaMsg (RSA.key k) x)) { Tochka.requestMethod = Tochka.Processed }
 mkWebhookMsg _ _ _ = error $ $location <> ":toWebhookMsg: webhook conversion not found"
 
-toTochkaMsg :: Ed448.SecretKey -> ForwardedTransaction -> Tochka.SignedTransaction
+toTochkaMsg :: RSA.PrivateKey -> ForwardedTransaction -> Tochka.SignedTransaction
 toTochkaMsg secret (ForwardedTransactionOk x) =
   let ok = 
         def
@@ -105,7 +108,7 @@ toTochkaMsg secret (ForwardedTransactionOk x) =
           Tochka.transactionFee = Just $ okFee x,
           Tochka.transactionDescription = Just $ okDescription x
         }
-      signature = Ed448.sign secret (Ed448.toPublic secret) $ toS @_ @ByteString $ encode ok
+      signature = RSA.sign Nothing (Just RSA.SHA256) secret $ toS @_ @ByteString $ encode ok
       textSignature = decodeUtf8 $ Base64.encode $ toS $ show signature
   in Tochka.SignedTransaction ok textSignature
 toTochkaMsg secret (ForwardedTransactionRejected x) =
@@ -118,6 +121,6 @@ toTochkaMsg secret (ForwardedTransactionRejected x) =
             Tochka.transactionStatus = Tochka.Rejected,
             Tochka.transactionReason = Just $ rejectedError x
           }
-      signature = Ed448.sign secret (Ed448.toPublic secret) $ toS @_ @ByteString $ encode fail
+      signature = RSA.sign Nothing (Just RSA.SHA256) secret $ toS @_ @ByteString $ encode fail
       textSignature = decodeUtf8 $ Base64.encode $ toS $ show signature
   in Tochka.SignedTransaction fail textSignature

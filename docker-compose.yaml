@@ -42,7 +42,7 @@ services:
       - ${PWD}/deploy/init.sh:/server/deploy/init.sh
       - ${HOME}/jwk.txt:/server/deploy/jwk.txt
       - ${HOME}/twofish128.txt:/server/deploy/twofish128.txt
-      - ${HOME}/ed448.txt:/server/deploy/ed448.txt
+      - ${HOME}/rsa.txt:/server/deploy/rsa.txt
       - ${HOME}/front_env:/server/front_env
       - ${PWD}/country-code.csv:/server/country-code.csv
       - ${PWD}/template:/server/template
