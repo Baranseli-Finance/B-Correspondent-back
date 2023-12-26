@@ -24,7 +24,7 @@
 module BCorrespondent.Server (Cfg (..), ServerM (..), run, populateCache, addServerNm) where
 
 import BCorrespondent.Statement.Institution.Auth (Institution (..), fetchToken)
--- import qualified BCorrespondent.Job.Invoice as Job.Invoice
+import qualified BCorrespondent.Job.Invoice as Job.Invoice
 -- import qualified BCorrespondent.Job.History as Job.History
 -- import qualified BCorrespondent.Job.Wallet as Job.Wallet
 -- import qualified BCorrespondent.Job.Report as Job.Report
@@ -202,7 +202,7 @@ run Cfg {..} = do
                       mkContext 
                       hoistedServer
 
-    -- forwardToProviderAsync <- Async.Lifted.async $ Job.Invoice.forwardToPaymentProvider $ jobFrequency + 3
+    forwardToProviderAsync <- Async.Lifted.async $ Job.Invoice.forwardToPaymentProvider $ jobFrequency + 3
     -- refreshMVAsync <- Async.Lifted.async $ Job.History.refreshMV $ jobFrequency + 9
     -- withdrawAsync <- Async.Lifted.async $ Job.Wallet.withdraw $ jobFrequency + 11
     -- archiveAsync <- Async.Lifted.async $ Job.Wallet.archive $ jobFrequency + 13
@@ -217,7 +217,7 @@ run Cfg {..} = do
     end <- fmap snd $ 
       flip logExceptionM ErrorS $
         Async.Lifted.waitAnyCatchCancel 
-          [ serverAsync
+          [ serverAsync,
             -- archiveAsync,
             -- reportAsync,
             -- backupAsync,
@@ -225,7 +225,7 @@ run Cfg {..} = do
             -- refreshMVAsync,
             -- withdrawAsync,
             -- cleanCacheAsync,
-            -- forwardToProviderAsync,
+            forwardToProviderAsync
             -- forwardTransactionAsync
           ]
     whenLeft end $ \e -> do
