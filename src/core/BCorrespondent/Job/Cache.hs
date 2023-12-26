@@ -4,11 +4,10 @@
 
 module BCorrespondent.Job.Cache (removeExpiredItems) where
 
-import BCorrespondent.Job.Utils (withElapsedTime)
+import BCorrespondent.Job.Utils (withElapsedTime, forever)
 import BCorrespondent.ServerM (ServerM, cache)
 import Katip (KatipContextT)
 import BuildInfo (location)
-import Control.Monad (forever)
 import Control.Concurrent.Lifted (threadDelay)
 import qualified Control.Monad.State.Class as ST
 import Control.Monad.Trans.Class (lift)

@@ -8,13 +8,12 @@
 
 module BCorrespondent.Job.Report (makeDailyInvoices) where
 
-import BCorrespondent.Job.Utils (withElapsedTime)
+import BCorrespondent.Job.Utils (withElapsedTime, forever)
 import BCorrespondent.Statement.Report (fetchDailyInvoices, DailyInvoices (..))
 import BCorrespondent.ServerM (ServerM)
 import BCorrespondent.EnvKeys (Sendgrid (..), Person (..))
 import Katip
 import BuildInfo (location)
-import Control.Monad (forever)
 import Control.Concurrent.Lifted (threadDelay)
 import Database.Transaction (transactionM, statement)
 import Katip.Handler (hasqlDbPool, ask, sendGrid)

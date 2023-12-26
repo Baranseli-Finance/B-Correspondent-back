@@ -10,13 +10,12 @@ module BCorrespondent.Job.Backup (run) where
 
 
 import BCorrespondent.ServerM (ServerM)
-import BCorrespondent.Job.Utils (withElapsedTime)
+import BCorrespondent.Job.Utils (withElapsedTime, forever)
 import BCorrespondent.Statement.Backup (insert)
 import BCorrespondent.Job.Backup.Google (AccessToken (..), obtainAccessToken) 
 import BCorrespondent.EnvKeys (Google (..))
 import Katip
 import BuildInfo (location)
-import Control.Monad (forever)
 import Control.Concurrent.Lifted (threadDelay)
 import Control.Monad (when, void)
 import Control.Monad.Trans.State.Strict (evalStateT, get, modify')

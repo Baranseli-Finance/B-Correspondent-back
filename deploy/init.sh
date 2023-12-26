@@ -27,7 +27,7 @@ echo 'launch server..'
         --path_to_katip deploy \
         --path_to_jwk deploy/jwk.txt \
         --path_to_symmetric_base deploy/twofish128.txt \
-        --path_to_ed448_base deploy/ed448.txt \
+        --path_to_rsa deploy/rsa.txt \
         --print_cfg y \
         --env_path $env_file \
         --minio_access_key ${keysmap[3]} \

@@ -25,13 +25,13 @@ module BCorrespondent.Server (Cfg (..), ServerM (..), run, populateCache, addSer
 
 import BCorrespondent.Statement.Institution.Auth (Institution (..), fetchToken)
 import qualified BCorrespondent.Job.Invoice as Job.Invoice
--- import qualified BCorrespondent.Job.History as Job.History
--- import qualified BCorrespondent.Job.Wallet as Job.Wallet
--- import qualified BCorrespondent.Job.Report as Job.Report
--- import qualified BCorrespondent.Job.Backup as Job.Backup
--- import qualified BCorrespondent.Job.Webhook as Job.Webhook
--- import qualified BCorrespondent.Job.Cache as Job.Cache
--- import qualified BCorrespondent.Job.Transaction as Job.Transaction
+import qualified BCorrespondent.Job.History as Job.History
+import qualified BCorrespondent.Job.Wallet as Job.Wallet
+import qualified BCorrespondent.Job.Report as Job.Report
+import qualified BCorrespondent.Job.Backup as Job.Backup
+import qualified BCorrespondent.Job.Webhook as Job.Webhook
+import qualified BCorrespondent.Job.Cache as Job.Cache
+import qualified BCorrespondent.Job.Transaction as Job.Transaction
 import BCorrespondent.Statement.Auth (CheckToken)
 import BCorrespondent.Api
 import BCorrespondent.EnvKeys (Sendgrid)
@@ -203,14 +203,14 @@ run Cfg {..} = do
                       hoistedServer
 
     forwardToProviderAsync <- Async.Lifted.async $ Job.Invoice.forwardToPaymentProvider $ jobFrequency + 3
-    -- refreshMVAsync <- Async.Lifted.async $ Job.History.refreshMV $ jobFrequency + 9
-    -- withdrawAsync <- Async.Lifted.async $ Job.Wallet.withdraw $ jobFrequency + 11
-    -- archiveAsync <- Async.Lifted.async $ Job.Wallet.archive $ jobFrequency + 13
-    -- reportAsync <- Async.Lifted.async $ Job.Report.makeDailyInvoices $ jobFrequency + 15
-    -- backupAsync <- Async.Lifted.async $ Job.Backup.run $ jobFrequency + 17
-    -- webhookAsync <- Async.Lifted.async $ Job.Webhook.go $ jobFrequency + 19
-    -- cleanCacheAsync <- Async.Lifted.async $ Job.Cache.removeExpiredItems $ jobFrequency + 21
-    -- forwardTransactionAsync <- Async.Lifted.async $ Job.Transaction.forward $ jobFrequency + 23
+    refreshMVAsync <- Async.Lifted.async $ Job.History.refreshMV $ jobFrequency + 6
+    withdrawAsync <- Async.Lifted.async $ Job.Wallet.withdraw $ jobFrequency + 9
+    archiveAsync <- Async.Lifted.async $ Job.Wallet.archive $ jobFrequency + 11
+    reportAsync <- Async.Lifted.async $ Job.Report.makeDailyInvoices $ jobFrequency + 13
+    backupAsync <- Async.Lifted.async $ Job.Backup.run $ jobFrequency + 15
+    webhookAsync <- Async.Lifted.async $ Job.Webhook.go $ jobFrequency + 17
+    cleanCacheAsync <- Async.Lifted.async $ Job.Cache.removeExpiredItems $ jobFrequency + 19
+    forwardTransactionAsync <- Async.Lifted.async $ Job.Transaction.forward $ jobFrequency + 21
     
     ServerState c _ <- get
     when (c == 50) $ throwM RecoveryFailed
@@ -218,15 +218,15 @@ run Cfg {..} = do
       flip logExceptionM ErrorS $
         Async.Lifted.waitAnyCatchCancel 
           [ serverAsync,
-            -- archiveAsync,
-            -- reportAsync,
-            -- backupAsync,
-            -- webhookAsync,
-            -- refreshMVAsync,
-            -- withdrawAsync,
-            -- cleanCacheAsync,
-            forwardToProviderAsync
-            -- forwardTransactionAsync
+            archiveAsync,
+            reportAsync,
+            backupAsync,
+            webhookAsync,
+            refreshMVAsync,
+            withdrawAsync,
+            cleanCacheAsync,
+            forwardToProviderAsync,
+            forwardTransactionAsync
           ]
     whenLeft end $ \e -> do
       ST.modify' $ \s -> s { errorCounter = errorCounter s + 1 }

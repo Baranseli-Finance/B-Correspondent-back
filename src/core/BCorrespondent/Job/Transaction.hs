@@ -18,11 +18,10 @@ import BCorrespondent.Statement.Transaction
         ForwardedTransaction (..), TOk (..), TRejected (..))
 import qualified BCorrespondent.Statement.Webhook as Webhook
 import qualified BCorrespondent.Notification as N
-import BCorrespondent.Job.Utils (withElapsedTime)
+import BCorrespondent.Job.Utils (withElapsedTime, forever)
 import BCorrespondent.ServerM (ServerM)
 import Katip (KatipContextT, logTM, Severity (ErrorS), logStr)
 import BuildInfo (location)
-import Control.Monad (forever)
 import Control.Concurrent.Lifted (threadDelay)
 import Data.Text (Text)
 import Data.Either (partitionEithers)

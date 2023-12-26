@@ -25,7 +25,7 @@ import BCorrespondent.Statement.Invoice
        )
 import BCorrespondent.Statement.Delivery (addAttempt)
 import qualified BCorrespondent.Statement.Delivery as D (TableRef (Invoice))
-import BCorrespondent.Job.Utils (withElapsedTime)
+import BCorrespondent.Job.Utils (withElapsedTime, forever)
 import qualified BCorrespondent.Statement.Webhook as Webhook
 import BCorrespondent.ServerM
 import BCorrespondent.Transport.Model.Invoice 
@@ -37,7 +37,7 @@ import BCorrespondent.Notification (Invoice (..), makeS)
 import Katip
 import Network.HTTP.Client (Manager)
 import BuildInfo (location)
-import Control.Monad (forever, when)
+import Control.Monad (when)
 import Control.Concurrent.Lifted (threadDelay)
 import Katip.Handler
 import Control.Lens ((^.), (<&>))

@@ -11,11 +11,10 @@ import BCorrespondent.Transport.Model.Institution
        (WithdrawalPaymentProviderRequest (..), WithdrawalStatus (Processing))
 import BCorrespondent.Statement.Institution 
        (fetchWithdrawals, updateWithdrawalStatus, archiveWallets)    
-import BCorrespondent.Job.Utils (withElapsedTime)
+import BCorrespondent.Job.Utils (withElapsedTime, forever)
 import BCorrespondent.ServerM (ServerM)
 import Katip
 import BuildInfo (location)
-import Control.Monad (forever)
 import Control.Concurrent.Lifted (threadDelay)
 import Control.Lens ((^.), _1)
 import Database.Transaction (statement, transactionM)

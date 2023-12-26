@@ -7,11 +7,10 @@
 module BCorrespondent.Job.History (refreshMV) where
 
 import qualified BCorrespondent.Statement.History as S (refreshMV)
-import BCorrespondent.Job.Utils (withElapsedTime)
+import BCorrespondent.Job.Utils (withElapsedTime, forever)
 import BCorrespondent.ServerM (ServerM)
 import Katip
 import BuildInfo (location)
-import Control.Monad (forever)
 import Control.Concurrent.Lifted (threadDelay)
 import Database.Transaction (transactionM, statement)
 import Katip.Handler (hasqlDbPool, ask)

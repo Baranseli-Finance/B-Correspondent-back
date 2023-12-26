@@ -11,10 +11,10 @@ module BCorrespondent.Job.Webhook (go) where
 import qualified BCorrespondent.Institution.Webhook as W
 import BCorrespondent.Institution.Webhook.Factory (Webhook (..))
 import BCorrespondent.Statement.Webhook (fetch, markDelivered, addError)
-import BCorrespondent.Job.Utils (withElapsedTime)
+import BCorrespondent.Job.Utils (withElapsedTime, forever)
 import BCorrespondent.ServerM (ServerM)
 import BuildInfo (location)
-import Control.Monad (forever, join)
+import Control.Monad (join)
 import Control.Concurrent.Lifted (threadDelay)
 import Katip (KatipContextT, logTM, logStr, Severity (ErrorS))
 import Database.Transaction (statement, transactionM)
