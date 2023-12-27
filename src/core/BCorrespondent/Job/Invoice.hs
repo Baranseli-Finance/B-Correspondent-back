@@ -41,7 +41,7 @@ import Control.Monad (when)
 import Control.Concurrent.Lifted (threadDelay)
 import Katip.Handler
 import Control.Lens ((^.), (<&>))
-import Database.Transaction (statement, transactionM, ParamsShow (..))
+import Database.Transaction (statement, transactionM)
 import Data.Foldable (for_)
 import Data.Either (partitionEithers)
 import qualified Data.Text as T
@@ -55,28 +55,12 @@ import Data.Tuple.Extended (sel3, consT)
 import GHC.Exts (groupWith, the)
 import Data.UUID (UUID)
 import Data.Time.Clock (UTCTime)
-import Data.Aeson (ToJSON)
-import Data.Aeson.Generic.DerivingVia
-import GHC.Generics (Generic)
 import Data.Traversable (for, forM)
 import Data.Maybe (fromMaybe)
 import Data.Time.Format (formatTime, defaultTimeLocale)
 import Request (forConcurrentlyNRetry)
 import Data.Either (isRight)
 
-
-data WebhookMsg =
-     WebhookMsg 
-     { externalId :: UUID,
-       createdAt :: T.Text,
-       status :: T.Text
-     }
-     deriving stock (Generic, Show)
-     deriving (ToJSON)
-      via WithOptions '[FieldLabelModifier '[CamelTo2 "_"]] WebhookMsg
-
-instance ParamsShow WebhookMsg where
-  render (WebhookMsg ident tm status) = render ident <> render tm <> render status
 
 forwardToPaymentProvider :: Int -> KatipContextT ServerM ()
 forwardToPaymentProvider freq =
@@ -160,6 +144,6 @@ sendInvoices manager queries (Just QueryCredentials {..}) xs = do
 mkWebhookMsg :: Int64 -> UUID -> UTCTime -> Either String Value
 mkWebhookMsg 1 external tm = 
    let formatTm = toS . formatTime defaultTimeLocale "%Y-%m-%dT%H:%M:%S.00Z"
-       message = WebhookMsg external (formatTm tm) "accepted"
+       message = Tochka.Invoice external (formatTm tm) "accepted"
    in Right $ toJSON $ (Tochka.defRequest message) { Tochka.requestMethod = Tochka.Registered }
 mkWebhookMsg ident _ _ = Left $ "cannot make webhook value for institution " <> show ident

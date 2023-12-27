@@ -12,8 +12,16 @@
 {-# LANGUAGE NamedFieldPuns #-}
 
 module BCorrespondent.Institution.Webhook.Detail.Tochka 
-       (webhook, defRequest, Method (..), Transaction (..), SignedTransaction (..), Status (..), requestMethod, requestParams) where
-
+       ( webhook, 
+         defRequest, 
+         Method (..), 
+         Invoice (..), 
+         Transaction (..), 
+         SignedTransaction (..), 
+         Status (..), 
+         requestMethod, 
+         requestParams
+        ) where
 
 import BCorrespondent.Statement.Institution.Auth (Institution (Tochka), insertToken)
 import BCorrespondent.ServerM (ServerM, ServerState (..))
@@ -256,6 +264,19 @@ fetchAuthToken manager login pass = do
         isOk <- (insert cache) tokenKey (toJSON (accessToken token)) True
         hasql <- fmap (^. hasqlDbPool) ask
         when isOk $ transactionM hasql $ statement insertToken (Tochka, accessToken token)
+
+data Invoice =
+     Invoice 
+     { externalId :: UUID,
+       createdAt :: Text,
+       status :: Text
+     }
+     deriving stock (Generic, Show)
+     deriving (ToJSON)
+      via WithOptions '[FieldLabelModifier '[CamelTo2 "_"]] Invoice
+
+instance ParamsShow Invoice where
+  render (Invoice ident tm status) = render ident <> render tm <> render status
 
 data Status = Accepted | Rejected
   deriving stock (Generic, Eq, Show)
