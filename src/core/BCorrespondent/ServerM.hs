@@ -60,7 +60,7 @@ instance MonadUnliftIO (RWS.RWST KatipEnv KatipLogger ServerState IO) where
           fmap fst $ RWS.evalRWST m r s
       pure (x, s, mempty)
 
-data ServerException = RecoveryFailed
+data ServerException = RecoveryFailed | Reload
     deriving Show
 
 instance Exception ServerException

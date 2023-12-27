@@ -34,7 +34,7 @@ go :: Int -> KatipContextT ServerM ()
 go freq =
   forever $ do
     threadDelay $ freq * 1_000_000
-    withElapsedTime ($location <> ":send") $ do 
+    withElapsedTime ($location <> ":go") $ do 
       hasql <- fmap (^. hasqlDbPool) ask
       manager <- fmap (^. httpReqManager) ask
       xs <- transactionM hasql $ statement fetch ()
