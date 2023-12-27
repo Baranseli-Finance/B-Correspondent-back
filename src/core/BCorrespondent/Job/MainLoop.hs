@@ -20,5 +20,5 @@ reload freq start  =
     threadDelay $ freq * 1_000_000
     withElapsedTime ($location <> ":reload") $ do 
       curr <- fmap (round . utctDayTime) $ liftIO getCurrentTime
-      -- every 20 hours
-      when (curr - start > 72_000) $ throwM Reload
+      -- every 6 hours
+      when (curr - start > 21_600) $ throwM Reload
