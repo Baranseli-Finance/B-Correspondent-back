@@ -197,9 +197,10 @@ run Cfg {..} = do
               prometheus (def @PrometheusSettings) $
                 Katip.Wai.runApplication
                 (runKatipContextT logEnv () ns) $
-                  mkApplication $ serveWithContext (withSwagger api) mkContext hoistedServer
+                  mkApplication $ 
+                    serveWithContext (withSwagger api) mkContext hoistedServer
 
-    let jobXs = 
+    let jobXs =
           [
              Job.Invoice.forwardToPaymentProvider $ jobFrequency + 3
           ,  Job.History.refreshMV $ jobFrequency + 6
@@ -209,7 +210,6 @@ run Cfg {..} = do
           ,  Job.Backup.run $ jobFrequency + 15
           ,  Job.Webhook.go $ jobFrequency + 17
           ,  Job.Cache.removeExpiredItems $ jobFrequency + 19
-          ,  Job.Transaction.forward $ jobFrequency + 21
           ,  Job.Transaction.forward $ jobFrequency + 21
           ]
 
