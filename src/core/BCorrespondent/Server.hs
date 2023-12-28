@@ -32,7 +32,6 @@ import qualified BCorrespondent.Job.Report as Job.Report
 import qualified BCorrespondent.Job.Backup as Job.Backup
 import qualified BCorrespondent.Job.Webhook as Job.Webhook
 import qualified BCorrespondent.Job.Cache as Job.Cache
-import qualified BCorrespondent.Job.MainLoop as Job.MainLoop
 import qualified BCorrespondent.Job.Transaction as Job.Transaction
 import BCorrespondent.Statement.Auth (CheckToken)
 import BCorrespondent.Api
@@ -93,7 +92,6 @@ import Servant.RawM.Server ()
 import Cache (Cache (Cache, insert))
 import Data.Foldable (for_)
 import Network.Wai.Middleware.Prometheus (prometheus, PrometheusSettings)
-import Data.Time.Clock (getCurrentTime, utctDayTime)
 
 
 data Cfg = Cfg
@@ -199,15 +197,7 @@ run Cfg {..} = do
               prometheus (def @PrometheusSettings) $
                 Katip.Wai.runApplication
                 (runKatipContextT logEnv () ns) $
-                  mkApplication $ 
-                    serveWithContext 
-                      (withSwagger api) 
-                      mkContext 
-                      hoistedServer
-
-    start <- liftIO getCurrentTime
-
-    $(logTM) InfoS $ fromString $ "mail loop starts at " <> show start
+                  mkApplication $ serveWithContext (withSwagger api) mkContext hoistedServer
 
     forwardToProviderAsync <- Async.Lifted.async $ Job.Invoice.forwardToPaymentProvider $ jobFrequency + 3
     refreshMVAsync <- Async.Lifted.async $ Job.History.refreshMV $ jobFrequency + 6
@@ -219,18 +209,16 @@ run Cfg {..} = do
     cleanCacheAsync <- Async.Lifted.async $ Job.Cache.removeExpiredItems $ jobFrequency + 19
     forwardTransactionAsync <- Async.Lifted.async $ Job.Transaction.forward $ jobFrequency + 21
     forwardTransactionAsync <- Async.Lifted.async $ Job.Transaction.forward $ jobFrequency + 21
-    reloadMainLoopAsync <- Async.Lifted.async $ Job.MainLoop.reload (jobFrequency + 23) $ (round . utctDayTime) start
     
     ServerState c _ <- get
     when (c == 50) $ throwM RecoveryFailed
     asyncRes <- fmap snd $ 
       flip logExceptionM ErrorS $
-        Async.Lifted.waitAnyCatchCancel 
+        Async.Lifted.waitAnyCatchCancel
           [ serverAsync,
             archiveAsync,
             reportAsync,
             backupAsync,
-            reloadMainLoopAsync,
             webhookAsync,
             refreshMVAsync,
             withdrawAsync,
@@ -239,16 +227,11 @@ run Cfg {..} = do
             forwardTransactionAsync
           ]
     whenLeft asyncRes $ \e -> do
-      let reload = fromException @ServerException e
-      case reload of 
-        Just _ -> $(logTM) InfoS $ fromString "mail loop has been reloaded"
-        Nothing -> do
-          ST.modify' $ \s -> s { errorCounter = errorCounter s + 1 }
-          let msg =
-                "server has been \
-                \ terminated with error "
-          $(logTM) EmergencyS $ 
-            fromString $ mkPretty mempty $ msg <> show e
+      ST.modify' $ \s -> s { errorCounter = errorCounter s + 1 }
+      let msg =
+            "server has been \
+            \ terminated with error "
+      $(logTM) EmergencyS $ fromString $ mkPretty mempty $ msg <> show e
 
 middleware :: Cfg.Cors -> KatipLoggerLocIO -> Application -> Application
 middleware cors log app = mkCors cors app
