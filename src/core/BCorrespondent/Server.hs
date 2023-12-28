@@ -199,33 +199,28 @@ run Cfg {..} = do
                 (runKatipContextT logEnv () ns) $
                   mkApplication $ serveWithContext (withSwagger api) mkContext hoistedServer
 
-    forwardToProviderAsync <- Async.Lifted.async $ Job.Invoice.forwardToPaymentProvider $ jobFrequency + 3
-    refreshMVAsync <- Async.Lifted.async $ Job.History.refreshMV $ jobFrequency + 6
-    withdrawAsync <- Async.Lifted.async $ Job.Wallet.withdraw $ jobFrequency + 9
-    archiveAsync <- Async.Lifted.async $ Job.Wallet.archive $ jobFrequency + 11
-    reportAsync <- Async.Lifted.async $ Job.Report.makeDailyInvoices $ jobFrequency + 13
-    backupAsync <- Async.Lifted.async $ Job.Backup.run $ jobFrequency + 15
-    webhookAsync <- Async.Lifted.async $ Job.Webhook.go $ jobFrequency + 17
-    cleanCacheAsync <- Async.Lifted.async $ Job.Cache.removeExpiredItems $ jobFrequency + 19
-    forwardTransactionAsync <- Async.Lifted.async $ Job.Transaction.forward $ jobFrequency + 21
-    forwardTransactionAsync <- Async.Lifted.async $ Job.Transaction.forward $ jobFrequency + 21
+    let jobXs = 
+          [
+             Job.Invoice.forwardToPaymentProvider $ jobFrequency + 3
+          ,  Job.History.refreshMV $ jobFrequency + 6
+          ,  Job.Wallet.withdraw $ jobFrequency + 9
+          ,  Job.Wallet.archive $ jobFrequency + 11
+          ,  Job.Report.makeDailyInvoices $ jobFrequency + 13
+          ,  Job.Backup.run $ jobFrequency + 15
+          ,  Job.Webhook.go $ jobFrequency + 17
+          ,  Job.Cache.removeExpiredItems $ jobFrequency + 19
+          ,  Job.Transaction.forward $ jobFrequency + 21
+          ,  Job.Transaction.forward $ jobFrequency + 21
+          ]
+
+    asyncXs <- forM jobXs Async.Lifted.async
     
     ServerState c _ <- get
     when (c == 50) $ throwM RecoveryFailed
     asyncRes <- fmap snd $ 
       flip logExceptionM ErrorS $
-        Async.Lifted.waitAnyCatchCancel
-          [ serverAsync,
-            archiveAsync,
-            reportAsync,
-            backupAsync,
-            webhookAsync,
-            refreshMVAsync,
-            withdrawAsync,
-            cleanCacheAsync,
-            forwardToProviderAsync,
-            forwardTransactionAsync
-          ]
+        Async.Lifted.waitAnyCatchCancel $ 
+          serverAsync : asyncXs
     whenLeft asyncRes $ \e -> do
       ST.modify' $ \s -> s { errorCounter = errorCounter s + 1 }
       let msg =
