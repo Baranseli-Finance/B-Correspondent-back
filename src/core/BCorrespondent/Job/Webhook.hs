@@ -6,7 +6,7 @@
 {-#LANGUAGE RecordWildCards #-}
 {-#LANGUAGE TupleSections #-}
 
-module BCorrespondent.Job.Webhook (go) where
+module BCorrespondent.Job.Webhook (run) where
 
 import qualified BCorrespondent.Institution.Webhook as W
 import BCorrespondent.Institution.Webhook.Factory (Webhook (..))
@@ -30,11 +30,11 @@ import Data.Text (Text)
 import Data.String.Conv (toS)
 
 
-go :: Int -> KatipContextT ServerM ()
-go freq =
+run :: Int -> KatipContextT ServerM ()
+run freq =
   forever $ do
     threadDelay $ freq * 1_000_000
-    withElapsedTime ($location <> ":go") $ do 
+    withElapsedTime ($location <> ":run") $ do 
       hasql <- fmap (^. hasqlDbPool) ask
       manager <- fmap (^. httpReqManager) ask
       xs <- transactionM hasql $ statement fetch ()
@@ -45,5 +45,5 @@ go freq =
             fmap (bimap ((sel1 x,) . toS) (const (sel1 x))) $ send manager (sel4 x) (sel5 x) $ sel3 x
       let (es, os) = partitionEithers xs'
       transactionM hasql $ statement markDelivered os >> statement addError es
-      for_ es $ \(_, error) -> $(logTM) ErrorS $ logStr @Text $ $location <> ":go ---> " <> toS error
+      for_ es $ \(_, error) -> $(logTM) ErrorS $ logStr @Text $ $location <> ":run ---> " <> toS error
       

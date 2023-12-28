@@ -208,7 +208,7 @@ run Cfg {..} = do
           ,  Job.Wallet.archive $ jobFrequency + 11
           ,  Job.Report.makeDailyInvoices $ jobFrequency + 13
           ,  Job.Backup.run $ jobFrequency + 15
-          ,  Job.Webhook.go $ jobFrequency + 17
+          ,  Job.Webhook.run $ jobFrequency + 17
           ,  Job.Cache.removeExpiredItems $ jobFrequency + 19
           ,  Job.Transaction.forward $ jobFrequency + 21
           ]
