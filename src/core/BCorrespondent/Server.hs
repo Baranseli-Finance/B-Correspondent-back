@@ -202,18 +202,18 @@ run Cfg {..} = do
 
     let jobXs =
           [
-             Job.Invoice.forwardToPaymentProvider $ jobFrequency + 3
-          ,  Job.History.refreshMV $ jobFrequency + 6
-          ,  Job.Wallet.withdraw $ jobFrequency + 9
-          ,  Job.Wallet.archive $ jobFrequency + 11
-          ,  Job.Report.makeDailyInvoices $ jobFrequency + 13
-          ,  Job.Backup.run $ jobFrequency + 15
-          ,  Job.Webhook.run $ jobFrequency + 17
-          ,  Job.Cache.removeExpiredItems $ jobFrequency + 19
-          ,  Job.Transaction.forward $ jobFrequency + 21
+             Job.Invoice.forwardToPaymentProvider
+          ,  Job.History.refreshMV
+          ,  Job.Wallet.withdraw
+          ,  Job.Wallet.archive
+          ,  Job.Report.makeDailyInvoices
+          ,  Job.Backup.run
+          ,  Job.Webhook.run
+          ,  Job.Cache.removeExpiredItems
+          ,  Job.Transaction.forward
           ]
 
-    asyncXs <- forM jobXs Async.Lifted.async
+    asyncXs <- mapM Async.Lifted.async $ zipWith ($) jobXs $ map (jobFrequency +) [1, 3 .. ]
     
     ServerState c _ <- get
     when (c == 50) $ throwM RecoveryFailed
@@ -222,7 +222,9 @@ run Cfg {..} = do
         Async.Lifted.waitAnyCatchCancel $ 
           serverAsync : asyncXs
     whenLeft asyncRes $ \e -> do
-      ST.modify' $ \s -> s { errorCounter = errorCounter s + 1 }
+      ST.modify' $ \s -> 
+        s { errorCounter = 
+            errorCounter s + 1 }
       let msg =
             "server has been \
             \ terminated with error "
