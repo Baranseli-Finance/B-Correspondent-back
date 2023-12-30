@@ -213,7 +213,7 @@ run Cfg {..} = do
           -- ,  Job.Transaction.forward
           ]
 
-    asyncXs <- mapM Async.Lifted.async $ zipWith ($) jobXs $ map (jobFrequency +) [1, 3 .. ]
+    asyncXs <- mapM (Async.Lifted.async . forever) $ zipWith ($) jobXs $ map (jobFrequency +) [1, 3 .. ]
     
     ServerState c _ <- get
     when (c == 50) $ throwM RecoveryFailed
