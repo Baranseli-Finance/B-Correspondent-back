@@ -4,7 +4,7 @@
 
 module BCorrespondent.Job.Cache (removeExpiredItems) where
 
-import BCorrespondent.Job.Utils (withElapsedTime, forever)
+import BCorrespondent.Job.Utils (withElapsedTime)
 import BCorrespondent.ServerM (ServerM, cache)
 import Katip (KatipContextT)
 import BuildInfo (location)
@@ -14,8 +14,8 @@ import Control.Monad.Trans.Class (lift)
 import Cache (clean)
 
 removeExpiredItems :: Int -> KatipContextT ServerM ()
-removeExpiredItems freq =
-  forever $ do
-    threadDelay $ freq * 1_000_000
-    withElapsedTime ($location <> ":removeExpiredItems") $
-      fmap cache (lift ST.get) >>= clean
+removeExpiredItems freq = do
+  threadDelay $ freq * 1_000_000
+  withElapsedTime ($location <> ":removeExpiredItems") $
+    fmap cache (lift ST.get) >>= clean
+  removeExpiredItems freq

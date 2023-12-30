@@ -54,7 +54,7 @@ run :: Int -> KatipContextT ServerM ()
 run freq = do
   !hour <- liftIO getCurrentHour
   flip evalStateT hour $ do
-    forever $ do 
+    forever $ do
       threadDelay $ freq * 1_000_000
       doBackup <- fmap (^. backupBigDB) ask
       currHour <- get

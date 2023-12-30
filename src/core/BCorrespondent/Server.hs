@@ -25,14 +25,14 @@
 module BCorrespondent.Server (Cfg (..), ServerM (..), run, populateCache, addServerNm) where
 
 import BCorrespondent.Statement.Institution.Auth (Institution (..), fetchToken)
-import qualified BCorrespondent.Job.Invoice as Job.Invoice
-import qualified BCorrespondent.Job.History as Job.History
-import qualified BCorrespondent.Job.Wallet as Job.Wallet
-import qualified BCorrespondent.Job.Report as Job.Report
-import qualified BCorrespondent.Job.Backup as Job.Backup
-import qualified BCorrespondent.Job.Webhook as Job.Webhook
+-- import qualified BCorrespondent.Job.Invoice as Job.Invoice
+-- import qualified BCorrespondent.Job.History as Job.History
+-- import qualified BCorrespondent.Job.Wallet as Job.Wallet
+-- import qualified BCorrespondent.Job.Report as Job.Report
+-- import qualified BCorrespondent.Job.Backup as Job.Backup
+-- import qualified BCorrespondent.Job.Webhook as Job.Webhook
 import qualified BCorrespondent.Job.Cache as Job.Cache
-import qualified BCorrespondent.Job.Transaction as Job.Transaction
+-- import qualified BCorrespondent.Job.Transaction as Job.Transaction
 import BCorrespondent.Statement.Auth (CheckToken)
 import BCorrespondent.Api
 import BCorrespondent.EnvKeys (Sendgrid)
@@ -202,15 +202,15 @@ run Cfg {..} = do
 
     let jobXs =
           [
-             Job.Invoice.forwardToPaymentProvider
-          ,  Job.History.refreshMV
-          ,  Job.Wallet.withdraw
-          ,  Job.Wallet.archive
-          ,  Job.Report.makeDailyInvoices
-          ,  Job.Backup.run
-          ,  Job.Webhook.run
-          ,  Job.Cache.removeExpiredItems
-          ,  Job.Transaction.forward
+          --    Job.Invoice.forwardToPaymentProvider
+          -- ,  Job.History.refreshMV
+          -- ,  Job.Wallet.withdraw
+          -- ,  Job.Wallet.archive
+          -- ,  Job.Report.makeDailyInvoices
+          -- ,  Job.Backup.run
+          -- ,  Job.Webhook.run
+            Job.Cache.removeExpiredItems
+          -- ,  Job.Transaction.forward
           ]
 
     asyncXs <- mapM Async.Lifted.async $ zipWith ($) jobXs $ map (jobFrequency +) [1, 3 .. ]
