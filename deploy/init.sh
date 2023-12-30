@@ -35,4 +35,5 @@ echo 'launch server..'
         --front_env_file_path $front_env_file \
         --b_correspondent_db_user ${keysmap[0]} \
         --b_correspondent_db_pass ${keysmap[1]} \
-        --b_correspondent_database ${keysmap[2]}"
+        --b_correspondent_database ${keysmap[2]} \
+        +RTS -N4 -qg2 -qb2"
