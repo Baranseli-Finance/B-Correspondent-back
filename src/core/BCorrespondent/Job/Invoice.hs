@@ -25,7 +25,6 @@ import BCorrespondent.Statement.Invoice
        )
 import BCorrespondent.Statement.Delivery (addAttempt)
 import qualified BCorrespondent.Statement.Delivery as D (TableRef (Invoice))
-import BCorrespondent.Job.Utils (withElapsedTime, forever)
 import qualified BCorrespondent.Statement.Webhook as Webhook
 import BCorrespondent.ServerM
 import BCorrespondent.Transport.Model.Invoice 
@@ -37,7 +36,7 @@ import BCorrespondent.Notification (Invoice (..), makeS)
 import Katip
 import Network.HTTP.Client (Manager)
 import BuildInfo (location)
-import Control.Monad (when)
+import Control.Monad (when, forever)
 import Control.Concurrent.Lifted (threadDelay)
 import Katip.Handler
 import Control.Lens ((^.), (<&>))
@@ -66,52 +65,51 @@ forwardToPaymentProvider :: Int -> KatipContextT ServerM ()
 forwardToPaymentProvider freq =
   forever $ do 
     threadDelay $ freq * 1_000_000
-    withElapsedTime ($location <> ":forwardToPaymentProvider") $ do
-      hasql <- fmap (^. hasqlDbPool) ask
-      res <- transactionM hasql $ statement getInvoicesToBeSent 20
-      case res of
-        Right xs -> do
-          manager <- fmap (^.httpReqManager) ask
-          yss <- Async.forConcurrently xs $ 
-            \(ident, cred, zs) ->
-              fmap (map (second (consT ident))) $
-                sendInvoices manager Q.queries cred zs
-          for_ yss $ \ys -> do
-            let (es, os) = partitionEithers ys
-            for_ es $ \(ident, error) ->
-              $(logTM) ErrorS $
-              logStr @T.Text $
-                $location <>
-                ":forwardToElekse: --> \
-                \ invoice failed to be sent, " <> 
-                toS (show ident) <> ", error: " <> error
-            es' <- transactionM hasql $ do
-              for_ (map sel3 os) $ statement setInvoiceInMotion . flip (:) []
-              forM es $ \(ident, error) ->
-                fmap (ident,) $ statement addAttempt (D.Invoice, ident, error)
-            let notifParams = 
-                  [ (the ident, body)
-                    | (ident, body, _, _, _) <- os,
-                      then group by ident using groupWith 
-                  ]
-            let webhookParams =
-                  [ (the ident, val)
-                    | (ident, _, _, external, tm) <- os,
-                    let val = mkWebhookMsg ident external tm,
-                    then group by ident using groupWith
-                  ]   
-            for_ notifParams $ uncurry (makeS @"invoice_forwarded")
-            for_ webhookParams $ \(ident, xse) -> do 
-              let (_, os) = partitionEithers xse
-              transactionM hasql $ statement Webhook.insert (ident,os)
-            for_ es' $ \(ident, is_stuck) -> 
-              when is_stuck $ 
-                $(logTM) ErrorS $ 
-                  logStr @T.Text $ 
-                    $location <> " invoice " <>
-                    toS (show ident) <> 
-                    " has been stuck forwarding to payment provider"
-        Left err -> $(logTM) CriticalS $ logStr @T.Text $ $location <> ":forwardToPaymentProvider: decode error ---> " <> toS err
+    hasql <- fmap (^. hasqlDbPool) ask
+    res <- transactionM hasql $ statement getInvoicesToBeSent 20
+    case res of
+      Right xs -> do
+        manager <- fmap (^.httpReqManager) ask
+        yss <- Async.forConcurrently xs $ 
+          \(ident, cred, zs) ->
+            fmap (map (second (consT ident))) $
+              sendInvoices manager Q.queries cred zs
+        for_ yss $ \ys -> do
+          let (es, os) = partitionEithers ys
+          for_ es $ \(ident, error) ->
+            $(logTM) ErrorS $
+            logStr @T.Text $
+              $location <>
+              ":forwardToElekse: --> \
+              \ invoice failed to be sent, " <> 
+              toS (show ident) <> ", error: " <> error
+          es' <- transactionM hasql $ do
+            for_ (map sel3 os) $ statement setInvoiceInMotion . flip (:) []
+            forM es $ \(ident, error) ->
+              fmap (ident,) $ statement addAttempt (D.Invoice, ident, error)
+          let notifParams = 
+                [ (the ident, body)
+                  | (ident, body, _, _, _) <- os,
+                    then group by ident using groupWith 
+                ]
+          let webhookParams =
+                [ (the ident, val)
+                  | (ident, _, _, external, tm) <- os,
+                  let val = mkWebhookMsg ident external tm,
+                  then group by ident using groupWith
+                ]   
+          for_ notifParams $ uncurry (makeS @"invoice_forwarded")
+          for_ webhookParams $ \(ident, xse) -> do 
+            let (_, os) = partitionEithers xse
+            transactionM hasql $ statement Webhook.insert (ident,os)
+          for_ es' $ \(ident, is_stuck) -> 
+            when is_stuck $ 
+              $(logTM) ErrorS $ 
+                logStr @T.Text $ 
+                  $location <> " invoice " <>
+                  toS (show ident) <> 
+                  " has been stuck forwarding to payment provider"
+      Left err -> $(logTM) CriticalS $ logStr @T.Text $ $location <> ":forwardToPaymentProvider: decode error ---> " <> toS err
 
 
 sendInvoices :: Manager -> [(Int64, Q.Query)] -> Maybe QueryCredentials -> [InvoiceToBeSent] -> KatipContextT ServerM [Either (Int64, T.Text) (Invoice, Int64, UUID, UTCTime)]

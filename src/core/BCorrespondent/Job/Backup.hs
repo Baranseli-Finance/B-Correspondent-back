@@ -10,14 +10,13 @@ module BCorrespondent.Job.Backup (run) where
 
 
 import BCorrespondent.ServerM (ServerM)
-import BCorrespondent.Job.Utils (withElapsedTime, forever)
 import BCorrespondent.Statement.Backup (insert)
 import BCorrespondent.Job.Backup.Google (AccessToken (..), obtainAccessToken) 
 import BCorrespondent.EnvKeys (Google (..))
 import Katip
 import BuildInfo (location)
 import Control.Concurrent.Lifted (threadDelay)
-import Control.Monad (when, void)
+import Control.Monad (when, void, forever)
 import Control.Monad.Trans.State.Strict (evalStateT, get, modify')
 import Control.Monad.Trans.Class (lift)
 import Hash (mkHashMd5)
@@ -61,7 +60,7 @@ run freq = do
       !hour <- liftIO getCurrentHour
       when (hour /= currHour && doBackup) $ do
         modify' (const hour)
-        lift $ withElapsedTime ($location <> ":run") $ do
+        lift $ do
           ConnectInfo {..} <- fmap (^. psqlConn) ask
           tmp <- liftIO $ getTemporaryDirectory
           tm <- liftIO $ fmap round getPOSIXTime

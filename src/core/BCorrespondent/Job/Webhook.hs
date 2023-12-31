@@ -11,10 +11,9 @@ module BCorrespondent.Job.Webhook (run) where
 import qualified BCorrespondent.Institution.Webhook as W
 import BCorrespondent.Institution.Webhook.Factory (Webhook (..))
 import BCorrespondent.Statement.Webhook (fetch, markDelivered, addError)
-import BCorrespondent.Job.Utils (withElapsedTime, forever)
 import BCorrespondent.ServerM (ServerM)
 import BuildInfo (location)
-import Control.Monad (join)
+import Control.Monad (join, forever)
 import Control.Concurrent.Lifted (threadDelay)
 import Katip (KatipContextT, logTM, logStr, Severity (ErrorS))
 import Database.Transaction (statement, transactionM)
@@ -34,16 +33,15 @@ run :: Int -> KatipContextT ServerM ()
 run freq =
   forever $ do
     threadDelay $ freq * 1_000_000
-    withElapsedTime ($location <> ":run") $ do 
-      hasql <- fmap (^. hasqlDbPool) ask
-      manager <- fmap (^. httpReqManager) ask
-      xs <- transactionM hasql $ statement fetch ()
-      xs' <- forConcurrently @[] xs $ \x -> do 
-        let msg = "recipient " <>  toS (show (sel2 x)) <> " for webhook not found"
-        fmap (join . maybe (Left (sel1 x, msg)) Right) $
-          for (lookup (sel2 x) W.webhooks) $ \Webhook {..} ->
-            fmap (bimap ((sel1 x,) . toS) (const (sel1 x))) $ send manager (sel4 x) (sel5 x) $ sel3 x
-      let (es, os) = partitionEithers xs'
-      transactionM hasql $ statement markDelivered os >> statement addError es
-      for_ es $ \(_, error) -> $(logTM) ErrorS $ logStr @Text $ $location <> ":run ---> " <> toS error
+    hasql <- fmap (^. hasqlDbPool) ask
+    manager <- fmap (^. httpReqManager) ask
+    xs <- transactionM hasql $ statement fetch ()
+    xs' <- forConcurrently @[] xs $ \x -> do 
+      let msg = "recipient " <>  toS (show (sel2 x)) <> " for webhook not found"
+      fmap (join . maybe (Left (sel1 x, msg)) Right) $
+        for (lookup (sel2 x) W.webhooks) $ \Webhook {..} ->
+          fmap (bimap ((sel1 x,) . toS) (const (sel1 x))) $ send manager (sel4 x) (sel5 x) $ sel3 x
+    let (es, os) = partitionEithers xs'
+    transactionM hasql $ statement markDelivered os >> statement addError es
+    for_ es $ \(_, error) -> $(logTM) ErrorS $ logStr @Text $ $location <> ":run ---> " <> toS error
       

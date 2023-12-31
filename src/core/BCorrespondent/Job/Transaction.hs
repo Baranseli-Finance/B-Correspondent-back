@@ -18,11 +18,11 @@ import BCorrespondent.Statement.Transaction
         ForwardedTransaction (..), TOk (..), TRejected (..))
 import qualified BCorrespondent.Statement.Webhook as Webhook
 import qualified BCorrespondent.Notification as N
-import BCorrespondent.Job.Utils (withElapsedTime, forever)
 import BCorrespondent.ServerM (ServerM)
 import Katip (KatipContextT, logTM, Severity (ErrorS), logStr)
 import BuildInfo (location)
 import Control.Concurrent.Lifted (threadDelay)
+import Control.Monad (forever)
 import Data.Text (Text)
 import Data.Either (partitionEithers)
 import Data.Foldable (for_)
@@ -51,29 +51,28 @@ forward :: Int -> KatipContextT ServerM ()
 forward freq =
   forever $ do
     threadDelay $ freq * 1_000_000
-    withElapsedTime ($location <> ":forward") $ do 
-      hasql <- fmap (^. hasqlDbPool) ask
-      manager <- fmap (^.httpReqManager) ask
-      k <- fmap (^.rSAKey) ask 
-      dbRes <- transactionM hasql $ do 
-        xs <- statement fetchForwardedTransaction ()
-        for xs $ \(instId, yse) -> 
-          fmap (bimap (instId,) (instId,) . swapEither) $ 
-            for yse $ \ys -> do
-              statement Webhook.insert (instId, map (mkWebhookMsg k instId) ys)
-              fmap (const (map (getTransactionId &&& getTransactionStatus) ys)) $
-                statement setPickedForDelivery $ 
-                  map getForwardedTransactionUUID ys 
-      let (os, es) = partitionEithers dbRes
-      for_ es $ \(ident, error) ->
-        let msg = 
-              $location <> 
-              ":forward: transactions forwarding error " <> 
-              toS error <>
-              ", institution " <> 
-              toS (show ident)
-        in $(logTM) ErrorS $ logStr @Text msg
-      for_ os $ \o -> uncurry (N.makeS @"transaction_status") $ second (map (uncurry N.TransactionStatus)) o
+    hasql <- fmap (^. hasqlDbPool) ask
+    manager <- fmap (^.httpReqManager) ask
+    k <- fmap (^.rSAKey) ask 
+    dbRes <- transactionM hasql $ do 
+      xs <- statement fetchForwardedTransaction ()
+      for xs $ \(instId, yse) -> 
+        fmap (bimap (instId,) (instId,) . swapEither) $ 
+          for yse $ \ys -> do
+            statement Webhook.insert (instId, map (mkWebhookMsg k instId) ys)
+            fmap (const (map (getTransactionId &&& getTransactionStatus) ys)) $
+              statement setPickedForDelivery $ 
+                map getForwardedTransactionUUID ys 
+    let (os, es) = partitionEithers dbRes
+    for_ es $ \(ident, error) ->
+      let msg = 
+            $location <> 
+            ":forward: transactions forwarding error " <> 
+            toS error <>
+            ", institution " <> 
+            toS (show ident)
+      in $(logTM) ErrorS $ logStr @Text msg
+    for_ os $ \o -> uncurry (N.makeS @"transaction_status") $ second (map (uncurry N.TransactionStatus)) o
 
 mkWebhookMsg :: RSA.RSAKey -> Int64 -> ForwardedTransaction -> Value 
 mkWebhookMsg k 1 x = toJSON $ (Tochka.defRequest (toTochkaMsg (RSA.key k) x)) { Tochka.requestMethod = Tochka.Processed }
