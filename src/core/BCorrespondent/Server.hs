@@ -188,7 +188,10 @@ run Cfg {..} = do
 
   -- main loop
   forever $ do
-    threadDelay 1_000_000
+
+    ServerState c _ <- get
+    when (c == 50) $ throwM RecoveryFailed
+
     serverAsync <-
       Async.Lifted.async $
         liftIO $ do
@@ -215,14 +218,13 @@ run Cfg {..} = do
 
     asyncXs <- mapM Async.Lifted.async $ zipWith ($) jobXs $ map (jobFrequency +) [1, 3 .. ]
     
-    ServerState c _ <- get
-    when (c == 50) $ throwM RecoveryFailed
     asyncRes <- fmap snd $ 
       flip logExceptionM ErrorS $
         Async.Lifted.waitAnyCatchCancel $ 
           serverAsync : asyncXs
+
     whenLeft asyncRes $ \e -> do
-      ST.modify' $ \s -> 
+      ST.modify' $ \s ->
         s { errorCounter = 
             errorCounter s + 1 }
       let msg =
