@@ -28,8 +28,8 @@ import BCorrespondent.Statement.Institution.Auth (Institution (..), fetchToken)
 import qualified BCorrespondent.Job.Invoice as Job.Invoice
 import qualified BCorrespondent.Job.History as Job.History
 import qualified BCorrespondent.Job.Wallet as Job.Wallet
-import qualified BCorrespondent.Job.Report as Job.Report
-import qualified BCorrespondent.Job.Backup as Job.Backup
+-- import qualified BCorrespondent.Job.Report as Job.Report
+-- import qualified BCorrespondent.Job.Backup as Job.Backup
 import qualified BCorrespondent.Job.Webhook as Job.Webhook
 import qualified BCorrespondent.Job.Cache as Job.Cache
 import qualified BCorrespondent.Job.Transaction as Job.Transaction
@@ -43,7 +43,6 @@ import qualified BCorrespondent.Config as Cfg
 import BCorrespondent.Transport.Error
 import qualified BCorrespondent.Transport.Response as Response
 import qualified Control.Concurrent.Async.Lifted as Async.Lifted
-import Control.Concurrent.Lifted (threadDelay)
 import Control.Exception
 import BuildInfo
 import Control.Lens
@@ -209,8 +208,8 @@ run Cfg {..} = do
           ,  Job.History.refreshMV
           ,  Job.Wallet.withdraw
           ,  Job.Wallet.archive
-          ,  Job.Report.makeDailyInvoices
-          ,  Job.Backup.run
+          -- ,  Job.Report.makeDailyInvoices
+          -- ,  Job.Backup.run
           ,  Job.Webhook.run
           ,  Job.Cache.removeExpiredItems
           ,  Job.Transaction.forward
@@ -220,7 +219,7 @@ run Cfg {..} = do
     
     asyncRes <- fmap snd $ 
       flip logExceptionM ErrorS $
-        Async.Lifted.waitAnyCatchCancel $ 
+        Async.Lifted.waitAnyCatchCancel $
           serverAsync : asyncXs
 
     whenLeft asyncRes $ \e -> do

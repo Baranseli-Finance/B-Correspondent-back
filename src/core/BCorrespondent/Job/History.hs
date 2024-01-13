@@ -22,7 +22,7 @@ refreshMV :: Int -> KatipContextT ServerM ()
 refreshMV freq =
   forever $ do
     threadDelay $ freq * 1_000_000
-    tm <-currentTime
+    tm <- currentTime
     let day = utctDay tm
     let firstDay = weekFirstDay Monday day
     when (day == firstDay) $ do

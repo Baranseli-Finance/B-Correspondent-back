@@ -47,7 +47,7 @@ makeDailyInvoices freq = do
     forever $ do  
       threadDelay $ freq * 1_000_000
       currDay <- get
-      tm <-currentTime
+      tm <- currentTime
       let !day = utctDay tm
       when (day /= currDay) $ do 
         modify' (const day)
