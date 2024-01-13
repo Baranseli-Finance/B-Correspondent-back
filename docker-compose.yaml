@@ -4,7 +4,7 @@ services:
   db:
     image: sclaw/postgres16-pg-cron
     container_name: b-correspondent_db
-    restart: 'always'
+    restart: always
     ports:
       - 5432:5432
     environment:
@@ -23,6 +23,7 @@ services:
   back:
     image: europe-west3-docker.pkg.dev/b-correspondent/back/back:${BACK_TAG}
     container_name: b-correspondent_back
+    restart: always
     profiles:
       - main
     links:
@@ -55,7 +56,7 @@ services:
     container_name: b-correspondent_front
     profiles:
       - main
-    restart: 'always'
+    restart: always
     ports:
       - 3001:3000
     networks:
@@ -65,7 +66,7 @@ services:
   storage:
     image: minio/minio
     container_name: b-correspondent-file-storage
-    restart: 'always'
+    restart: always
     ports:
       - 9001:9001
       - 9000:9000
