@@ -32,7 +32,7 @@ import BCorrespondent.Statement.Institution.Auth (Institution (..), fetchToken)
 -- import qualified BCorrespondent.Job.Backup as Job.Backup
 -- import qualified BCorrespondent.Job.Webhook as Job.Webhook
 -- import qualified BCorrespondent.Job.Cache as Job.Cache
--- import qualified BCorrespondent.Job.Transaction as Job.Transaction
+import qualified BCorrespondent.Job.Transaction as Job.Transaction
 import BCorrespondent.Statement.Auth (CheckToken)
 import BCorrespondent.Api
 import BCorrespondent.EnvKeys (Sendgrid)
@@ -213,17 +213,16 @@ run Cfg {..} = do
           -- ,  Job.Backup.run
           -- ,  Job.Webhook.run
           -- ,  Job.Cache.removeExpiredItems
-          -- ,  Job.Transaction.forward
-           
-            \s -> forever $ threadDelay (s * 1_000_000) >> liftIO (print "thread 1"),
-            \s -> forever $ threadDelay (s * 1_000_000) >> liftIO (print "thread 2"),
-            \s -> forever $ threadDelay (s * 1_000_000) >> liftIO (print "thread 3"),
-            \s -> forever $ threadDelay (s * 1_000_000) >> liftIO (print "thread 4"),
-            \s -> forever $ threadDelay (s * 1_000_000) >> liftIO (print "thread 5"),
-            \s -> forever $ threadDelay (s * 1_000_000) >> liftIO (print "thread 6"),
-            \s -> forever $ threadDelay (s * 1_000_000) >> liftIO (print "thread 7"),
-            \s -> forever $ threadDelay (s * 1_000_000) >> liftIO (print "thread 8"),
-            \s -> forever $ threadDelay (s * 1_000_000) >> liftIO (print "thread 9")
+             Job.Transaction.forward
+          ,  \s -> forever $ threadDelay (s * 1_000_000) >> liftIO (print "thread 1")
+          ,  \s -> forever $ threadDelay (s * 1_000_000) >> liftIO (print "thread 2")
+          ,  \s -> forever $ threadDelay (s * 1_000_000) >> liftIO (print "thread 3")
+          ,  \s -> forever $ threadDelay (s * 1_000_000) >> liftIO (print "thread 4")
+          ,  \s -> forever $ threadDelay (s * 1_000_000) >> liftIO (print "thread 5")
+          ,  \s -> forever $ threadDelay (s * 1_000_000) >> liftIO (print "thread 6")
+          ,  \s -> forever $ threadDelay (s * 1_000_000) >> liftIO (print "thread 7")
+          ,  \s -> forever $ threadDelay (s * 1_000_000) >> liftIO (print "thread 8")
+          ,  \s -> forever $ threadDelay (s * 1_000_000) >> liftIO (print "thread 9")
           ]
 
     asyncXs <- mapM Async.Lifted.async $ zipWith ($) jobXs $ map (jobFrequency +) [1, 3 .. ]
