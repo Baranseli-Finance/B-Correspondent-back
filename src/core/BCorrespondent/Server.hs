@@ -43,6 +43,7 @@ import qualified BCorrespondent.Config as Cfg
 import BCorrespondent.Transport.Error
 import qualified BCorrespondent.Transport.Response as Response
 import qualified Control.Concurrent.Async.Lifted as Async.Lifted
+import Control.Concurrent.Lifted (threadDelay)
 import Control.Exception
 import BuildInfo
 import Control.Lens
@@ -213,6 +214,16 @@ run Cfg {..} = do
           -- ,  Job.Webhook.run
           -- ,  Job.Cache.removeExpiredItems
           -- ,  Job.Transaction.forward
+           
+            \s -> forever $ threadDelay (s * 1_000_000) >> liftIO (print "thread 1"),
+            \s -> forever $ threadDelay (s * 1_000_000) >> liftIO (print "thread 2"),
+            \s -> forever $ threadDelay (s * 1_000_000) >> liftIO (print "thread 3"),
+            \s -> forever $ threadDelay (s * 1_000_000) >> liftIO (print "thread 4"),
+            \s -> forever $ threadDelay (s * 1_000_000) >> liftIO (print "thread 5"),
+            \s -> forever $ threadDelay (s * 1_000_000) >> liftIO (print "thread 6"),
+            \s -> forever $ threadDelay (s * 1_000_000) >> liftIO (print "thread 7"),
+            \s -> forever $ threadDelay (s * 1_000_000) >> liftIO (print "thread 8"),
+            \s -> forever $ threadDelay (s * 1_000_000) >> liftIO (print "thread 9")
           ]
 
     asyncXs <- mapM Async.Lifted.async $ zipWith ($) jobXs $ map (jobFrequency +) [1, 3 .. ]
