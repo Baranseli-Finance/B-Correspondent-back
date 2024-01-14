@@ -36,4 +36,4 @@ echo 'launch server..'
         --b_correspondent_db_user ${keysmap[0]} \
         --b_correspondent_db_pass ${keysmap[1]} \
         --b_correspondent_database ${keysmap[2]} \
-        +RTS -A32M -M512m -N2 -qg2 -qb2"
+        +RTS -A32M -M512m -Fd2 -N2 -qg2 -qb2"
