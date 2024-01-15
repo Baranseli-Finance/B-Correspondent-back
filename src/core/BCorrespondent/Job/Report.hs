@@ -40,7 +40,9 @@ import Data.String.Conv (toS)
 
 
 makeDailyInvoices :: Int -> KatipContextT ServerM ()
-makeDailyInvoices freq = do 
+makeDailyInvoices freq = do
+  hasql <- fmap (^. hasqlDbPool) ask
+  cfg <- fmap (^.sendGrid) ask
   tm <-currentTime
   let !day = utctDay tm
   flip evalStateT day $ do
@@ -52,11 +54,9 @@ makeDailyInvoices freq = do
       when (day /= currDay) $ do 
         modify' (const day)
         lift $ do
-          hasql <- fmap (^. hasqlDbPool) ask
           dbResp <- transactionM hasql $ 
             statement fetchDailyInvoices currDay
-          for_ dbResp $ \DailyInvoices {..} -> do
-            cfg <- fmap (^.sendGrid) ask
+          for_ dbResp $ \DailyInvoices {..} ->
             for_ cfg $ \(Sendgrid {..}, sendgrid) -> do
               tm <- fmap (fromIntegral . systemSeconds) $ liftIO $ getSystemTime
               let report =

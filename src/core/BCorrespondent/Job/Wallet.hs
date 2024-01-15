@@ -34,11 +34,11 @@ import Data.Bifunctor (bimap)
 
 
 withdraw :: Int -> KatipContextT ServerM ()
-withdraw freq =
+withdraw freq = do 
+  hasql <- fmap (^. hasqlDbPool) ask
+  manager <- fmap (^.httpReqManager) ask
   forever $ do
     threadDelay $ freq * 1_000_000
-    hasql <- fmap (^. hasqlDbPool) ask
-    manager <- fmap (^.httpReqManager) ask
     xs <- transactionM hasql $ statement fetchWithdrawals ()
     ys <- Async.forConcurrently xs $ \x -> do
       let body = uncurryT WithdrawalPaymentProviderRequest $ del1 x

@@ -51,11 +51,11 @@ import qualified Control.Parallel.Strategies as Par
 
 run :: Int -> KatipContextT ServerM ()
 run freq = do
+  doBackup <- fmap (^. backupBigDB) ask
   !hour <- liftIO getCurrentHour
   flip evalStateT hour $ do
     forever $ do
       threadDelay $ freq * 1_000_000
-      doBackup <- fmap (^. backupBigDB) ask
       currHour <- get
       !hour <- liftIO getCurrentHour
       when (hour /= currHour && doBackup) $ do

@@ -19,12 +19,11 @@ import Control.Monad (when, forever)
 import Data.Time.Calendar (weekFirstDay, DayOfWeek (Monday))
 
 refreshMV :: Int -> KatipContextT ServerM ()
-refreshMV freq =
+refreshMV freq = do 
+  hasql <- fmap (^. hasqlDbPool) ask
   forever $ do
     threadDelay $ freq * 1_000_000
     tm <- currentTime
     let day = utctDay tm
     let firstDay = weekFirstDay Monday day
-    when (day == firstDay) $ do
-      hasql <- fmap (^. hasqlDbPool) ask
-      transactionM hasql $ statement S.refreshMV ()
+    when (day == firstDay) $ transactionM hasql $ statement S.refreshMV ()

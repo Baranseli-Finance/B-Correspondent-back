@@ -62,14 +62,14 @@ import Data.Either (isRight)
 
 
 forwardToPaymentProvider :: Int -> KatipContextT ServerM ()
-forwardToPaymentProvider freq =
+forwardToPaymentProvider freq = do 
+  hasql <- fmap (^. hasqlDbPool) ask
+  manager <- fmap (^.httpReqManager) ask
   forever $ do 
     threadDelay $ freq * 1_000_000
-    hasql <- fmap (^. hasqlDbPool) ask
     res <- transactionM hasql $ statement getInvoicesToBeSent 20
     case res of
       Right xs -> do
-        manager <- fmap (^.httpReqManager) ask
         yss <- Async.forConcurrently xs $ 
           \(ident, cred, zs) ->
             fmap (map (second (consT ident))) $
