@@ -32,7 +32,7 @@ import BCorrespondent.Statement.Institution.Auth (Institution (..), fetchToken)
 -- import qualified BCorrespondent.Job.Backup as Job.Backup
 -- import qualified BCorrespondent.Job.Webhook as Job.Webhook
 -- import qualified BCorrespondent.Job.Cache as Job.Cache
-import qualified BCorrespondent.Job.Transaction as Job.Transaction
+-- import qualified BCorrespondent.Job.Transaction as Job.Transaction
 import BCorrespondent.Statement.Auth (CheckToken)
 import BCorrespondent.Api
 import BCorrespondent.EnvKeys (Sendgrid)
@@ -213,8 +213,8 @@ run Cfg {..} = do
           -- ,  Job.Backup.run
           -- ,  Job.Webhook.run
           -- ,  Job.Cache.removeExpiredItems
-             Job.Transaction.forward
-          ,  \s -> forever $ threadDelay (s * 1_000_000) >> ($(logTM) InfoS $ ls @T.Text "thread 1")
+            --  Job.Transaction.forward
+             \s -> forever $ threadDelay (s * 1_000_000) >> ($(logTM) InfoS $ ls @T.Text "thread 1")
           ,  \s -> forever $ threadDelay (s * 1_000_000) >> ($(logTM) InfoS $ ls @T.Text "thread 2")
           ,  \s -> forever $ threadDelay (s * 1_000_000) >> ($(logTM) InfoS $ ls @T.Text "thread 3")
           ,  \s -> forever $ threadDelay (s * 1_000_000) >> ($(logTM) InfoS $ ls @T.Text "thread 4")
