@@ -30,7 +30,7 @@ import Data.Traversable (for)
 import Data.String.Conv (toS)
 import Database.Transaction (statement, transactionM)
 import Control.Lens ((^.))
-import Katip.Handler (hasqlDbPool, ask, httpReqManager, rSAKey)
+import Katip.Handler (hasqlDbPool, ask, rSAKey)
 import Data.Bifunctor (bimap, second)
 import Data.Either.Combinators (swapEither)
 import Control.Arrow ((&&&))
@@ -48,12 +48,11 @@ import qualified Crypto.Hash.Algorithms as RSA
 
 
 forward :: Int -> KatipContextT ServerM ()
-forward freq =
+forward freq = do
+  hasql <- fmap (^. hasqlDbPool) ask
+  k <- fmap (^.rSAKey) ask
   forever $ do
     threadDelay $ freq * 1_000_000
-    hasql <- fmap (^. hasqlDbPool) ask
-    manager <- fmap (^.httpReqManager) ask
-    k <- fmap (^.rSAKey) ask 
     dbRes <- transactionM hasql $ do 
       xs <- statement fetchForwardedTransaction ()
       for xs $ \(instId, yse) -> 
