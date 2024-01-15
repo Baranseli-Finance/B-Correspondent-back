@@ -52,6 +52,11 @@ import qualified Control.Parallel.Strategies as Par
 run :: Int -> KatipContextT ServerM ()
 run freq = do
   doBackup <- fmap (^. backupBigDB) ask
+  cfg <- fmap (^. google) ask
+  mgr <- fmap (^. httpReqManager) ask
+  k <- fmap (^. symmetricKeyBase) ask
+  hasql <- fmap (^. hasqlDbPool) ask
+  ConnectInfo {..} <- fmap (^. psqlConn) ask
   !hour <- liftIO getCurrentHour
   flip evalStateT hour $ do
     forever $ do
@@ -61,7 +66,6 @@ run freq = do
       when (hour /= currHour && doBackup) $ do
         modify' (const hour)
         lift $ do
-          ConnectInfo {..} <- fmap (^. psqlConn) ask
           tmp <- liftIO $ getTemporaryDirectory
           tm <- liftIO $ fmap round getPOSIXTime
           let args  = 
@@ -77,15 +81,11 @@ run freq = do
           let file = "b-correspondent_" <> show tm <> ".sql"
           content <- liftIO $ readFile $ tmp <> "/" <> file
           let hash = mkHashMd5 toS content
-          hasql <- fmap (^. hasqlDbPool) ask
           isOk <- transactionM hasql $ statement insert hash
-          when isOk $ do 
-            cfg <- fmap (^. google) ask
-            mgr <- fmap (^. httpReqManager) ask
+          when isOk $
             for_ cfg $ \Google {..} -> do
               resp <- liftIO $ obtainAccessToken mgr googleTokenUrl googleTokenEmail googleTokenPk
               for_ resp $ \(AccessToken token) -> do
-                k <- fmap (^. symmetricKeyBase) ask
                 let cipheredContent = cryptContent k $ toS content
                 for_ cipheredContent $ \bs -> do
                   let part = [partBS (toS ("/b-correspondent_" <> show tm <> ".sql")) $ toS bs]
