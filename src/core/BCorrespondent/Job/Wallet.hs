@@ -56,12 +56,12 @@ withdraw freq = do
     void $ transactionM hasql $ statement updateWithdrawalStatus (Processing, os)
 
 archive :: Int -> KatipContextT ServerM ()
-archive freq =
+archive freq = do 
+  hasql <- fmap (^. hasqlDbPool) ask
   forever $ do
     threadDelay $ freq * 1_000_000
     tm <-currentTime
     let day = utctDay tm
     let firstDay  = weekFirstDay Monday day
-    when (day == firstDay) $ do 
-      hasql <- fmap (^. hasqlDbPool) ask
+    when (day == firstDay) $
       void $ transactionM hasql $ statement archiveWallets ()
