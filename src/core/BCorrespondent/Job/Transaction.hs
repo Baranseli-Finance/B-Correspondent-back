@@ -47,12 +47,12 @@ import qualified Crypto.PubKey.RSA.Types as RSA
 import qualified Crypto.Hash.Algorithms as RSA
 
 
-forward :: Int -> KatipContextT ServerM ()
-forward freq = do
+forward :: Int -> Int -> KatipContextT ServerM ()
+forward freqBase freq = do
   hasql <- fmap (^. hasqlDbPool) ask
   k <- fmap (^.rSAKey) ask
   forever $ do
-    threadDelay $ freq * 1_000_000
+    threadDelay $ freq * freqBase
     dbRes <- transactionM hasql $ do 
       xs <- statement fetchForwardedTransaction ()
       for xs $ \(instId, yse) -> 

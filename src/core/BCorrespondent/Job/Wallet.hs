@@ -33,12 +33,12 @@ import Data.Time.Calendar (weekFirstDay, DayOfWeek (Monday))
 import Data.Bifunctor (bimap)
 
 
-withdraw :: Int -> KatipContextT ServerM ()
-withdraw freq = do 
+withdraw :: Int -> Int -> KatipContextT ServerM ()
+withdraw freqBase freq = do 
   hasql <- fmap (^. hasqlDbPool) ask
   manager <- fmap (^.httpReqManager) ask
   forever $ do
-    threadDelay $ freq * 1_000_000
+    threadDelay $ freq * freqBase
     xs <- transactionM hasql $ statement fetchWithdrawals ()
     ys <- Async.forConcurrently xs $ \x -> do
       let body = uncurryT WithdrawalPaymentProviderRequest $ del1 x
@@ -55,11 +55,11 @@ withdraw freq = do
           toS (show @Int64 ident) <> ", error: " <> error
     void $ transactionM hasql $ statement updateWithdrawalStatus (Processing, os)
 
-archive :: Int -> KatipContextT ServerM ()
-archive freq = do 
+archive :: Int -> Int -> KatipContextT ServerM ()
+archive freqBase freq = do 
   hasql <- fmap (^. hasqlDbPool) ask
   forever $ do
-    threadDelay $ freq * 1_000_000
+    threadDelay $ freq * freqBase
     tm <-currentTime
     let day = utctDay tm
     let firstDay  = weekFirstDay Monday day

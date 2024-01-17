@@ -29,12 +29,12 @@ import Data.Text (Text)
 import Data.String.Conv (toS)
 
 
-run :: Int -> KatipContextT ServerM ()
-run freq = do 
+run :: Int -> Int -> KatipContextT ServerM ()
+run freqBase freq = do 
   hasql <- fmap (^. hasqlDbPool) ask
   manager <- fmap (^. httpReqManager) ask
   forever $ do
-    threadDelay $ freq * 1_000_000
+    threadDelay $ freq * freqBase
     xs <- transactionM hasql $ statement fetch ()
     xs' <- forConcurrently @[] xs $ \x -> do 
       let msg = "recipient " <>  toS (show (sel2 x)) <> " for webhook not found"

@@ -12,8 +12,8 @@ import Control.Monad.Trans.Class (lift)
 import Cache (clean)
 import Control.Monad (forever)
 
-removeExpiredItems :: Int -> KatipContextT ServerM ()
-removeExpiredItems freq =
+removeExpiredItems :: Int -> Int -> KatipContextT ServerM ()
+removeExpiredItems freqBase freq =
   forever $ do 
-    threadDelay $ freq * 100_000 
+    threadDelay $ freq * freqBase 
     fmap cache (lift ST.get) >>= clean

@@ -121,7 +121,8 @@ data Cmd w = Cmd
     bCorrespondentDbPass :: w ::: String <?> "db pass",
     bCorrespondentDatabase :: w ::: String <?> "database",
     frontEnvFilePath :: w ::: String <?> "path to frontend envs",
-    extraLog :: w ::: Bool <?> "whether to commit log to an additional source (file server, telegram, etc.)"
+    extraLog :: w ::: Bool <?> "whether to commit log to an additional source (file server, telegram, etc.)",
+    freqBase :: w ::: Int 
   }
   deriving stock (Generic)
 
@@ -330,7 +331,8 @@ main = do
           webhook = cfg^.webhook,
           jobFrequency = cfg^.jobFrequency,
           sendgridCfg = envKeys >>= envKeysSendgrid,
-          psqlpool = psqlpool
+          psqlpool = psqlpool,
+          freqBase = freqBase
         }
 
   cache <- MemCache.init

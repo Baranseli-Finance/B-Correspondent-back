@@ -49,8 +49,8 @@ import Data.Time.LocalTime (getCurrentTimeZone, utcToLocalTime, localTimeOfDay, 
 import qualified Control.Parallel.Strategies as Par
 
 
-run :: Int -> KatipContextT ServerM ()
-run freq = do
+run :: Int -> Int -> KatipContextT ServerM ()
+run freqBase freq = do
   doBackup <- fmap (^. backupBigDB) ask
   cfg <- fmap (^. google) ask
   mgr <- fmap (^. httpReqManager) ask
@@ -60,7 +60,7 @@ run freq = do
   !hour <- liftIO getCurrentHour
   flip evalStateT hour $ do
     forever $ do
-      threadDelay $ freq * 1_000_000
+      threadDelay $ freq * freqBase
       currHour <- get
       !hour <- liftIO getCurrentHour
       when (hour /= currHour && doBackup) $ do

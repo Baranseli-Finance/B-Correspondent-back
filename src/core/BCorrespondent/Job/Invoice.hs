@@ -61,12 +61,12 @@ import Request (forConcurrentlyNRetry)
 import Data.Either (isRight)
 
 
-forwardToPaymentProvider :: Int -> KatipContextT ServerM ()
-forwardToPaymentProvider freq = do 
+forwardToPaymentProvider :: Int -> Int -> KatipContextT ServerM ()
+forwardToPaymentProvider freqBase freq = do 
   hasql <- fmap (^. hasqlDbPool) ask
   manager <- fmap (^.httpReqManager) ask
   forever $ do 
-    threadDelay $ freq * 1_000_000
+    threadDelay $ freq * freqBase
     res <- transactionM hasql $ statement getInvoicesToBeSent 20
     case res of
       Right xs -> do

@@ -39,15 +39,15 @@ import Data.Coerce (coerce)
 import Data.String.Conv (toS)
 
 
-makeDailyInvoices :: Int -> KatipContextT ServerM ()
-makeDailyInvoices freq = do
+makeDailyInvoices :: Int -> Int -> KatipContextT ServerM ()
+makeDailyInvoices freqBase freq = do
   hasql <- fmap (^. hasqlDbPool) ask
   cfg <- fmap (^.sendGrid) ask
   tm <-currentTime
   let !day = utctDay tm
   flip evalStateT day $ do
     forever $ do  
-      threadDelay $ freq * 1_000_000
+      threadDelay $ freq * freqBase
       currDay <- get
       tm <- currentTime
       let !day = utctDay tm
