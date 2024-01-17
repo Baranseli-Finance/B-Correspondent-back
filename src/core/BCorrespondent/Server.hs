@@ -25,14 +25,14 @@
 module BCorrespondent.Server (Cfg (..), ServerM (..), run, populateCache, addServerNm) where
 
 import BCorrespondent.Statement.Institution.Auth (Institution (..), fetchToken)
-import qualified BCorrespondent.Job.Invoice as Job.Invoice
-import qualified BCorrespondent.Job.History as Job.History
-import qualified BCorrespondent.Job.Wallet as Job.Wallet
+-- import qualified BCorrespondent.Job.Invoice as Job.Invoice
+-- import qualified BCorrespondent.Job.History as Job.History
+-- import qualified BCorrespondent.Job.Wallet as Job.Wallet
 -- import qualified BCorrespondent.Job.Report as Job.Report
 -- import qualified BCorrespondent.Job.Backup as Job.Backup
-import qualified BCorrespondent.Job.Webhook as Job.Webhook
-import qualified BCorrespondent.Job.Cache as Job.Cache
-import qualified BCorrespondent.Job.Transaction as Job.Transaction
+-- import qualified BCorrespondent.Job.Webhook as Job.Webhook
+-- import qualified BCorrespondent.Job.Cache as Job.Cache
+-- import qualified BCorrespondent.Job.Transaction as Job.Transaction
 import BCorrespondent.Statement.Auth (CheckToken)
 import BCorrespondent.Api
 import BCorrespondent.EnvKeys (Sendgrid)
@@ -43,6 +43,7 @@ import qualified BCorrespondent.Config as Cfg
 import BCorrespondent.Transport.Error
 import qualified BCorrespondent.Transport.Response as Response
 import qualified Control.Concurrent.Async.Lifted as Async.Lifted
+import Control.Concurrent.Lifted (threadDelay)
 import Control.Exception
 import BuildInfo
 import Control.Lens
@@ -204,15 +205,26 @@ run Cfg {..} = do
 
     let jobXs =
           [
-            Job.Invoice.forwardToPaymentProvider
-          , Job.History.refreshMV
-          , Job.Wallet.withdraw
-          , Job.Wallet.archive
+             \s -> forever $ do threadDelay (s  * 1_000_000); $(logTM) EmergencyS $ ls @T.Text "thread 1"
+          ,  \s -> forever $ do threadDelay (s  * 1_000_000); $(logTM) EmergencyS $ ls @T.Text "thread 2"
+          ,  \s -> forever $ do threadDelay (s  * 1_000_000); $(logTM) EmergencyS $ ls @T.Text "thread 3"
+          ,  \s -> forever $ do threadDelay (s  * 1_000_000); $(logTM) EmergencyS $ ls @T.Text "thread 4"
+          ,  \s -> forever $ do threadDelay (s  * 1_000_000); $(logTM) EmergencyS $ ls @T.Text "thread 5"
+          ,  \s -> forever $ do threadDelay (s  * 1_000_000); $(logTM) EmergencyS $ ls @T.Text "thread 6"
+          ,  \s -> forever $ do threadDelay (s  * 1_000_000); $(logTM) EmergencyS $ ls @T.Text "thread 7"
+          ,  \s -> forever $ do threadDelay (s  * 1_000_000); $(logTM) EmergencyS $ ls @T.Text "thread 8"
+          ,  \s -> forever $ do threadDelay (s  * 1_000_000); $(logTM) EmergencyS $ ls @T.Text "thread 9"
+          ,  \s -> forever $ do threadDelay (s  * 1_000_000); $(logTM) EmergencyS $ ls @T.Text "thread 10"
+
+            -- Job.Invoice.forwardToPaymentProvider
+          -- , Job.History.refreshMV
+          -- , Job.Wallet.withdraw
+          -- , Job.Wallet.archive
           -- , Job.Report.makeDailyInvoices
           -- , Job.Backup.run
-          , Job.Webhook.run
-          , Job.Cache.removeExpiredItems
-          , Job.Transaction.forward
+          -- , Job.Webhook.run
+          -- , Job.Cache.removeExpiredItems
+          -- , Job.Transaction.forward
           ]
 
     asyncXs <- mapM Async.Lifted.async $ zipWith ($) jobXs $ map (jobFrequency +) [1, 3 .. ]
