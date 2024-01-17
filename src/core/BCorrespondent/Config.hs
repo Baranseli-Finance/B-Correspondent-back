@@ -20,6 +20,7 @@ module BCorrespondent.Config
     ServerError (..),
     Email (..),
     StdoutFormat (..),
+    Jobs (..),
     db,
     pass,
     port,
@@ -55,6 +56,7 @@ module BCorrespondent.Config
     sourceTokenLife,
     templateDir,
     backupBigDB,
+    jobs,
 
     -- * Iso
     isoEnv,
@@ -73,6 +75,7 @@ import GHC.Generics
 import TH.Mk
 import Control.Monad.Catch (throwM)
 import BuildInfo (location)
+import Data.Aeson.Generic.DerivingVia
 
 data Db = Db
   { dbHost :: !String,
@@ -142,6 +145,21 @@ newtype Email = Email T.Text
   deriving stock (Show)
   deriving (ToSchema)
 
+data Jobs = 
+      InvoiceForwardToPaymentProvider
+    | HistoryRefreshMV
+    | WalletWithdraw
+    | WalletArchive
+    | ReportMakeDailyInvoices
+    | BackupRun
+    | WebhookRun
+    | CacheRemoveExpiredItems
+    | TransactionForward
+    deriving (Show, Eq)
+    deriving Generic
+    deriving (FromJSON)
+      via WithOptions DefaultOptions Jobs
+
 data Config = Config
   { configDb :: !Db,
     configSwagger :: !Swagger,
@@ -156,7 +174,8 @@ data Config = Config
     configCountryCodeFilePath :: !T.Text,
     configSourceTokenLife :: !Int,
     configTemplateDir :: !T.Text,
-    configBackupBigDB :: !Bool
+    configBackupBigDB :: !Bool,
+    configJobs :: ![Jobs]
   }
   deriving (Show)
 

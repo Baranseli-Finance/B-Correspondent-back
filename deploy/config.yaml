@@ -40,13 +40,24 @@ configCors:
 
 configServerError: true
 
-configJobFrequency: 10
-configWebhook: https://b-correspondent.app
+configJobFrequency: 1
+configWebhook: https://b-correspondent.app 
 
 configCountryCodeFilePath: country-code.csv
 
-configSourceTokenLife: 10000
+configSourceTokenLife: 3000000
 
 configTemplateDir: ./template
 
 configBackupBigDB: false
+
+configJobs: 
+  - InvoiceForwardToPaymentProvider
+  - HistoryRefreshMV
+  - WalletWithdraw
+  - WalletArchive
+  - ReportMakeDailyInvoices
+  - BackupRun
+  - WebhookRun
+  - CacheRemoveExpiredItems
+  - TransactionForward

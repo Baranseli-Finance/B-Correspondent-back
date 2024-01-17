@@ -91,6 +91,7 @@ import Servant.RawM.Server ()
 import Cache (Cache (Cache, insert))
 import Data.Foldable (for_)
 import Network.Wai.Middleware.Prometheus (prometheus, PrometheusSettings)
+import Data.List (find)
 
 
 data Cfg = Cfg
@@ -108,7 +109,8 @@ data Cfg = Cfg
     jobFrequency :: !Int,
     sendgridCfg :: !(Maybe Sendgrid),
     psqlpool :: !(Pool.Pool Connection),
-    freqBase :: !Int
+    freqBase :: !Int,
+    jobs :: ![Cfg.Jobs]
   }
 
 addServerNm :: forall a . KatipContextT ServerM a -> T.Text -> KatipContextT ServerM a
@@ -203,18 +205,19 @@ run Cfg {..} = do
                   mkApplication $ 
                     serveWithContext (withSwagger api) mkContext hoistedServer
 
-    let jobXs =
+    let jobXs = concat
           [
-            Job.Invoice.forwardToPaymentProvider
-          , Job.History.refreshMV
-          , Job.Wallet.withdraw
-          , Job.Wallet.archive
-          , Job.Report.makeDailyInvoices
-          , Job.Backup.run
-          , Job.Webhook.run
-          , Job.Cache.removeExpiredItems
-          , Job.Transaction.forward
+              maybe [] (const [Job.Invoice.forwardToPaymentProvider]) $ find (== Cfg.InvoiceForwardToPaymentProvider) jobs
+           ,  maybe [] (const [Job.History.refreshMV]) $ find (== Cfg.HistoryRefreshMV) jobs
+           ,  maybe [] (const [Job.Wallet.archive]) $ find (== Cfg.WalletArchive) jobs
+           ,  maybe [] (const [Job.Report.makeDailyInvoices]) $ find (== Cfg.ReportMakeDailyInvoices) jobs
+           ,  maybe [] (const [Job.Backup.run]) $ find (== Cfg.BackupRun) jobs
+           ,  maybe [] (const [Job.Webhook.run]) $ find (== Cfg.WebhookRun) jobs
+           ,  maybe [] (const [Job.Cache.removeExpiredItems]) $ find (== Cfg.CacheRemoveExpiredItems) jobs
+           ,  maybe [] (const [Job.Transaction.forward]) $ find (== Cfg.TransactionForward) jobs
           ]
+
+    $(logTM) InfoS $ "run " <> fromString (show (length jobXs)) <> " jobs"
 
     asyncXs <- mapM Async.Lifted.async $ zipWith uncurry jobXs $ map ((freqBase, ) . (jobFrequency +)) [1, 3 .. ]
     
