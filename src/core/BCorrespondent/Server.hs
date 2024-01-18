@@ -91,7 +91,6 @@ import Servant.RawM.Server ()
 import Cache (Cache (Cache, insert))
 import Data.Foldable (for_)
 import Network.Wai.Middleware.Prometheus (prometheus, PrometheusSettings)
-import Data.List (find)
 
 
 data Cfg = Cfg
@@ -205,21 +204,21 @@ run Cfg {..} = do
                   mkApplication $ 
                     serveWithContext (withSwagger api) mkContext hoistedServer
 
-    let jobXs = concat
+    let jobXs =
           [
-              maybe [] (const [Job.Invoice.forwardToPaymentProvider]) $ find (== Cfg.InvoiceForwardToPaymentProvider) jobs
-           ,  maybe [] (const [Job.History.refreshMV]) $ find (== Cfg.HistoryRefreshMV) jobs
-           ,  maybe [] (const [Job.Wallet.archive]) $ find (== Cfg.WalletArchive) jobs
-           ,  maybe [] (const [Job.Report.makeDailyInvoices]) $ find (== Cfg.ReportMakeDailyInvoices) jobs
-           ,  maybe [] (const [Job.Backup.run]) $ find (== Cfg.BackupRun) jobs
-           ,  maybe [] (const [Job.Webhook.run]) $ find (== Cfg.WebhookRun) jobs
-           ,  maybe [] (const [Job.Cache.removeExpiredItems]) $ find (== Cfg.CacheRemoveExpiredItems) jobs
-           ,  maybe [] (const [Job.Transaction.forward]) $ find (== Cfg.TransactionForward) jobs
+             (Cfg.InvoiceForwardToPaymentProvider, Job.Invoice.forwardToPaymentProvider)
+           , (Cfg.HistoryRefreshMV, Job.History.refreshMV)
+           , (Cfg.WalletArchive, Job.Wallet.archive)
+           , (Cfg.ReportMakeDailyInvoices, Job.Report.makeDailyInvoices)
+           , (Cfg.BackupRun, Job.Backup.run)
+           , (Cfg.WebhookRun, Job.Webhook.run)
+           , (Cfg.CacheRemoveExpiredItems, Job.Cache.removeExpiredItems)
+           , (Cfg.TransactionForward, Job.Transaction.forward)
           ]
 
-    $(logTM) InfoS $ "run " <> fromString (show (length jobXs)) <> " jobs"
+    let jobXs' = [ mo | (x, mo) <- jobXs, x `elem` jobs ]
 
-    asyncXs <- mapM Async.Lifted.async $ zipWith uncurry jobXs $ map ((freqBase, ) . (jobFrequency +)) [1, 3 .. ]
+    asyncXs <- mapM Async.Lifted.async $ zipWith uncurry jobXs' $ map ((freqBase, ) . (jobFrequency +)) [1, 3 .. ]
     
     asyncRes <- fmap snd $ 
       flip logExceptionM ErrorS $
