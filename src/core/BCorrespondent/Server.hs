@@ -209,6 +209,7 @@ run Cfg {..} = do
              (Cfg.InvoiceForwardToPaymentProvider, Job.Invoice.forwardToPaymentProvider)
            , (Cfg.HistoryRefreshMV, Job.History.refreshMV)
            , (Cfg.WalletArchive, Job.Wallet.archive)
+           , (Cfg.WalletWithdraw, Job.Wallet.withdraw)
            , (Cfg.ReportMakeDailyInvoices, Job.Report.makeDailyInvoices)
            , (Cfg.BackupRun, Job.Backup.run)
            , (Cfg.WebhookRun, Job.Webhook.run)
