@@ -108,8 +108,7 @@ data Cfg = Cfg
     jobFrequency :: !Int,
     sendgridCfg :: !(Maybe Sendgrid),
     psqlpool :: !(Pool.Pool Connection),
-    freqBase :: !Int,
-    jobs :: ![Cfg.Jobs]
+    freqBase :: !Int
   }
 
 addServerNm :: forall a . KatipContextT ServerM a -> T.Text -> KatipContextT ServerM a
@@ -206,20 +205,18 @@ run Cfg {..} = do
 
     let jobXs =
           [
-             (Cfg.InvoiceForwardToPaymentProvider, Job.Invoice.forwardToPaymentProvider)
-           , (Cfg.HistoryRefreshMV, Job.History.refreshMV)
-           , (Cfg.WalletArchive, Job.Wallet.archive)
-           , (Cfg.WalletWithdraw, Job.Wallet.withdraw)
-           , (Cfg.ReportMakeDailyInvoices, Job.Report.makeDailyInvoices)
-           , (Cfg.BackupRun, Job.Backup.run)
-           , (Cfg.WebhookRun, Job.Webhook.run)
-           , (Cfg.CacheRemoveExpiredItems, Job.Cache.removeExpiredItems)
-           , (Cfg.TransactionForward, Job.Transaction.forward)
+             Job.Invoice.forwardToPaymentProvider
+           , Job.History.refreshMV
+           , Job.Wallet.archive
+           , Job.Wallet.withdraw
+           , Job.Report.makeDailyInvoices
+           , Job.Backup.run
+           , Job.Webhook.run
+           , Job.Cache.removeExpiredItems
+           , Job.Transaction.forward
           ]
 
-    let jobXs' = [ mo | (x, mo) <- jobXs, x `elem` jobs ]
-
-    asyncXs <- mapM Async.Lifted.async $ zipWith uncurry jobXs' $ map ((freqBase, ) . (jobFrequency +)) [1, 3 .. ]
+    asyncXs <- mapM Async.Lifted.async $ zipWith uncurry jobXs $ map ((freqBase, ) . (jobFrequency +)) [1, 3 .. ]
     
     asyncRes <- fmap snd $ 
       flip logExceptionM ErrorS $

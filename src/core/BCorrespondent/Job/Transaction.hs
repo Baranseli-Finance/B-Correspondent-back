@@ -45,33 +45,37 @@ import qualified Crypto.PubKey.RSA as RSA
 import qualified Crypto.PubKey.RSA.PKCS15 as RSA 
 import qualified Crypto.PubKey.RSA.Types as RSA
 import qualified Crypto.Hash.Algorithms as RSA
+import qualified Control.Concurrent.Async.Lifted as Async
 
 
 forward :: Int -> Int -> KatipContextT ServerM ()
-forward freqBase freq = do
-  hasql <- fmap (^. hasqlDbPool) ask
-  k <- fmap (^.rSAKey) ask
+forward freqBase freq =
   forever $ do
     threadDelay $ freq * freqBase
-    dbRes <- transactionM hasql $ do 
-      xs <- statement fetchForwardedTransaction ()
-      for xs $ \(instId, yse) -> 
-        fmap (bimap (instId,) (instId,) . swapEither) $ 
-          for yse $ \ys -> do
-            statement Webhook.insert (instId, map (mkWebhookMsg k instId) ys)
-            fmap (const (map (getTransactionId &&& getTransactionStatus) ys)) $
-              statement setPickedForDelivery $ 
-                map getForwardedTransactionUUID ys 
-    let (os, es) = partitionEithers dbRes
-    for_ es $ \(ident, error) ->
-      let msg = 
-            $location <> 
-            ":forward: transactions forwarding error " <> 
-            toS error <>
-            ", institution " <> 
-            toS (show ident)
-      in $(logTM) ErrorS $ logStr @Text msg
-    for_ os $ \o -> uncurry (N.makeS @"transaction_status") $ second (map (uncurry N.TransactionStatus)) o
+    hasql <- fmap (^. hasqlDbPool) ask
+    key <- fmap (^.rSAKey) ask
+    Async.async (go hasql key) >>= Async.wait
+  where 
+    go hasql k = do
+      dbRes <- transactionM hasql $ do 
+        xs <- statement fetchForwardedTransaction ()
+        for xs $ \(instId, yse) -> 
+          fmap (bimap (instId,) (instId,) . swapEither) $ 
+            for yse $ \ys -> do
+              statement Webhook.insert (instId, map (mkWebhookMsg k instId) ys)
+              fmap (const (map (getTransactionId &&& getTransactionStatus) ys)) $
+                statement setPickedForDelivery $ 
+                  map getForwardedTransactionUUID ys 
+      let (os, es) = partitionEithers dbRes
+      for_ es $ \(ident, error) ->
+        let msg = 
+              $location <> 
+              ":forward: transactions forwarding error " <> 
+              toS error <>
+              ", institution " <> 
+              toS (show ident)
+        in $(logTM) ErrorS $ logStr @Text msg
+      for_ os $ \o -> uncurry (N.makeS @"transaction_status") $ second (map (uncurry N.TransactionStatus)) o
 
 mkWebhookMsg :: RSA.RSAKey -> Int64 -> ForwardedTransaction -> Value 
 mkWebhookMsg k 1 x = toJSON $ (Tochka.defRequest (toTochkaMsg (RSA.key k) x)) { Tochka.requestMethod = Tochka.Processed }

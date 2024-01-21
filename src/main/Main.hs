@@ -332,8 +332,7 @@ main = do
           jobFrequency = cfg^.jobFrequency,
           sendgridCfg = envKeys >>= envKeysSendgrid,
           psqlpool = psqlpool,
-          freqBase = freqBase,
-          jobs = cfg^.jobs
+          freqBase = freqBase
         }
 
   cache <- MemCache.init

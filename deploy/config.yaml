@@ -50,14 +50,3 @@ configSourceTokenLife: 3000000
 configTemplateDir: ./template
 
 configBackupBigDB: false
-
-configJobs: 
-  - InvoiceForwardToPaymentProvider
-  - HistoryRefreshMV
-  - WalletWithdraw
-  - WalletArchive
-  - ReportMakeDailyInvoices
-  - BackupRun
-  - WebhookRun
-  - CacheRemoveExpiredItems
-  - TransactionForward

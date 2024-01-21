@@ -11,9 +11,10 @@ import qualified Control.Monad.State.Class as ST
 import Control.Monad.Trans.Class (lift)
 import Cache (clean)
 import Control.Monad (forever)
+import qualified Control.Concurrent.Async.Lifted as Async
 
 removeExpiredItems :: Int -> Int -> KatipContextT ServerM ()
 removeExpiredItems freqBase freq =
   forever $ do 
-    threadDelay $ freq * freqBase 
-    fmap cache (lift ST.get) >>= clean
+    threadDelay $ freq * freqBase
+    Async.async (fmap cache (lift ST.get) >>= clean) >>= Async.wait

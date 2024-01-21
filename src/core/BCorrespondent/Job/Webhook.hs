@@ -21,7 +21,7 @@ import Katip.Handler (hasqlDbPool, httpReqManager, ask)
 import Control.Lens ((^.))
 import Data.Foldable (for_)
 import Data.Traversable (for)
-import Control.Concurrent.Async.Lifted (forConcurrently)
+import qualified Control.Concurrent.Async.Lifted as Async
 import Data.Tuple.Extended (sel1, sel2, sel3, sel4, sel5)
 import Data.Bifunctor (bimap)
 import Data.Either (partitionEithers)
@@ -30,18 +30,20 @@ import Data.String.Conv (toS)
 
 
 run :: Int -> Int -> KatipContextT ServerM ()
-run freqBase freq = do 
-  hasql <- fmap (^. hasqlDbPool) ask
-  manager <- fmap (^. httpReqManager) ask
+run freqBase freq =
   forever $ do
     threadDelay $ freq * freqBase
-    xs <- transactionM hasql $ statement fetch ()
-    xs' <- forConcurrently @[] xs $ \x -> do 
-      let msg = "recipient " <>  toS (show (sel2 x)) <> " for webhook not found"
-      fmap (join . maybe (Left (sel1 x, msg)) Right) $
-        for (lookup (sel2 x) W.webhooks) $ \Webhook {..} ->
-          fmap (bimap ((sel1 x,) . toS) (const (sel1 x))) $ send manager (sel4 x) (sel5 x) $ sel3 x
-    let (es, os) = partitionEithers xs'
-    transactionM hasql $ statement markDelivered os >> statement addError es
-    for_ es $ \(_, error) -> $(logTM) ErrorS $ logStr @Text $ $location <> ":run ---> " <> toS error
-      
+    hasql <- fmap (^. hasqlDbPool) ask
+    manager <- fmap (^. httpReqManager) ask
+    Async.async (go hasql manager) >>= Async.wait
+  where
+    go hasql manager = do 
+      xs <- transactionM hasql $ statement fetch ()
+      xs' <- Async.forConcurrently @[] xs $ \x -> do 
+        let msg = "recipient " <>  toS (show (sel2 x)) <> " for webhook not found"
+        fmap (join . maybe (Left (sel1 x, msg)) Right) $
+          for (lookup (sel2 x) W.webhooks) $ \Webhook {..} ->
+            fmap (bimap ((sel1 x,) . toS) (const (sel1 x))) $ send manager (sel4 x) (sel5 x) $ sel3 x
+      let (es, os) = partitionEithers xs'
+      transactionM hasql $ statement markDelivered os >> statement addError es
+      for_ es $ \(_, error) -> $(logTM) ErrorS $ logStr @Text $ $location <> ":run ---> " <> toS error

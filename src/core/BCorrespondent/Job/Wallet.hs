@@ -4,6 +4,7 @@
 {-#LANGUAGE TypeApplications #-}
 {-#LANGUAGE RecordWildCards #-}
 {-#LANGUAGE TupleSections #-}
+{-#LANGUAGE FlexibleContexts #-}
 
 module BCorrespondent.Job.Wallet (withdraw, archive) where
 
@@ -34,34 +35,40 @@ import Data.Bifunctor (bimap)
 
 
 withdraw :: Int -> Int -> KatipContextT ServerM ()
-withdraw freqBase freq = do 
-  hasql <- fmap (^. hasqlDbPool) ask
-  manager <- fmap (^.httpReqManager) ask
+withdraw freqBase freq =
   forever $ do
     threadDelay $ freq * freqBase
-    xs <- transactionM hasql $ statement fetchWithdrawals ()
-    ys <- Async.forConcurrently xs $ \x -> do
-      let body = uncurryT WithdrawalPaymentProviderRequest $ del1 x
-      let mkResp = bimap ((x^._1,) . toS . show) (const (x^._1))
-      let onFailure = pure . Left . show
-      fmap mkResp $ Request.makePostReq @WithdrawalPaymentProviderRequest mempty manager [] body onFailure
-    let (es, os) = partitionEithers ys
-    for_ es $ \(ident, error) ->
-      $(logTM) ErrorS $
-        logStr @T.Text $
-          $location <>
-          ":withdraw: --> \ 
-          \ withdrawal request failed to be sent, " <>
-          toS (show @Int64 ident) <> ", error: " <> error
-    void $ transactionM hasql $ statement updateWithdrawalStatus (Processing, os)
+    hasql <- fmap (^. hasqlDbPool) ask
+    manager <- fmap (^.httpReqManager) ask
+    Async.async (go hasql manager) >>= Async.wait
+  where
+    go hasql manager = do
+      xs <- transactionM hasql $ statement fetchWithdrawals ()
+      ys <- Async.forConcurrently xs $ \x -> do
+        let body = uncurryT WithdrawalPaymentProviderRequest $ del1 x
+        let mkResp = bimap ((x^._1,) . toS . show) (const (x^._1))
+        let onFailure = pure . Left . show
+        fmap mkResp $ Request.makePostReq @WithdrawalPaymentProviderRequest mempty manager [] body onFailure
+      let (es, os) = partitionEithers ys
+      for_ es $ \(ident, error) ->
+        $(logTM) ErrorS $
+          logStr @T.Text $
+            $location <>
+            ":withdraw: --> \ 
+            \ withdrawal request failed to be sent, " <>
+            toS (show @Int64 ident) <> ", error: " <> error
+      void $ transactionM hasql $ statement updateWithdrawalStatus (Processing, os)
 
 archive :: Int -> Int -> KatipContextT ServerM ()
-archive freqBase freq = do 
-  hasql <- fmap (^. hasqlDbPool) ask
+archive freqBase freq =
   forever $ do
     threadDelay $ freq * freqBase
-    tm <-currentTime
-    let day = utctDay tm
-    let firstDay  = weekFirstDay Monday day
-    when (day == firstDay) $
-      void $ transactionM hasql $ statement archiveWallets ()
+    hasql <- fmap (^. hasqlDbPool) ask
+    Async.async (go hasql) >>= Async.wait
+  where
+    go hasql = do
+      tm <-currentTime
+      let day = utctDay tm
+      let firstDay  = weekFirstDay Monday day
+      when (day == firstDay) $
+        void $ transactionM hasql $ statement archiveWallets ()

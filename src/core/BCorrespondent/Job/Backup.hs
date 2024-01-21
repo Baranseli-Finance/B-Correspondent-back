@@ -5,6 +5,7 @@
 {-#LANGUAGE RecordWildCards #-}
 {-# LANGUAGE PackageImports #-}
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 module BCorrespondent.Job.Backup (run) where
 
@@ -47,22 +48,26 @@ import Data.Text.Encoding (decodeUtf8)
 import Data.Time.Clock (getCurrentTime)
 import Data.Time.LocalTime (getCurrentTimeZone, utcToLocalTime, localTimeOfDay, todHour)
 import qualified Control.Parallel.Strategies as Par
+import qualified Control.Concurrent.Async.Lifted as Async
 
 
 run :: Int -> Int -> KatipContextT ServerM ()
 run freqBase freq = do
-  doBackup <- fmap (^. backupBigDB) ask
-  cfg <- fmap (^. google) ask
-  mgr <- fmap (^. httpReqManager) ask
-  k <- fmap (^. symmetricKeyBase) ask
-  hasql <- fmap (^. hasqlDbPool) ask
-  ConnectInfo {..} <- fmap (^. psqlConn) ask
   !hour <- liftIO getCurrentHour
   flip evalStateT hour $ do
     forever $ do
       threadDelay $ freq * freqBase
+      cfg <- fmap (^. google) ask
+      mgr <- fmap (^. httpReqManager) ask
+      k <- fmap (^. symmetricKeyBase) ask
+      hasql <- fmap (^. hasqlDbPool) ask
+      conn <- fmap (^. psqlConn) ask
+      Async.async (go cfg mgr k hasql conn) >>= Async.wait
+  where
+    go cfg mgr k hasql ConnectInfo {..} = do
       currHour <- get
       !hour <- liftIO getCurrentHour
+      doBackup <- fmap (^. backupBigDB) ask
       when (hour /= currHour && doBackup) $ do
         modify' (const hour)
         lift $ do

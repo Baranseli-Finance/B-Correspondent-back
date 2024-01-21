@@ -19,7 +19,7 @@ import Control.Lens ((^.), (<&>))
 import Control.Monad.Time (currentTime)
 import Data.Time.Clock (utctDay)
 import Control.Monad (when, void, forever)
-import Control.Monad.Trans.State.Strict (evalStateT, get, modify')
+import Control.Monad.Trans.State.Strict (evalStateT, get, put)
 import Control.Monad.Trans.Class (lift)
 import Data.Foldable (for_)
 import Data.Time.Clock.System (getSystemTime, systemSeconds)
@@ -37,22 +37,26 @@ import OpenAPI.Operations.POSTMailSend
 import OpenAPI.Types.FromEmailObject (mkFromEmailObject, fromEmailObjectName)
 import Data.Coerce (coerce)
 import Data.String.Conv (toS)
+import qualified Control.Concurrent.Async.Lifted as Async
 
 
 makeDailyInvoices :: Int -> Int -> KatipContextT ServerM ()
 makeDailyInvoices freqBase freq = do
-  hasql <- fmap (^. hasqlDbPool) ask
-  cfg <- fmap (^.sendGrid) ask
   tm <-currentTime
-  let !day = utctDay tm
-  flip evalStateT day $ do
+  let !initDay = utctDay tm
+  flip evalStateT initDay $ do
     forever $ do  
       threadDelay $ freq * freqBase
+      hasql <- fmap (^. hasqlDbPool) ask
+      cfg <- fmap (^.sendGrid) ask 
+      Async.async (go hasql cfg) >>= Async.wait
+  where
+    go hasql cfg = do
       currDay <- get
       tm <- currentTime
       let !day = utctDay tm
       when (day /= currDay) $ do 
-        modify' (const day)
+        put day
         lift $ do
           dbResp <- transactionM hasql $ 
             statement fetchDailyInvoices currDay
