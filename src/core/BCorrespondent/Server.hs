@@ -43,7 +43,6 @@ import qualified BCorrespondent.Config as Cfg
 import BCorrespondent.Transport.Error
 import qualified BCorrespondent.Transport.Response as Response
 import qualified Control.Concurrent.Async.Lifted as Async.Lifted
-import Control.Concurrent.Lifted (fork)
 import Control.Exception
 import BuildInfo
 import Control.Lens
@@ -85,7 +84,6 @@ import Network.Wai.RateLimit.Postgres (postgresBackend)
 import Database.PostgreSQL.Simple.Internal
 import qualified Data.Pool as Pool
 import Data.Int (Int64)
-import qualified Control.Monad.State.Class as ST
 import Data.String (fromString)
 import Pretty (mkPretty)
 import Servant.RawM.Server ()
@@ -189,51 +187,42 @@ run Cfg {..} = do
 
   let jobXs =
           [
-             Job.Invoice.forwardToPaymentProvider
-           , Job.History.refreshMV
-           , Job.Wallet.archive
-           , Job.Wallet.withdraw
-           , Job.Report.makeDailyInvoices
-           , Job.Backup.run
-           , Job.Webhook.run
-           , Job.Cache.removeExpiredItems
-           , Job.Transaction.forward
+          --    Job.Invoice.forwardToPaymentProvider
+          --  , Job.History.refreshMV
+          --  , Job.Wallet.archive
+          --  , Job.Wallet.withdraw
+            Job.Report.makeDailyInvoices
+          --  , Job.Backup.run
+          --  , Job.Webhook.run
+          --  , Job.Cache.removeExpiredItems
+          --  , Job.Transaction.forward
           ]
 
-  mapM_ fork $ zipWith uncurry jobXs $ map ((freqBase, ) . (jobFrequency +)) [1, 3 .. ]
+  asyncXs <- mapM Async.Lifted.async $ zipWith uncurry jobXs $ map ((freqBase, ) . (jobFrequency +)) [1, 3 .. ]
 
-  -- main loop
-  forever $ do
+  ctx <- getKatipContext
 
-    ServerState c _ <- get
-    when (c == 50) $ throwM RecoveryFailed
-
-    ctx <- getKatipContext
-
-    serverAsync <-
-      Async.Lifted.async $
-        liftIO $ do
-          Warp.runSettings settings $
-            middleware cfgCors mware_logger $
-              prometheus (def @PrometheusSettings) $
-                Katip.Wai.runApplication
-                (runKatipContextT logEnv ctx ns) $
-                  mkApplication $
-                    serveWithContext (withSwagger api) mkContext hoistedServer
+  serverAsync <-
+    Async.Lifted.async $
+      liftIO $ do
+        Warp.runSettings settings $
+          middleware cfgCors mware_logger $
+            prometheus (def @PrometheusSettings) $
+              Katip.Wai.runApplication
+              (runKatipContextT logEnv ctx ns) $
+                mkApplication $
+                  serveWithContext (withSwagger api) mkContext hoistedServer
     
-    asyncRes <- fmap snd $ 
-      flip logExceptionM ErrorS $
-        Async.Lifted.waitAnyCatchCancel $
-          serverAsync : []
+  asyncRes <- fmap snd $
+    flip logExceptionM ErrorS $
+      Async.Lifted.waitAnyCatchCancel $
+        serverAsync : asyncXs
 
-    whenLeft asyncRes $ \e -> do
-      ST.modify' $ \s ->
-        s { errorCounter = 
-            errorCounter s + 1 }
-      let msg =
-            "server has been \
-            \ terminated with error "
-      $(logTM) EmergencyS $ fromString $ mkPretty mempty $ msg <> show e
+  whenLeft asyncRes $ \e -> 
+    $(logTM) EmergencyS $ 
+      fromString $ 
+        mkPretty mempty $ 
+          "server has been terminated: " <> show e
 
 middleware :: Cfg.Cors -> KatipLoggerLocIO -> Application -> Application
 middleware cors log app = mkCors cors app
