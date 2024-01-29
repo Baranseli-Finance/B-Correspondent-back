@@ -17,14 +17,14 @@ import Control.Monad.Time (currentTime)
 import Data.Time.Clock (utctDay)
 import Control.Monad (when, forever)
 import Data.Time.Calendar (weekFirstDay, DayOfWeek (Monday))
-import qualified Control.Concurrent.Async.Lifted as Async
+
 
 refreshMV :: Int -> Int -> KatipContextT ServerM ()
 refreshMV freqBase freq =
   forever $ do
     threadDelay $ freq * freqBase
     hasql <- fmap (^. hasqlDbPool) ask
-    Async.async (go hasql) >>= Async.wait
+    go hasql
   where 
     go hasql = do
       tm <- currentTime

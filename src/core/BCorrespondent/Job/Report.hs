@@ -37,7 +37,6 @@ import OpenAPI.Operations.POSTMailSend
 import OpenAPI.Types.FromEmailObject (mkFromEmailObject, fromEmailObjectName)
 import Data.Coerce (coerce)
 import Data.String.Conv (toS)
-import qualified Control.Concurrent.Async.Lifted as Async
 
 
 makeDailyInvoices :: Int -> Int -> KatipContextT ServerM ()
@@ -49,7 +48,7 @@ makeDailyInvoices freqBase freq = do
       threadDelay $ freq * freqBase
       hasql <- fmap (^. hasqlDbPool) ask
       cfg <- fmap (^.sendGrid) ask 
-      Async.async (go hasql cfg) >>= Async.wait
+      go hasql cfg
   where
     go hasql cfg = do
       currDay <- get

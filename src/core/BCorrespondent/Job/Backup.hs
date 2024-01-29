@@ -48,7 +48,6 @@ import Data.Text.Encoding (decodeUtf8)
 import Data.Time.Clock (getCurrentTime)
 import Data.Time.LocalTime (getCurrentTimeZone, utcToLocalTime, localTimeOfDay, todHour)
 import qualified Control.Parallel.Strategies as Par
-import qualified Control.Concurrent.Async.Lifted as Async
 
 
 run :: Int -> Int -> KatipContextT ServerM ()
@@ -62,7 +61,7 @@ run freqBase freq = do
       k <- fmap (^. symmetricKeyBase) ask
       hasql <- fmap (^. hasqlDbPool) ask
       conn <- fmap (^. psqlConn) ask
-      Async.async (go cfg mgr k hasql conn) >>= Async.wait
+      go cfg mgr k hasql conn
   where
     go cfg mgr k hasql ConnectInfo {..} = do
       currHour <- get

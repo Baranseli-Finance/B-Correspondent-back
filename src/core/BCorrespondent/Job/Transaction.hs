@@ -45,7 +45,6 @@ import qualified Crypto.PubKey.RSA as RSA
 import qualified Crypto.PubKey.RSA.PKCS15 as RSA 
 import qualified Crypto.PubKey.RSA.Types as RSA
 import qualified Crypto.Hash.Algorithms as RSA
-import qualified Control.Concurrent.Async.Lifted as Async
 
 
 forward :: Int -> Int -> KatipContextT ServerM ()
@@ -54,7 +53,7 @@ forward freqBase freq =
     threadDelay $ freq * freqBase
     hasql <- fmap (^. hasqlDbPool) ask
     key <- fmap (^.rSAKey) ask
-    Async.async (go hasql key) >>= Async.wait
+    go hasql key
   where 
     go hasql k = do
       dbRes <- transactionM hasql $ do 

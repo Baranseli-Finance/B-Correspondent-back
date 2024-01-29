@@ -29,10 +29,10 @@ import qualified BCorrespondent.Job.Invoice as Job.Invoice
 import qualified BCorrespondent.Job.History as Job.History
 import qualified BCorrespondent.Job.Wallet as Job.Wallet
 import qualified BCorrespondent.Job.Report as Job.Report
-import qualified BCorrespondent.Job.Backup as Job.Backup
-import qualified BCorrespondent.Job.Webhook as Job.Webhook
-import qualified BCorrespondent.Job.Cache as Job.Cache
-import qualified BCorrespondent.Job.Transaction as Job.Transaction
+-- import qualified BCorrespondent.Job.Backup as Job.Backup
+-- import qualified BCorrespondent.Job.Webhook as Job.Webhook
+-- import qualified BCorrespondent.Job.Cache as Job.Cache
+-- import qualified BCorrespondent.Job.Transaction as Job.Transaction
 import BCorrespondent.Statement.Auth (CheckToken)
 import BCorrespondent.Api
 import BCorrespondent.EnvKeys (Sendgrid)
@@ -185,24 +185,22 @@ run Cfg {..} = do
 
   mware_logger <- askLoggerWithLocIO `addServerNm` "middleware"
 
-  let jobXs =
+  let jobs =
           [
              Job.Invoice.forwardToPaymentProvider
            , Job.History.refreshMV
            , Job.Wallet.archive
            , Job.Wallet.withdraw
            , Job.Report.makeDailyInvoices
-           , Job.Backup.run
-           , Job.Webhook.run
-           , Job.Cache.removeExpiredItems
-           , Job.Transaction.forward
+          --  , Job.Backup.run
+          --  , Job.Webhook.run
+          --  , Job.Cache.removeExpiredItems
+          --  , Job.Transaction.forward
           ]
 
   ctx <- getKatipContext
 
-  asyncXs <- mapM (Async.Lifted.async . lift . runKatipContextT logEnv ctx ns) $ 
-               zipWith uncurry jobXs $ 
-                 map ((freqBase, ) . (jobFrequency +)) [1, 3 .. ]
+  jobsAsync <- mapM Async.Lifted.async $ zipWith uncurry jobs $ map ((freqBase, ) . (jobFrequency +)) [1, 3 .. ]
 
   serverAsync <-
     Async.Lifted.async $
@@ -218,13 +216,14 @@ run Cfg {..} = do
   asyncRes <- fmap snd $
     flip logExceptionM ErrorS $
       Async.Lifted.waitAnyCatchCancel $
-        serverAsync : asyncXs
+        serverAsync : jobsAsync
 
-  whenLeft asyncRes $ \e -> 
-    $(logTM) EmergencyS $ 
-      fromString $ 
-        mkPretty mempty $ 
-          "server has been terminated: " <> show e
+  whenLeft asyncRes $
+    $(logTM) EmergencyS .
+    fromString .
+    mkPretty mempty .
+    ("server has been terminated: " <>) . 
+    show
 
 middleware :: Cfg.Cors -> KatipLoggerLocIO -> Application -> Application
 middleware cors log app = mkCors cors app

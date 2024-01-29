@@ -35,7 +35,7 @@ run freqBase freq =
     threadDelay $ freq * freqBase
     hasql <- fmap (^. hasqlDbPool) ask
     manager <- fmap (^. httpReqManager) ask
-    Async.async (go hasql manager) >>= Async.wait
+    go hasql manager
   where
     go hasql manager = do 
       xs <- transactionM hasql $ statement fetch ()
