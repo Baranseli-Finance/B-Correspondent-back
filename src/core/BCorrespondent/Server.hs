@@ -191,7 +191,7 @@ run Cfg {..} = do
           --  , Job.History.refreshMV
           --  , Job.Wallet.archive
            , Job.Wallet.withdraw
-           , Job.Report.makeDailyInvoices
+           , \x y -> Job.Report.getDay >>= Job.Report.makeDailyInvoices x y
           --  , Job.Backup.run
            , Job.Webhook.run
            , Job.Cache.removeExpiredItems
