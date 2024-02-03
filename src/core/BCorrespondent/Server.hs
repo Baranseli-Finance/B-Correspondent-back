@@ -31,7 +31,7 @@ import qualified BCorrespondent.Job.Wallet as Job.Wallet
 import qualified BCorrespondent.Job.Report as Job.Report
 -- import qualified BCorrespondent.Job.Backup as Job.Backup
 import qualified BCorrespondent.Job.Webhook as Job.Webhook
-import qualified BCorrespondent.Job.Cache as Job.Cache
+-- import qualified BCorrespondent.Job.Cache as Job.Cache
 import qualified BCorrespondent.Job.Transaction as Job.Transaction
 import BCorrespondent.Statement.Auth (CheckToken)
 import BCorrespondent.Api
@@ -191,10 +191,10 @@ run Cfg {..} = do
           --  , Job.History.refreshMV
           --  , Job.Wallet.archive
            , Job.Wallet.withdraw
-           , \x y -> Job.Report.getDay >>= Job.Report.makeDailyInvoices x y
+           , Job.Report.makeDailyInvoices
           --  , Job.Backup.run
            , Job.Webhook.run
-           , Job.Cache.removeExpiredItems
+          --  , Job.Cache.removeExpiredItems
            , Job.Transaction.forward
           ]
 
