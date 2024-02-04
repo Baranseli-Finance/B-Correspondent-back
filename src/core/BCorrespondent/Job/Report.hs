@@ -47,9 +47,9 @@ makeDailyInvoices diff freqBase freq = do
       threadDelay $ freq * freqBase
       hasql <- fmap (^. hasqlDbPool) ask
       cfg <- fmap (^.sendGrid) ask 
-      go hasql cfg
+      go hasql cfg $ fromIntegral diff
   where
-    go hasql cfg = do
+    go hasql cfg diff = do
       currTm <- get
       nowTm <- liftIO $ fmap systemSeconds getSystemTime
       when (currTm + diff < nowTm) $ do 
