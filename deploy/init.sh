@@ -37,4 +37,4 @@ echo 'launch server..'
         --b_correspondent_db_pass ${keysmap[1]} \
         --b_correspondent_database ${keysmap[2]} \
         --freq_base 1000000 \
-        +RTS -A32m -M512m -Fd2 -N2 -G6 -qg6 -qb6"
+        +RTS -A32m -M512m -Fd2 -N2 -G2 -qg2 -qb2"

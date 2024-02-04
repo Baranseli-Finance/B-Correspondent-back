@@ -39,11 +39,10 @@ import Data.Coerce (coerce)
 import Data.String.Conv (toS)
 
 
-makeDailyInvoices :: Int -> Int -> KatipContextT ServerM ()
-makeDailyInvoices freqBase freq = do
-  tm <-currentTime
-  let !initDay = utctDay tm
-  flip evalStateT initDay $ do
+makeDailyInvoices :: Int -> Int -> Int -> KatipContextT ServerM ()
+makeDailyInvoices diff freqBase freq = do
+  iniTm <- liftIO $ fmap systemSeconds getSystemTime
+  flip evalStateT iniTm $ do
     forever $ do  
       threadDelay $ freq * freqBase
       hasql <- fmap (^. hasqlDbPool) ask
@@ -51,12 +50,13 @@ makeDailyInvoices freqBase freq = do
       go hasql cfg
   where
     go hasql cfg = do
-      currDay <- get
-      tm <- currentTime
-      let !day = utctDay tm
-      when (day /= currDay) $ do 
-        put day
+      currTm <- get
+      nowTm <- liftIO $ fmap systemSeconds getSystemTime
+      when (currTm + diff < nowTm) $ do 
+        put nowTm
         lift $ do
+          tm <- currentTime
+          let !currDay = utctDay tm
           dbResp <- transactionM hasql $ 
             statement fetchDailyInvoices currDay
           for_ dbResp $ \DailyInvoices {..} ->
