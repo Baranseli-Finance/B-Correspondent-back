@@ -5,7 +5,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module Cache.PostgreSQL (init) where
+module Cache.Sql (init) where
 
 import Prelude hiding (init)
 

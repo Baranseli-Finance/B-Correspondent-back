@@ -64,12 +64,12 @@ import Control.Monad.IO.Class
 import qualified Data.Map.Strict as Map
 import qualified Data.ByteString.Lazy as B
 import Data.Either.Combinators (whenLeft)
-import Data.Aeson (eitherDecode')
+import Data.Aeson (eitherDecode', Value)
 import Data.String.Conv (toS)
 import Database.PostgreSQL.Simple.Internal (ConnectInfo (..), connect, close)
 import BuildInfo (getSystemInfo)
-import qualified Cache.MVar as MemCache
-import qualified Cache.PostgreSQL as SqlCache
+import qualified Cache.Memory as MemCache
+import qualified Cache.Sql as SqlCache
 import qualified Data.ByteString.Base64 as B64 
 import Data.Text.Encoding (encodeUtf8)
 import qualified Prometheus as Prometheus (register)
@@ -336,8 +336,6 @@ main = do
         }
 
   cache <- MemCache.init
-  -- not used
-  _ <- SqlCache.init @(KatipContextT ServerM) @() hasqlpool
 
   jwke <- liftIO $ fmap (eitherDecode' @JWK) $ B.readFile pathToJwk
   symmetricKeyBasee <- fmap (B64.decode . encodeUtf8 . toS) $ B.readFile pathToSymmetricBase
@@ -377,7 +375,8 @@ main = do
               katipEnvRSAKey = rsaKey
           }
 
-    serverCache <- MemCache.init
+    -- not used
+    serverCache <- SqlCache.init @(KatipContextT ServerM) @Value hasqlpool
     let def = ServerState serverCache
     let shutdownMsg = print "------ server is shut down --------"
     let runKatip le = 

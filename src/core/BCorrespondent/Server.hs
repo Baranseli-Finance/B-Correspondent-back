@@ -201,7 +201,7 @@ run Cfg {..} = do
 
   ctx <- getKatipContext
 
-  mapM_ CL.fork $ zipWith uncurry jobs $ map ((freqBase, ) . (jobFrequency +)) [1, 3 .. ]
+  jobThreads <- mapM CL.fork $ zipWith uncurry jobs $ map ((freqBase, ) . (jobFrequency +)) [1, 3 .. ]
 
   serverAsync <-
     Async.Lifted.async $
@@ -214,17 +214,15 @@ run Cfg {..} = do
                 mkApplication $
                   serveWithContext (withSwagger api) mkContext hoistedServer
     
-  asyncRes <- fmap snd $
-    flip logExceptionM ErrorS $
-      Async.Lifted.waitAnyCatchCancel
-        [serverAsync]
+  asyncRes <- Async.Lifted.waitCatch serverAsync `logExceptionM` ErrorS
 
-  whenLeft asyncRes $
-    $(logTM) EmergencyS .
-    fromString .
-    mkPretty mempty .
-    ("server has been terminated: " <>) . 
-    show
+  whenLeft asyncRes $ \reason -> do 
+    $(logTM) EmergencyS $ 
+      fromString $
+        mkPretty mempty $ 
+          "server has been terminated: " <> 
+          show reason
+    mapM_ CL.killThread jobThreads
 
 middleware :: Cfg.Cors -> KatipLoggerLocIO -> Application -> Application
 middleware cors log app = mkCors cors app

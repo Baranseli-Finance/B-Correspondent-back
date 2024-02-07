@@ -5,7 +5,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module Cache.MVar (init) where
+module Cache.Memory (init) where
 
 import Prelude hiding (init)
 
