@@ -378,7 +378,7 @@ main = do
           }
 
     serverCache <- MemCache.init
-    let def = ServerState 0 serverCache
+    let def = ServerState serverCache
     let shutdownMsg = print "------ server is shut down --------"
     let runKatip le = 
           runKatipContextT le (mempty @LogContexts) mempty $ 

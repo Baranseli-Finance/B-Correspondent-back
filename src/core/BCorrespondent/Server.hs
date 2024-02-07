@@ -42,6 +42,7 @@ import BCorrespondent.ServerM
 import qualified BCorrespondent.Config as Cfg
 import BCorrespondent.Transport.Error
 import qualified BCorrespondent.Transport.Response as Response
+import qualified Control.Concurrent.Lifted as CL
 import qualified Control.Concurrent.Async.Lifted as Async.Lifted
 import Control.Exception
 import BuildInfo
@@ -200,7 +201,7 @@ run Cfg {..} = do
 
   ctx <- getKatipContext
 
-  jobsAsync <- mapM Async.Lifted.async $ zipWith uncurry jobs $ map ((freqBase, ) . (jobFrequency +)) [1, 3 .. ]
+  mapM_ CL.fork $ zipWith uncurry jobs $ map ((freqBase, ) . (jobFrequency +)) [1, 3 .. ]
 
   serverAsync <-
     Async.Lifted.async $
@@ -215,8 +216,8 @@ run Cfg {..} = do
     
   asyncRes <- fmap snd $
     flip logExceptionM ErrorS $
-      Async.Lifted.waitAnyCatchCancel $
-        serverAsync : jobsAsync
+      Async.Lifted.waitAnyCatchCancel
+        [serverAsync]
 
   whenLeft asyncRes $
     $(logTM) EmergencyS .

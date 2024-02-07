@@ -33,7 +33,7 @@ import Data.Text (Text)
 import Data.Aeson (Value)
 
 
-data ServerState = ServerState { errorCounter :: Int, cache :: Cache (KatipContextT ServerM) Text Value }
+data ServerState = ServerState { cache :: Cache (KatipContextT ServerM) Text Value }
 
 
 newtype ServerM a = ServerM {runServerM :: RWS.RWST KatipEnv KatipLogger ServerState IO a}
