@@ -25,14 +25,14 @@
 module BCorrespondent.Server (Cfg (..), ServerM (..), run, populateCache, addServerNm) where
 
 import BCorrespondent.Statement.Institution.Auth (Institution (..), fetchToken)
-import qualified BCorrespondent.Job.Invoice as Job.Invoice
-import qualified BCorrespondent.Job.History as Job.History
-import qualified BCorrespondent.Job.Wallet as Job.Wallet
+-- import qualified BCorrespondent.Job.Invoice as Job.Invoice
+-- import qualified BCorrespondent.Job.History as Job.History
+-- import qualified BCorrespondent.Job.Wallet as Job.Wallet
 import qualified BCorrespondent.Job.Report as Job.Report
-import qualified BCorrespondent.Job.Backup as Job.Backup
-import qualified BCorrespondent.Job.Webhook as Job.Webhook
-import qualified BCorrespondent.Job.Cache as Job.Cache
-import qualified BCorrespondent.Job.Transaction as Job.Transaction
+-- import qualified BCorrespondent.Job.Backup as Job.Backup
+-- import qualified BCorrespondent.Job.Webhook as Job.Webhook
+-- import qualified BCorrespondent.Job.Cache as Job.Cache
+-- import qualified BCorrespondent.Job.Transaction as Job.Transaction
 import BCorrespondent.Statement.Auth (CheckToken)
 import BCorrespondent.Api
 import BCorrespondent.EnvKeys (Sendgrid)
@@ -42,7 +42,6 @@ import BCorrespondent.ServerM
 import qualified BCorrespondent.Config as Cfg
 import BCorrespondent.Transport.Error
 import qualified BCorrespondent.Transport.Response as Response
-import qualified Control.Concurrent.Lifted as CL
 import qualified Control.Concurrent.Async.Lifted as Async.Lifted
 import Control.Exception
 import BuildInfo
@@ -188,20 +187,20 @@ run Cfg {..} = do
 
   let jobs =
           [
-             Job.Invoice.forwardToPaymentProvider
-           , Job.History.refreshMV
-           , Job.Wallet.archive
-           , Job.Wallet.withdraw
-           , Job.Report.makeDailyInvoices 3600
-           , Job.Backup.run
-           , Job.Webhook.run
-           , Job.Cache.removeExpiredItems
-           , Job.Transaction.forward
+            Job.Report.makeDailyInvoices 3600
+          --    Job.Invoice.forwardToPaymentProvider
+          --  , Job.History.refreshMV
+          --  , Job.Wallet.archive
+          --  , Job.Wallet.withdraw
+          --  , Job.Backup.run
+          --  , Job.Webhook.run
+          --  , Job.Cache.removeExpiredItems
+          --  , Job.Transaction.forward
           ]
 
   ctx <- getKatipContext
 
-  jobThreads <- mapM CL.fork $ zipWith uncurry jobs $ map ((freqBase, ) . (jobFrequency +)) [1, 3 .. ]
+  jobsAsync <- mapM Async.Lifted.async $ zipWith uncurry jobs $ map ((freqBase, ) . (jobFrequency +)) [1, 3 .. ]
 
   serverAsync <-
     Async.Lifted.async $
@@ -214,7 +213,7 @@ run Cfg {..} = do
                 mkApplication $
                   serveWithContext (withSwagger api) mkContext hoistedServer
     
-  asyncRes <- Async.Lifted.waitCatch serverAsync `logExceptionM` ErrorS
+  asyncRes <- fmap snd $ Async.Lifted.waitAnyCatchCancel (serverAsync : jobsAsync)  `logExceptionM` ErrorS
 
   whenLeft asyncRes $ \reason -> do 
     $(logTM) EmergencyS $ 
@@ -222,7 +221,6 @@ run Cfg {..} = do
         mkPretty mempty $ 
           "server has been terminated: " <> 
           show reason
-    mapM_ CL.killThread jobThreads
 
 middleware :: Cfg.Cors -> KatipLoggerLocIO -> Application -> Application
 middleware cors log app = mkCors cors app
