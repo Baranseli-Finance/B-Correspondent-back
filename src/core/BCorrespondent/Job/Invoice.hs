@@ -66,14 +66,14 @@ forwardToPaymentProvider freqBase freq =
   forever $ do
     threadDelay $ freq * freqBase
     hasql <- fmap (^. hasqlDbPool) ask
-    manager <- fmap (^.httpReqManager) ask
-    go hasql manager
+    go hasql
   where
-    go hasql manager = do
+    go hasql = do
       res <- transactionM hasql $ statement getInvoicesToBeSent 20
       case res of
         Right xs -> do
-          yss <- Async.forConcurrently xs $ 
+          manager <- fmap (^.httpReqManager) ask
+          yss <- Async.forConcurrently xs $
             \(ident, cred, zs) ->
               fmap (map (second (consT ident))) $
                 sendInvoices manager Q.queries cred zs
