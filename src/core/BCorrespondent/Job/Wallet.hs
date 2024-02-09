@@ -39,15 +39,15 @@ withdraw freqBase freq =
   forever $ do
     threadDelay $ freq * freqBase
     hasql <- fmap (^. hasqlDbPool) ask
-    manager <- fmap (^.httpReqManager) ask
-    go hasql manager
+    go hasql
   where
-    go hasql manager = do
+    go hasql = do
       xs <- transactionM hasql $ statement fetchWithdrawals ()
       ys <- Async.forConcurrently xs $ \x -> do
         let body = uncurryT WithdrawalPaymentProviderRequest $ del1 x
         let mkResp = bimap ((x^._1,) . toS . show) (const (x^._1))
         let onFailure = pure . Left . show
+        manager <- fmap (^.httpReqManager) ask
         fmap mkResp $ Request.makePostReq @WithdrawalPaymentProviderRequest mempty manager [] body onFailure
       let (es, os) = partitionEithers ys
       for_ es $ \(ident, error) ->

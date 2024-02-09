@@ -90,6 +90,7 @@ import Servant.RawM.Server ()
 import Cache (Cache (Cache, insert))
 import Data.Foldable (for_)
 import Network.Wai.Middleware.Prometheus (prometheus, PrometheusSettings)
+import Control.Concurrent.Lifted (threadDelay)
 
 
 data Cfg = Cfg
@@ -196,6 +197,11 @@ run Cfg {..} = do
           --  , Job.Webhook.run
           --  , Job.Cache.removeExpiredItems
           --  , Job.Transaction.forward
+          , \_ _ -> forever $ do threadDelay (5 * 1_000_000); $(logTM) InfoS "thread1"
+          , \_ _ -> forever $ do threadDelay (5 * 1_000_000); $(logTM) InfoS "thread2"
+          , \_ _ -> forever $ do threadDelay (5 * 1_000_000); $(logTM) InfoS "thread3"
+          , \_ _ -> forever $ do threadDelay (5 * 1_000_000); $(logTM) InfoS "thread4"
+          , \_ _ -> forever $ do threadDelay (5 * 1_000_000); $(logTM) InfoS "thread5"
           ]
 
   ctx <- getKatipContext

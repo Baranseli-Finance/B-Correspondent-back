@@ -56,14 +56,10 @@ run freqBase freq = do
   flip evalStateT hour $ do
     forever $ do
       threadDelay $ freq * freqBase
-      cfg <- fmap (^. google) ask
-      mgr <- fmap (^. httpReqManager) ask
-      k <- fmap (^. symmetricKeyBase) ask
-      hasql <- fmap (^. hasqlDbPool) ask
       conn <- fmap (^. psqlConn) ask
-      go cfg mgr k hasql conn
+      go conn
   where
-    go cfg mgr k hasql ConnectInfo {..} = do
+    go ConnectInfo {..} = do
       currHour <- get
       !hour <- liftIO getCurrentHour
       doBackup <- fmap (^. backupBigDB) ask
@@ -85,11 +81,15 @@ run freqBase freq = do
           let file = "b-correspondent_" <> show tm <> ".sql"
           content <- liftIO $ readFile $ tmp <> "/" <> file
           let hash = mkHashMd5 toS content
+          hasql <- fmap (^. hasqlDbPool) ask
           isOk <- transactionM hasql $ statement insert hash
-          when isOk $
+          when isOk $ do 
+            cfg <- fmap (^. google) ask
+            mgr <- fmap (^. httpReqManager) ask
             for_ cfg $ \Google {..} -> do
               resp <- liftIO $ obtainAccessToken mgr googleTokenUrl googleTokenEmail googleTokenPk
               for_ resp $ \(AccessToken token) -> do
+                k <- fmap (^. symmetricKeyBase) ask
                 let cipheredContent = cryptContent k $ toS content
                 for_ cipheredContent $ \bs -> do
                   let part = [partBS (toS ("/b-correspondent_" <> show tm <> ".sql")) $ toS bs]
