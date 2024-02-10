@@ -26,13 +26,13 @@ module BCorrespondent.Server (Cfg (..), ServerM (..), run, populateCache, addSer
 
 import BCorrespondent.Statement.Institution.Auth (Institution (..), fetchToken)
 import qualified BCorrespondent.Job.Invoice as Job.Invoice
--- import qualified BCorrespondent.Job.History as Job.History
--- import qualified BCorrespondent.Job.Wallet as Job.Wallet
--- import qualified BCorrespondent.Job.Report as Job.Report
--- import qualified BCorrespondent.Job.Backup as Job.Backup
--- import qualified BCorrespondent.Job.Webhook as Job.Webhook
--- import qualified BCorrespondent.Job.Cache as Job.Cache
--- import qualified BCorrespondent.Job.Transaction as Job.Transaction
+import qualified BCorrespondent.Job.History as Job.History
+import qualified BCorrespondent.Job.Wallet as Job.Wallet
+import qualified BCorrespondent.Job.Report as Job.Report
+import qualified BCorrespondent.Job.Backup as Job.Backup
+import qualified BCorrespondent.Job.Webhook as Job.Webhook
+import qualified BCorrespondent.Job.Cache as Job.Cache
+import qualified BCorrespondent.Job.Transaction as Job.Transaction
 import BCorrespondent.Statement.Auth (CheckToken)
 import BCorrespondent.Api
 import BCorrespondent.EnvKeys (Sendgrid)
@@ -90,7 +90,6 @@ import Servant.RawM.Server ()
 import Cache (Cache (Cache, insert))
 import Data.Foldable (for_)
 import Network.Wai.Middleware.Prometheus (prometheus, PrometheusSettings)
-import Control.Concurrent.Lifted (threadDelay)
 
 
 data Cfg = Cfg
@@ -188,20 +187,15 @@ run Cfg {..} = do
 
   let jobs =
           [
-            -- Job.Report.makeDailyInvoices 3600
-            Job.Invoice.forwardToPaymentProvider
-          -- , Job.History.refreshMV ????
-          --  , Job.Wallet.archive
-          --  , Job.Wallet.withdraw
-          --  , Job.Backup.run
-          --  , Job.Webhook.run
-          --  , Job.Cache.removeExpiredItems
-          --  , Job.Transaction.forward
-          , \_ _ -> forever $ do threadDelay (5 * 1_000_000); $(logTM) InfoS "thread1"
-          , \_ _ -> forever $ do threadDelay (5 * 1_000_000); $(logTM) InfoS "thread2"
-          , \_ _ -> forever $ do threadDelay (5 * 1_000_000); $(logTM) InfoS "thread3"
-          , \_ _ -> forever $ do threadDelay (5 * 1_000_000); $(logTM) InfoS "thread4"
-          , \_ _ -> forever $ do threadDelay (5 * 1_000_000); $(logTM) InfoS "thread5"
+            Job.Report.makeDailyInvoices
+          , Job.Invoice.forwardToPaymentProvider
+          , Job.History.refreshMV
+          , Job.Wallet.archive
+          , Job.Wallet.withdraw
+          , Job.Backup.run
+          , Job.Webhook.run
+          , Job.Cache.removeExpiredItems
+          , Job.Transaction.forward
           ]
 
   ctx <- getKatipContext
