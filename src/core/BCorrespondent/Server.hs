@@ -190,7 +190,7 @@ run Cfg {..} = do
           [
             Job.Report.makeDailyInvoices 3600
           , Job.Invoice.forwardToPaymentProvider
-          , Job.History.refreshMV
+          -- , Job.History.refreshMV
           --  , Job.Wallet.archive
           --  , Job.Wallet.withdraw
           --  , Job.Backup.run
