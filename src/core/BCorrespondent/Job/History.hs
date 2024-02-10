@@ -23,11 +23,8 @@ refreshMV :: Int -> Int -> KatipContextT ServerM ()
 refreshMV freqBase freq =
   forever $ do
     threadDelay $ freq * freqBase
-    hasql <- fmap (^. hasqlDbPool) ask
-    go hasql
-  where 
-    go hasql = do
-      tm <- currentTime
-      let day = utctDay tm
-      let firstDay = weekFirstDay Monday day
-      when (day == firstDay) $ transactionM hasql $ statement S.refreshMV ()
+    tm <- currentTime
+    let day = utctDay tm
+    let firstDay = weekFirstDay Monday day
+    when (day == firstDay) $
+      fmap (^. hasqlDbPool) ask >>= (`transactionM` (statement S.refreshMV ()))
