@@ -187,7 +187,7 @@ run Cfg {..} = do
 
   let jobs =
           [
-          , Job.Invoice.forwardToPaymentProvider
+            Job.Invoice.forwardToPaymentProvider
           , Job.Wallet.withdraw
           , Job.Webhook.run
           , Job.Cache.removeExpiredItems
